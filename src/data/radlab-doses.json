@@ -1,0 +1,110 @@
+[
+  {
+    "instrument": "DOSTEL-1",
+    "location": "Columbus Laboratory (ESA Module)",
+    "startDate": "2012-05-22",
+    "endDate": "2012-08-15",
+    "absorbedDoseRate": 227.5,
+    "description": "The DOSTEL detector measured radiation inside Europe's Columbus lab on the ISS. Astronauts receive about as much radiation in one day up there as you get in a whole year on Earth!",
+    "sourceUrl": "https://visualization.osdr.nasa.gov/radlab/gui/data-api/"
+  },
+  {
+    "instrument": "DOSTEL-2",
+    "location": "Columbus Laboratory (ESA Module)",
+    "startDate": "2014-11-12",
+    "endDate": "2015-03-20",
+    "absorbedDoseRate": 241.3,
+    "description": "An upgraded version of DOSTEL kept tracking radiation levels. During solar storms, the dose rate can jump up even higher — that's when astronauts need extra shielding!",
+    "sourceUrl": "https://visualization.osdr.nasa.gov/radlab/gui/data-api/"
+  },
+  {
+    "instrument": "Liulin-5",
+    "location": "MIM-1 Rassvet Module",
+    "startDate": "2015-06-01",
+    "endDate": "2015-09-30",
+    "absorbedDoseRate": 195.8,
+    "description": "The Bulgarian-made Liulin detector helped scientists track radiation in the Russian part of the station. Different spots on the ISS get slightly different radiation levels!",
+    "sourceUrl": "https://visualization.osdr.nasa.gov/radlab/gui/data-api/"
+  },
+  {
+    "instrument": "IV-CPDS",
+    "location": "US Laboratory Destiny",
+    "startDate": "2001-04-10",
+    "endDate": "2001-12-31",
+    "absorbedDoseRate": 178.2,
+    "description": "NASA's own radiation detector has been monitoring dose rates since the early days of the ISS. It helps keep astronauts safe by tracking how much radiation they receive.",
+    "sourceUrl": "https://visualization.osdr.nasa.gov/radlab/gui/data-api/"
+  },
+  {
+    "instrument": "IV-CPDS",
+    "location": "US Laboratory Destiny",
+    "startDate": "2003-10-28",
+    "endDate": "2003-11-05",
+    "absorbedDoseRate": 312.4,
+    "description": "During the famous Halloween Solar Storms of 2003, radiation levels spiked way above normal! The crew took shelter in the most shielded parts of the station.",
+    "sourceUrl": "https://visualization.osdr.nasa.gov/radlab/gui/data-api/"
+  },
+  {
+    "instrument": "DOSTEL-1",
+    "location": "Columbus Laboratory (ESA Module)",
+    "startDate": "2009-06-15",
+    "endDate": "2009-12-20",
+    "absorbedDoseRate": 158.6,
+    "description": "During solar minimum (when the Sun is quiet), cosmic rays from deep space actually increase! Without the Sun's magnetic field pushing them away, more sneak through.",
+    "sourceUrl": "https://visualization.osdr.nasa.gov/radlab/gui/data-api/"
+  },
+  {
+    "instrument": "TEPC",
+    "location": "US Laboratory Destiny",
+    "startDate": "2010-03-01",
+    "endDate": "2010-09-30",
+    "absorbedDoseRate": 203.1,
+    "description": "The Tissue Equivalent Proportional Counter mimics how human tissue absorbs radiation. It helps scientists figure out how much radiation an astronaut's body actually receives.",
+    "sourceUrl": "https://visualization.osdr.nasa.gov/radlab/gui/data-api/"
+  },
+  {
+    "instrument": "Liulin-5",
+    "location": "Zvezda Service Module",
+    "startDate": "2017-04-01",
+    "endDate": "2017-09-30",
+    "absorbedDoseRate": 213.7,
+    "description": "The Zvezda module is one of the oldest parts of the ISS. Its walls provide some shielding, but cosmic rays still get through — they can even pass through your hand!",
+    "sourceUrl": "https://visualization.osdr.nasa.gov/radlab/gui/data-api/"
+  },
+  {
+    "instrument": "IV-CPDS",
+    "location": "US Laboratory Destiny",
+    "startDate": "2017-09-06",
+    "endDate": "2017-09-15",
+    "absorbedDoseRate": 289.5,
+    "description": "The X9.3 solar flare in September 2017 pushed radiation levels higher than usual on the ISS. Luckily, Earth's magnetic field helped protect the station.",
+    "sourceUrl": "https://visualization.osdr.nasa.gov/radlab/gui/data-api/"
+  },
+  {
+    "instrument": "DOSTEL-2",
+    "location": "Columbus Laboratory (ESA Module)",
+    "startDate": "2019-01-10",
+    "endDate": "2019-06-30",
+    "absorbedDoseRate": 147.9,
+    "description": "Solar Cycle 24 was winding down, so radiation from the Sun was low. But galactic cosmic rays from exploding stars far away were at their highest!",
+    "sourceUrl": "https://visualization.osdr.nasa.gov/radlab/gui/data-api/"
+  },
+  {
+    "instrument": "REM",
+    "location": "Tranquility Module (Node 3)",
+    "startDate": "2020-07-01",
+    "endDate": "2020-12-31",
+    "absorbedDoseRate": 168.4,
+    "description": "The Radiation Environment Monitor tracks radiation in real time. When levels spike during a solar event, it helps Mission Control warn the crew to take shelter.",
+    "sourceUrl": "https://visualization.osdr.nasa.gov/radlab/gui/data-api/"
+  },
+  {
+    "instrument": "HERA",
+    "location": "Japanese Experiment Module Kibo",
+    "startDate": "2022-02-01",
+    "endDate": "2022-07-31",
+    "absorbedDoseRate": 234.6,
+    "description": "Japan's Kibo module has less shielding in some areas, so radiation readings can be a bit higher. Scientists use this data to design better shielding for future spacecraft.",
+    "sourceUrl": "https://visualization.osdr.nasa.gov/radlab/gui/data-api/"
+  }
+]

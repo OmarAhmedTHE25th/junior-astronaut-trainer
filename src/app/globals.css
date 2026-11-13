@@ -1,26 +1,210 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ── Custom Theme ─────────────────────────────────────────────── */
+@theme {
+  --color-space-navy: #0B1026;
+  --color-mars-orange: #E87040;
+  --color-cosmic-purple: #6B3FA0;
+  --color-o2-blue: #3B82F6;
+  --color-shield-green: #22C55E;
+  --color-warning-red: #EF4444;
+  --color-starlight: #F8FAFC;
+
+  --font-heading: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* ── Keyframes ────────────────────────────────────────────────── */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Drifting white dots behind the whole page */
+@keyframes starfield {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-100%);
   }
 }
 
+/* Resource-bar warning pulse */
+@keyframes pulse-warning {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.04);
+  }
+}
+
+/* Victory confetti */
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* Gentle floating (astronaut icons, planets) */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+/* Card entrance from below */
+@keyframes slide-up {
+  0% {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Simple fade in */
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Glow pulse for CTA button */
+@keyframes glow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(232, 112, 64, 0.4),
+                0 0 60px rgba(232, 112, 64, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(232, 112, 64, 0.7),
+                0 0 90px rgba(232, 112, 64, 0.3);
+  }
+}
+
+/* ── Utility animation classes ────────────────────────────────── */
+.animate-starfield {
+  animation: starfield 60s linear infinite;
+}
+
+.animate-pulse-warning {
+  animation: pulse-warning 1.4s ease-in-out infinite;
+}
+
+.animate-confetti {
+  animation: confetti-fall 3s ease-in forwards;
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s ease-out both;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out both;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2.2s ease-in-out infinite;
+}
+
+/* ── Base body styles ─────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-space-navy);
+  color: var(--color-starlight);
+  font-family: var(--font-body);
+  min-height: 100dvh;
+}
+
+/* ── Custom scrollbar (Webkit) ────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-space-navy);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-cosmic-purple);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-mars-orange);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-cosmic-purple) var(--color-space-navy);
+}
+
+/* ── Starfield background helper ──────────────────────────────── */
+.starfield-bg {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.starfield-bg::before,
+.starfield-bg::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 200%;
+  background-image:
+    radial-gradient(1.5px 1.5px at  20px  30px, white 50%, transparent 51%),
+    radial-gradient(1px   1px   at  80px  70px, white 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 150px  20px, white 50%, transparent 51%),
+    radial-gradient(1px   1px   at 200px 110px, white 50%, transparent 51%),
+    radial-gradient(2px   2px   at 300px  50px, rgba(255,255,255,0.8) 50%, transparent 51%),
+    radial-gradient(1px   1px   at 400px 150px, white 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 500px  90px, white 50%, transparent 51%),
+    radial-gradient(1px   1px   at 600px 200px, white 50%, transparent 51%),
+    radial-gradient(1px   1px   at  50px 250px, white 50%, transparent 51%),
+    radial-gradient(2px   2px   at 250px 300px, rgba(255,255,255,0.9) 50%, transparent 51%),
+    radial-gradient(1px   1px   at 350px 280px, white 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 450px 350px, white 50%, transparent 51%),
+    radial-gradient(1px   1px   at 550px 320px, white 50%, transparent 51%),
+    radial-gradient(1px   1px   at 650px 380px, white 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 120px 420px, white 50%, transparent 51%),
+    radial-gradient(1px   1px   at 280px 450px, white 50%, transparent 51%);
+  background-repeat: repeat;
+  background-size: 700px 500px;
+}
+
+.starfield-bg::before {
+  animation: starfield 80s linear infinite;
+  opacity: 0.7;
+}
+
+.starfield-bg::after {
+  animation: starfield 120s linear infinite;
+  opacity: 0.4;
+  background-size: 900px 600px;
 }

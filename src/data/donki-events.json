@@ -1,0 +1,164 @@
+[
+  {
+    "id": "donki-001",
+    "eventType": "Solar Flare",
+    "date": "2003-11-04T19:29:00Z",
+    "classType": "X28",
+    "intensity": 10,
+    "description": "The most powerful solar flare ever recorded! This mega-blast from the Sun was so strong that it went off the scale of our measuring instruments.",
+    "sourceUrl": "https://ccmc.gsfc.nasa.gov/tools/DONKI/"
+  },
+  {
+    "id": "donki-002",
+    "eventType": "Solar Flare",
+    "date": "2017-09-06T12:02:00Z",
+    "classType": "X9.3",
+    "intensity": 9,
+    "description": "The strongest solar flare in over a decade! This powerful explosion sent a burst of energy racing toward Earth at nearly the speed of light.",
+    "sourceUrl": "https://ccmc.gsfc.nasa.gov/tools/DONKI/"
+  },
+  {
+    "id": "donki-003",
+    "eventType": "Solar Flare",
+    "date": "2017-09-10T16:06:00Z",
+    "classType": "X8.2",
+    "intensity": 9,
+    "description": "Just days after another huge flare, the Sun blasted out another powerful X-class flare from the same active sunspot region. Double trouble!",
+    "sourceUrl": "https://ccmc.gsfc.nasa.gov/tools/DONKI/"
+  },
+  {
+    "id": "donki-004",
+    "eventType": "Solar Flare",
+    "date": "2003-10-28T11:10:00Z",
+    "classType": "X17.2",
+    "intensity": 10,
+    "description": "Part of the famous Halloween Solar Storms! This enormous flare knocked out some satellites and created beautiful auroras visible all the way to Florida.",
+    "sourceUrl": "https://ccmc.gsfc.nasa.gov/tools/DONKI/"
+  },
+  {
+    "id": "donki-005",
+    "eventType": "CME",
+    "date": "2003-10-28T11:30:00Z",
+    "classType": "Halo CME",
+    "intensity": 10,
+    "description": "A giant bubble of magnetized gas erupted from the Sun and headed straight for Earth! It traveled at over 2,000 km per second — super fast even for space weather.",
+    "sourceUrl": "https://ccmc.gsfc.nasa.gov/tools/DONKI/"
+  },
+  {
+    "id": "donki-006",
+    "eventType": "Solar Flare",
+    "date": "2024-05-14T16:51:00Z",
+    "classType": "X8.7",
+    "intensity": 9,
+    "description": "The biggest solar flare of Solar Cycle 25! This powerful flare caused radio blackouts across the sunlit side of Earth for about an hour.",
+    "sourceUrl": "https://ccmc.gsfc.nasa.gov/tools/DONKI/"
+  },
+  {
+    "id": "donki-007",
+    "eventType": "Solar Flare",
+    "date": "2011-08-09T08:05:00Z",
+    "classType": "X6.9",
+    "intensity": 8,
+    "description": "The biggest flare of Solar Cycle 24! Sunspot region 1263 unleashed this powerful blast of X-ray energy into space.",
+    "sourceUrl": "https://ccmc.gsfc.nasa.gov/tools/DONKI/"
+  },
+  {
+    "id": "donki-008",
+    "eventType": "Solar Flare",
+    "date": "2005-01-20T06:36:00Z",
+    "classType": "X7.1",
+    "intensity": 8,
+    "description": "This powerful flare came with a huge burst of fast-moving protons — the strongest solar radiation storm in 50 years! Astronauts had to take shelter.",
+    "sourceUrl": "https://ccmc.gsfc.nasa.gov/tools/DONKI/"
+  },
+  {
+    "id": "donki-009",
+    "eventType": "Solar Energetic Particle",
+    "date": "2005-01-20T06:50:00Z",
+    "classType": "S4",
+    "intensity": 8,
+    "description": "A massive wave of energetic protons zoomed through space at nearly the speed of light! These particles can be dangerous for astronauts without proper shielding.",
+    "sourceUrl": "https://ccmc.gsfc.nasa.gov/tools/DONKI/"
+  },
+  {
+    "id": "donki-010",
+    "eventType": "Solar Flare",
+    "date": "2014-02-25T00:49:00Z",
+    "classType": "X4.9",
+    "intensity": 7,
+    "description": "This strong X-class flare erupted from a big sunspot group. It caused a brief radio blackout on the side of Earth facing the Sun.",
+    "sourceUrl": "https://ccmc.gsfc.nasa.gov/tools/DONKI/"
+  },
+  {
+    "id": "donki-011",
+    "eventType": "CME",
+    "date": "2012-07-23T02:00:00Z",
+    "classType": "Halo CME",
+    "intensity": 10,
+    "description": "This CME was a near-miss monster! If it had hit Earth, it could have caused trillions of dollars in damage to our power grids and electronics.",
+    "sourceUrl": "https://ccmc.gsfc.nasa.gov/tools/DONKI/"
+  },
+  {
+    "id": "donki-012",
+    "eventType": "Solar Flare",
+    "date": "2023-12-31T21:55:00Z",
+    "classType": "X5.0",
+    "intensity": 7,
+    "description": "A New Year's Eve surprise from the Sun! This X5-class flare rang in the new year with a spectacular blast of energy.",
+    "sourceUrl": "https://ccmc.gsfc.nasa.gov/tools/DONKI/"
+  },
+  {
+    "id": "donki-013",
+    "eventType": "Solar Flare",
+    "date": "2024-02-22T22:34:00Z",
+    "classType": "X6.3",
+    "intensity": 8,
+    "description": "An impressive flare from early 2024! The Sun was getting very active as it approached solar maximum — the peak of its 11-year cycle.",
+    "sourceUrl": "https://ccmc.gsfc.nasa.gov/tools/DONKI/"
+  },
+  {
+    "id": "donki-014",
+    "eventType": "Solar Flare",
+    "date": "2022-04-20T03:57:00Z",
+    "classType": "M9.6",
+    "intensity": 5,
+    "description": "An M-class flare that was almost an X-class! M-class flares are medium-sized but can still cause minor radio blackouts near Earth's poles.",
+    "sourceUrl": "https://ccmc.gsfc.nasa.gov/tools/DONKI/"
+  },
+  {
+    "id": "donki-015",
+    "eventType": "CME",
+    "date": "2024-05-10T07:00:00Z",
+    "classType": "Halo CME",
+    "intensity": 9,
+    "description": "Multiple CMEs slammed into Earth's magnetic field, creating the strongest geomagnetic storm in 20 years and amazing auroras visible worldwide!",
+    "sourceUrl": "https://ccmc.gsfc.nasa.gov/tools/DONKI/"
+  },
+  {
+    "id": "donki-016",
+    "eventType": "Solar Flare",
+    "date": "2017-09-04T20:33:00Z",
+    "classType": "M5.5",
+    "intensity": 4,
+    "description": "A moderate M-class flare that kicked off a wild week of solar activity. More powerful flares followed just days later!",
+    "sourceUrl": "https://ccmc.gsfc.nasa.gov/tools/DONKI/"
+  },
+  {
+    "id": "donki-017",
+    "eventType": "Solar Flare",
+    "date": "2023-07-02T18:00:00Z",
+    "classType": "C5.7",
+    "intensity": 2,
+    "description": "A small C-class flare. These happen all the time and are like tiny pops compared to the mighty X-class flares. Most are harmless!",
+    "sourceUrl": "https://ccmc.gsfc.nasa.gov/tools/DONKI/"
+  },
+  {
+    "id": "donki-018",
+    "eventType": "Solar Energetic Particle",
+    "date": "2024-05-11T01:00:00Z",
+    "classType": "S3",
+    "intensity": 7,
+    "description": "Fast-moving charged particles from the big May 2024 solar storms reached Earth. Airline pilots flying over the poles received extra radiation warnings.",
+    "sourceUrl": "https://ccmc.gsfc.nasa.gov/tools/DONKI/"
+  }
+]

@@ -1,0 +1,242 @@
+[
+  {
+    "id": "fact-001",
+    "category": "mars",
+    "title": "Mars Has the Biggest Volcano",
+    "fact": "Olympus Mons on Mars is the tallest volcano in the entire solar system — it's about 72,000 feet tall, nearly 3 times taller than Mount Everest! It's so wide that if you stood on its edge, you couldn't see the other side because it would be over the horizon.",
+    "nasaSource": "NASA Mars Exploration Program",
+    "funRating": 5
+  },
+  {
+    "id": "fact-002",
+    "category": "mars",
+    "title": "A Day on Mars Is Almost Like Earth",
+    "fact": "A day on Mars (called a 'sol') is 24 hours and 37 minutes — just a little longer than an Earth day. But a Mars year is 687 Earth days, which means you'd have to wait almost twice as long for your birthday!",
+    "nasaSource": "NASA Mars Facts",
+    "funRating": 4
+  },
+  {
+    "id": "fact-003",
+    "category": "mars",
+    "title": "Mars Is Cold!",
+    "fact": "The average temperature on Mars is about minus 80 degrees Fahrenheit — that's way colder than Antarctica! On a warm summer day at the equator, it might reach a toasty 70°F, but at night it plunges to minus 100°F.",
+    "nasaSource": "NASA Mars Exploration Program",
+    "funRating": 3
+  },
+  {
+    "id": "fact-004",
+    "category": "mars",
+    "title": "The Red Planet's True Colors",
+    "fact": "Mars looks red because its soil is full of iron oxide — that's just a fancy name for rust! The same stuff that makes a rusty bike turn reddish-brown covers the entire surface of Mars. Even the sky looks pinkish-orange during the day.",
+    "nasaSource": "NASA Science: Mars",
+    "funRating": 4
+  },
+  {
+    "id": "fact-005",
+    "category": "radiation",
+    "title": "Earth's Invisible Shield",
+    "fact": "Earth has an invisible magnetic shield called the magnetosphere that blocks most harmful radiation from the Sun and space. Mars lost its magnetic field billions of years ago, so astronauts there would need to build their own shields!",
+    "nasaSource": "NASA Goddard Space Flight Center",
+    "funRating": 4
+  },
+  {
+    "id": "fact-006",
+    "category": "radiation",
+    "title": "Solar Flare Speed",
+    "fact": "When the Sun erupts in a solar flare, the light from the explosion reaches Earth in just 8 minutes — traveling at 186,000 miles per second! The energetic particles that follow arrive hours to days later, giving astronauts time to prepare.",
+    "nasaSource": "NASA DONKI - Space Weather Database",
+    "funRating": 5
+  },
+  {
+    "id": "fact-007",
+    "category": "radiation",
+    "title": "How We Measure Solar Flares",
+    "fact": "Solar flares are ranked by letters: A, B, C, M, and X — from weakest to strongest. Each letter is 10 times more powerful than the one before it! An X-class flare is 10,000 times stronger than an A-class flare.",
+    "nasaSource": "NASA Solar Dynamics Observatory",
+    "funRating": 4
+  },
+  {
+    "id": "fact-008",
+    "category": "radiation",
+    "title": "Water Is a Great Shield",
+    "fact": "Water is one of the best materials for blocking space radiation! Future Mars habitats might use walls filled with water to protect astronauts. The hydrogen atoms in water are really good at stopping dangerous particles.",
+    "nasaSource": "NASA Human Research Program",
+    "funRating": 3
+  },
+  {
+    "id": "fact-009",
+    "category": "life_support",
+    "title": "Recycling Water in Space",
+    "fact": "The ISS recycles about 90% of all water on board — including sweat and even pee! A special machine filters and purifies it until it's cleaner than most tap water on Earth. Every drop counts when you're 250 miles above the planet.",
+    "nasaSource": "NASA ISS Environmental Control and Life Support System",
+    "funRating": 5
+  },
+  {
+    "id": "fact-010",
+    "category": "life_support",
+    "title": "Making Oxygen from CO₂",
+    "fact": "The ISS has a system called MOXIE's big cousin that splits water molecules into hydrogen and oxygen for breathing. On Mars, the Perseverance rover tested MOXIE, which makes oxygen from Mars's carbon dioxide atmosphere — a huge breakthrough!",
+    "nasaSource": "NASA JPL MOXIE Experiment",
+    "funRating": 5
+  },
+  {
+    "id": "fact-011",
+    "category": "life_support",
+    "title": "Space Station Air Pressure",
+    "fact": "The ISS is pressurized to the same air pressure as Earth at sea level, so astronauts can breathe normally without spacesuits inside. The air is 21% oxygen, just like Earth — but they have to constantly scrub out carbon dioxide.",
+    "nasaSource": "NASA ISS ECLSS",
+    "funRating": 3
+  },
+  {
+    "id": "fact-012",
+    "category": "life_support",
+    "title": "Growing Food in Space",
+    "fact": "Astronauts have grown lettuce, radishes, and chili peppers on the ISS using the Veggie plant growth system! The plants grow under special red, blue, and green LED lights. Fresh food is a huge morale boost when you're far from home.",
+    "nasaSource": "NASA Kennedy Space Center Veggie Project",
+    "funRating": 5
+  },
+  {
+    "id": "fact-013",
+    "category": "food",
+    "title": "Space Food Has Come a Long Way",
+    "fact": "Early astronauts ate food squeezed from tubes — like toothpaste! Today, ISS astronauts enjoy over 200 different menu items including shrimp cocktail, tortillas, and even ice cream. No crumbly bread though — crumbs float into equipment!",
+    "nasaSource": "NASA Johnson Space Center Food Lab",
+    "funRating": 5
+  },
+  {
+    "id": "fact-014",
+    "category": "food",
+    "title": "Calories in Space",
+    "fact": "Astronauts need about 2,000 to 3,000 calories per day, just like active kids and adults on Earth. But food tastes different in space because the fluid shift to their heads makes their noses stuffy, so they crave spicy food!",
+    "nasaSource": "NASA Human Research Program Nutrition",
+    "funRating": 4
+  },
+  {
+    "id": "fact-015",
+    "category": "food",
+    "title": "Mars Food Challenge",
+    "fact": "A trip to Mars takes about 7 months each way, and astronauts would stay for months. That means packing years' worth of food! NASA is researching how to grow crops on Mars using Martian soil mixed with nutrients and fertilizer.",
+    "nasaSource": "NASA Mars Food Production Research",
+    "funRating": 4
+  },
+  {
+    "id": "fact-016",
+    "category": "food",
+    "title": "Tortillas: The Space Bread",
+    "fact": "Tortillas are the bread of choice in space! Unlike regular bread, they don't make crumbs that float around and could clog air vents or get into astronauts' eyes. They also last longer without going stale.",
+    "nasaSource": "NASA Food Technology",
+    "funRating": 4
+  },
+  {
+    "id": "fact-017",
+    "category": "power",
+    "title": "Solar Panels on the ISS",
+    "fact": "The ISS has eight huge solar arrays that together are larger than a football field! They generate about 240 kilowatts of electricity — enough to power more than 40 average homes. Half the time they're in Earth's shadow, so batteries store energy for the dark side.",
+    "nasaSource": "NASA ISS Power Systems",
+    "funRating": 4
+  },
+  {
+    "id": "fact-018",
+    "category": "power",
+    "title": "Nuclear Power for Mars",
+    "fact": "Solar panels on Mars only get about 43% as much sunlight as on Earth, and dust storms can block the Sun for months! That's why NASA is developing small nuclear reactors called Kilopower that could provide reliable energy on Mars day and night.",
+    "nasaSource": "NASA Glenn Research Center Kilopower Project",
+    "funRating": 5
+  },
+  {
+    "id": "fact-019",
+    "category": "power",
+    "title": "Curiosity's Nuclear Battery",
+    "fact": "The Curiosity rover runs on a nuclear battery called an RTG that turns heat from decaying plutonium into electricity. It provides about 110 watts — enough to power a bright light bulb — and will last for at least 14 years!",
+    "nasaSource": "NASA JPL Mars Science Laboratory",
+    "funRating": 5
+  },
+  {
+    "id": "fact-020",
+    "category": "power",
+    "title": "Dust Storm Power Problems",
+    "fact": "Mars has planet-wide dust storms that can last for months and block nearly all sunlight! The Opportunity rover survived many dust storms, but a global storm in 2018 finally covered its solar panels so much that it lost power forever.",
+    "nasaSource": "NASA Mars Exploration Rovers",
+    "funRating": 4
+  },
+  {
+    "id": "fact-021",
+    "category": "exploration",
+    "title": "First Helicopter on Another Planet",
+    "fact": "NASA's Ingenuity helicopter made the first powered flight on another planet on April 19, 2021! Flying on Mars is super hard because the air is 100 times thinner than Earth's. Ingenuity's blades spin at 2,400 RPM — about 5 times faster than a regular helicopter.",
+    "nasaSource": "NASA JPL Mars Helicopter",
+    "funRating": 5
+  },
+  {
+    "id": "fact-022",
+    "category": "exploration",
+    "title": "Mars Sample Return",
+    "fact": "Perseverance is collecting rock samples in special titanium tubes and leaving them on Mars's surface. A future mission will pick them up and launch them into Mars orbit, where another spacecraft will catch them and bring them back to Earth!",
+    "nasaSource": "NASA Mars Sample Return Campaign",
+    "funRating": 5
+  },
+  {
+    "id": "fact-023",
+    "category": "exploration",
+    "title": "Signal Delay to Mars",
+    "fact": "A message from Earth to Mars takes between 4 and 24 minutes depending on how far apart the planets are! That means astronauts on Mars can't video-chat in real time — they'd have to leave 'voicemails' for Mission Control.",
+    "nasaSource": "NASA Deep Space Network",
+    "funRating": 4
+  },
+  {
+    "id": "fact-024",
+    "category": "exploration",
+    "title": "How Many Rovers on Mars?",
+    "fact": "Five rovers have driven on Mars: Sojourner (1997), Spirit (2004), Opportunity (2004), Curiosity (2012), and Perseverance (2021). Curiosity and Perseverance are still active! Each one was bigger, smarter, and more capable than the last.",
+    "nasaSource": "NASA Mars Exploration Program",
+    "funRating": 4
+  },
+  {
+    "id": "fact-025",
+    "category": "exploration",
+    "title": "Humans to Mars Timeline",
+    "fact": "NASA is planning to send humans to Mars in the late 2030s to early 2040s! The Artemis missions to the Moon are a practice run, testing the spacecraft and spacesuits that will eventually take astronauts to the Red Planet.",
+    "nasaSource": "NASA Moon to Mars Program",
+    "funRating": 5
+  },
+  {
+    "id": "fact-026",
+    "category": "mars",
+    "title": "Mars Has Two Tiny Moons",
+    "fact": "Mars has two small, lumpy moons named Phobos and Deimos (meaning 'Fear' and 'Terror' in Greek). Phobos is slowly spiraling closer to Mars and will either crash into the planet or break apart into a ring in about 50 million years!",
+    "nasaSource": "NASA Solar System Exploration",
+    "funRating": 5
+  },
+  {
+    "id": "fact-027",
+    "category": "radiation",
+    "title": "Auroras on Mars",
+    "fact": "Mars has auroras too, but they're different from Earth's! Without a global magnetic field, UV auroras on Mars can happen almost anywhere on the planet. NASA's MAVEN spacecraft discovered them in 2015 and called them 'diffuse auroras.'",
+    "nasaSource": "NASA MAVEN Mission",
+    "funRating": 4
+  },
+  {
+    "id": "fact-028",
+    "category": "life_support",
+    "title": "3D Printing in Space",
+    "fact": "The ISS has a 3D printer that can make tools and spare parts on demand! If something breaks, astronauts don't have to wait months for a supply ship — they can print a replacement. Future Mars colonists will definitely need this technology.",
+    "nasaSource": "NASA In-Space Manufacturing",
+    "funRating": 5
+  },
+  {
+    "id": "fact-029",
+    "category": "mars",
+    "title": "Valles Marineris: The Grand Canyon's Big Sibling",
+    "fact": "Mars has a canyon system called Valles Marineris that stretches nearly 2,500 miles — about as wide as the entire United States! It's up to 4 miles deep, making Earth's Grand Canyon look like a small scratch.",
+    "nasaSource": "NASA Mars Exploration Program",
+    "funRating": 5
+  },
+  {
+    "id": "fact-030",
+    "category": "exploration",
+    "title": "The Seven Minutes of Terror",
+    "fact": "Landing on Mars is incredibly hard — NASA calls it the 'Seven Minutes of Terror.' The spacecraft goes from 12,000 mph to zero in just 7 minutes using a heat shield, parachute, and rocket-powered sky crane. Only about half of all Mars missions succeed!",
+    "nasaSource": "NASA JPL Mars 2020 Entry, Descent, and Landing",
+    "funRating": 5
+  }
+]

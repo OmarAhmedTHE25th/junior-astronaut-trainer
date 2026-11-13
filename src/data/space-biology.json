@@ -1,0 +1,146 @@
+[
+  {
+    "id": "bio-001",
+    "topic": "bone_density",
+    "fact": "Astronauts lose about 1-2% of their bone density every month in space because there's no gravity pulling on their bones. On Earth, it takes elderly people about a year to lose that much! That's why astronauts on the ISS exercise for 2 hours every single day.",
+    "studyReference": "OSD-253: Rodent Research-1 Bone and Body Composition",
+    "severity": 4,
+    "mitigationStrategy": "Daily resistance exercise using the ARED machine (Advanced Resistive Exercise Device) and taking vitamin D and calcium supplements",
+    "sourceUrl": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-253"
+  },
+  {
+    "id": "bio-002",
+    "topic": "muscle_loss",
+    "fact": "Without gravity, muscles don't have to work as hard, so they start shrinking — especially in the legs. Astronauts can lose up to 20% of their muscle mass during long missions. It's like your muscles are on vacation and forget how to be strong!",
+    "studyReference": "OSD-379: Rodent Research-5 Muscle Study",
+    "severity": 4,
+    "mitigationStrategy": "Two hours of daily exercise including running on a treadmill with bungee cord harness and cycling on a stationary bike",
+    "sourceUrl": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-379"
+  },
+  {
+    "id": "bio-003",
+    "topic": "immune_system",
+    "fact": "Space can make your immune system weaker, which means astronauts might get sick more easily. Scientists found that some viruses that hide in your body (like chickenpox virus) can reactivate in space. Your body's germ-fighting cells work differently in microgravity!",
+    "studyReference": "OSD-321: Salivary Markers for Immune Function in ISS Crewmembers",
+    "severity": 3,
+    "mitigationStrategy": "Good nutrition, regular exercise, and strict cleanliness procedures on the space station",
+    "sourceUrl": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-321"
+  },
+  {
+    "id": "bio-004",
+    "topic": "sleep",
+    "fact": "In space, the Sun rises and sets every 90 minutes because the ISS orbits Earth so fast! This confuses astronauts' internal clocks, making it hard to sleep. Many astronauts report sleeping only about 6 hours per night instead of the recommended 8.",
+    "studyReference": "OSD-334: Lighting Effects on Sleep and Circadian Rhythms",
+    "severity": 3,
+    "mitigationStrategy": "Special blue-light-adjustable LED panels on the ISS that mimic sunrise and sunset to help regulate sleep patterns",
+    "sourceUrl": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-334"
+  },
+  {
+    "id": "bio-005",
+    "topic": "radiation_health",
+    "fact": "Astronauts on the ISS receive about 100-300 times more radiation than people on Earth! On a trip to Mars, they'd get even more because they'd leave Earth's protective magnetic field. Radiation can damage DNA inside your cells.",
+    "studyReference": "OSD-352: GeneLab Radiation Dose Response Study",
+    "severity": 5,
+    "mitigationStrategy": "Spacecraft shielding, radiation monitoring alarms, and shelter protocols during solar storms",
+    "sourceUrl": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-352"
+  },
+  {
+    "id": "bio-006",
+    "topic": "cardiovascular",
+    "fact": "In space, your heart doesn't have to pump blood upward against gravity, so it gets a little lazy and can change shape — becoming more round like a ball instead of its normal cone shape. Fluid also shifts to your head, making astronauts look puffy-faced!",
+    "studyReference": "OSD-317: Cardiac Atrophy and Remodeling in Spaceflight",
+    "severity": 3,
+    "mitigationStrategy": "Cardiovascular exercise, lower body negative pressure device, and fluid intake management",
+    "sourceUrl": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-317"
+  },
+  {
+    "id": "bio-007",
+    "topic": "vision",
+    "fact": "About two-thirds of astronauts who spend months in space have changes to their eyesight! The pressure of fluid in their heads can squish the back of the eyeball and swell the optic nerve. Some astronauts need new glasses after returning to Earth.",
+    "studyReference": "OSD-412: Spaceflight-Associated Neuro-Ocular Syndrome (SANS)",
+    "severity": 4,
+    "mitigationStrategy": "Regular eye exams in orbit, monitoring intracranial pressure, and researching lower body suction devices",
+    "sourceUrl": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-412"
+  },
+  {
+    "id": "bio-008",
+    "topic": "bone_density",
+    "fact": "Scientists sent mice to the ISS and found that a special protein called myostatin, when blocked, helped them keep their muscles AND bones strong in space! This discovery could help protect future Mars astronauts from bone loss.",
+    "studyReference": "OSD-471: Rodent Research-19 Mighty Mice",
+    "severity": 4,
+    "mitigationStrategy": "Potential future myostatin inhibitor treatments combined with daily exercise programs",
+    "sourceUrl": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-471"
+  },
+  {
+    "id": "bio-009",
+    "topic": "immune_system",
+    "fact": "Bacteria can behave differently in space — some germs actually become MORE dangerous in microgravity! Scientists found that Salmonella bacteria became better at causing infections when grown aboard the Space Shuttle. Space makes germs tougher!",
+    "studyReference": "OSD-16: Microbial Virulence in Spaceflight",
+    "severity": 4,
+    "mitigationStrategy": "Advanced antimicrobial surface coatings on spacecraft, air filtration systems, and pre-flight quarantine procedures",
+    "sourceUrl": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-16"
+  },
+  {
+    "id": "bio-010",
+    "topic": "sleep",
+    "fact": "NASA studied twins — one astronaut on the ISS for a year and his twin brother on Earth. The space twin had shorter sleep and his body clock was all mixed up. This famous Twins Study taught us a ton about how space affects the human body!",
+    "studyReference": "OSD-367: NASA Twins Study Multi-Omics Analysis",
+    "severity": 3,
+    "mitigationStrategy": "Personalized sleep schedules, melatonin supplements, and light therapy using tunable LED systems",
+    "sourceUrl": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-367"
+  },
+  {
+    "id": "bio-011",
+    "topic": "radiation_health",
+    "fact": "On Mars, there's no thick atmosphere or magnetic field to block radiation like on Earth. The Mars surface gets about 0.67 millisieverts per day — that's about half of what you'd get in deep space, but still way more than on Earth!",
+    "studyReference": "OSD-485: Mars Surface Radiation Environment from MSL-RAD",
+    "severity": 5,
+    "mitigationStrategy": "Underground habitats or regolith-covered shelters, water wall shielding, and limiting surface EVA time",
+    "sourceUrl": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-485"
+  },
+  {
+    "id": "bio-012",
+    "topic": "cardiovascular",
+    "fact": "When astronauts return to Earth, they sometimes feel dizzy and can even faint! After months of their heart and blood vessels adapting to no gravity, their body has trouble adjusting back. It can take weeks to feel normal again.",
+    "studyReference": "OSD-290: Orthostatic Intolerance After Spaceflight",
+    "severity": 3,
+    "mitigationStrategy": "Compression suits during re-entry, drinking extra salty fluids before landing, and gradual rehabilitation exercise",
+    "sourceUrl": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-290"
+  },
+  {
+    "id": "bio-013",
+    "topic": "muscle_loss",
+    "fact": "Plants in space also have trouble building strong structures without gravity to guide them! Seeds and seedlings get confused about which way to grow their roots and stems. Scientists study this to figure out how to grow food on Mars.",
+    "studyReference": "OSD-120: Arabidopsis Root Growth Direction in Microgravity",
+    "severity": 2,
+    "mitigationStrategy": "Specialized growth chambers with LED lighting and controlled air flow to guide plant growth direction",
+    "sourceUrl": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-120"
+  },
+  {
+    "id": "bio-014",
+    "topic": "vision",
+    "fact": "Scientists call the space vision problem SANS — Spaceflight-Associated Neuro-Ocular Syndrome. It mostly affects male astronauts for reasons we don't fully understand yet. Solving this mystery is one of NASA's top priorities for Mars missions!",
+    "studyReference": "OSD-422: SANS Gender Differences Investigation",
+    "severity": 4,
+    "mitigationStrategy": "Research into artificial gravity through spinning spacecraft sections and developing better monitoring tools",
+    "sourceUrl": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-422"
+  },
+  {
+    "id": "bio-015",
+    "topic": "radiation_health",
+    "fact": "Astronauts sometimes see flashes of light when they close their eyes in space — even in total darkness! These 'cosmic ray visual phenomena' happen when high-energy particles pass through their eyeballs. It's like seeing tiny shooting stars inside your head!",
+    "studyReference": "OSD-394: Light Flashes Observed by Astronauts during Spaceflight",
+    "severity": 2,
+    "mitigationStrategy": "Better understanding of particle interactions with biological tissue and improved spacecraft shielding materials",
+    "sourceUrl": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-394"
+  },
+  {
+    "id": "bio-016",
+    "topic": "immune_system",
+    "fact": "Your skin microbiome — the helpful tiny organisms living on your skin — changes in space. Astronauts share bacteria with each other and with the space station itself! The ISS has its own unique collection of microbes, like a tiny ecosystem.",
+    "studyReference": "OSD-418: ISS Microbiome and Crew Skin Microbiome Study",
+    "severity": 2,
+    "mitigationStrategy": "Regular surface cleaning, air filtration with HEPA filters, and monitoring the station's microbial environment",
+    "sourceUrl": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-418"
+  }
+]
