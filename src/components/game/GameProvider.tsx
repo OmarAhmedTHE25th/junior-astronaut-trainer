@@ -10,7 +10,7 @@ import React, {
   useRef,
   type ReactNode,
 } from 'react';
-import type { GameState, GameAction, Difficulty } from '@/lib/types';
+import type { GameState, GameAction, Difficulty, CadetSpecialty } from '@/lib/types';
 import { gameReducer, createInitialState } from '@/lib/gameEngine';
 import { getOrCreateCadetProfile } from '@/lib/profile';
 import nasaFacts from '@/data/nasa-facts.json';
@@ -44,17 +44,19 @@ export function useGame(): GameContextType {
 interface GameProviderProps {
   children: ReactNode;
   difficulty?: Difficulty;
+  specialty?: CadetSpecialty;
   initialState?: GameState;
 }
 
 export function GameProvider({
   children,
   difficulty = 'commander',
+  specialty = 'commander',
   initialState,
 }: GameProviderProps) {
   const [state, dispatch] = useReducer(
     gameReducer,
-    initialState || createInitialState(difficulty)
+    initialState || createInitialState(difficulty, specialty)
   );
   const [factIndex, setFactIndex] = useState(0);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);

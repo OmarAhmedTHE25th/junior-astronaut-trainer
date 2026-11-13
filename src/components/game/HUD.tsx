@@ -4,6 +4,8 @@ import React, { useEffect, useRef } from 'react';
 import ProgressBar from '@/components/ui/ProgressBar';
 import { useGame } from './GameProvider';
 import { useSound } from '@/lib/sound';
+import { useProfile } from '@/lib/profile';
+import { SPECIALTY_METAS } from '@/lib/types';
 
 interface HUDProps {
   onOpenMenu?: () => void;
@@ -11,8 +13,11 @@ interface HUDProps {
 
 export default function HUD({ onOpenMenu }: HUDProps) {
   const { state } = useGame();
+  const { profile } = useProfile();
   const { isMuted, toggleSound, playClick, playWarning } = useSound();
   const prevLowRef = useRef<boolean>(false);
+
+  const activeSpecialty = SPECIALTY_METAS.find((s) => s.id === (state.specialty || profile.specialty || 'commander'));
 
   // Monitor for vital resources dropping <= 20%
   const isAnyLow = state.power <= 20 || state.oxygen <= 20 || state.shielding <= 20;
@@ -31,19 +36,34 @@ export default function HUD({ onOpenMenu }: HUDProps) {
       role="banner"
       aria-label="Mission status"
     >
-      {/* Left: Sol counter */}
-      <div className="flex items-center gap-2">
-        <span className="text-2xl" aria-hidden="true">🪐</span>
-        <div className="flex flex-col">
-          <span className="text-xs text-[#F8FAFC]/60 uppercase tracking-widest">
-            Sol
-          </span>
-          <span className="text-2xl font-bold text-[#E87040] tabular-nums leading-none">
-            {state.sol}
-            <span className="text-sm text-[#F8FAFC]/40 font-normal">
-              /{state.maxSol}
+      {/* Left: Sol counter & Cadet Profile Quick View */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl" aria-hidden="true">🪐</span>
+          <div className="flex flex-col">
+            <span className="text-xs text-[#F8FAFC]/60 uppercase tracking-widest">
+              Sol
             </span>
-          </span>
+            <span className="text-2xl font-bold text-[#E87040] tabular-nums leading-none">
+              {state.sol}
+              <span className="text-sm text-[#F8FAFC]/40 font-normal">
+                /{state.maxSol}
+              </span>
+            </span>
+          </div>
+        </div>
+
+        {/* Cadet Profile & Specialty Pill */}
+        <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-xl bg-[#1a1f3d]/80 border border-white/10">
+          <span className="text-lg">{profile.avatar}</span>
+          <div className="flex flex-col">
+            <span className="font-mono font-bold text-white text-xs leading-none">
+              {profile.callsign}
+            </span>
+            <span className="text-[10px] text-[#E87040] font-medium flex items-center gap-0.5 mt-0.5">
+              <span>{activeSpecialty?.icon || '🎖️'}</span> {activeSpecialty?.name || 'Mission Commander'}
+            </span>
+          </div>
         </div>
       </div>
 

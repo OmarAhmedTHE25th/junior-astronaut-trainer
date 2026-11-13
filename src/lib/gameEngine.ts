@@ -6,6 +6,7 @@ import type {
   GameAction,
   GameEvent,
   Difficulty,
+  CadetSpecialty,
   LogEntry,
   ResourceType,
 } from './types';
@@ -50,9 +51,12 @@ function applyEffects(
 // ── Public Pure Functions ───────────────────────────────────
 
 /**
- * Create the initial game state for a given difficulty.
+ * Create the initial game state for a given difficulty and specialty.
  */
-export function createInitialState(difficulty: Difficulty = 'commander'): GameState {
+export function createInitialState(
+  difficulty: Difficulty = 'commander',
+  specialty: CadetSpecialty = 'commander'
+): GameState {
   return {
     sol: 1,
     maxSol: MISSION_LENGTH,
@@ -66,6 +70,7 @@ export function createInitialState(difficulty: Difficulty = 'commander'): GameSt
     score: 0,
     usedEventIds: [],
     difficulty,
+    specialty,
   };
 }
 
@@ -168,7 +173,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     // ── Start a new mission ───────────────────────────────
     case 'START_MISSION': {
-      const initial = createInitialState(action.difficulty);
+      const initial = createInitialState(action.difficulty, action.specialty || 'commander');
       return { ...initial, phase: 'action' };
     }
 
@@ -185,25 +190,44 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (!playerAction) return state;
 
       const moraleModifier = getMoraleModifier(state.morale);
+      const specialty = state.specialty || 'commander';
+
+      let basePower = playerAction.effects.power;
+      let baseOxygen = playerAction.effects.oxygen;
+      let baseShielding = playerAction.effects.shielding;
+      let baseMorale = playerAction.moraleEffect ?? 0;
+      let baseScore = playerAction.scoreEffect ?? 0;
+
+      // Astronaut Specialty Action Perks
+      if (specialty === 'engineer' && (playerAction.id === 'solar-panel-repair' || playerAction.id === 'conserve-resources')) {
+        if (basePower > 0) basePower = Math.round(basePower * 1.20);
+      } else if (specialty === 'biologist' && (playerAction.id === 'run-o2-generators' || playerAction.id === 'grow-food')) {
+        if (baseOxygen > 0) baseOxygen = Math.round(baseOxygen * 1.25);
+        if (baseMorale > 0) baseMorale = Math.round(baseMorale * 1.25);
+      } else if (specialty === 'physicist' && playerAction.id === 'boost-shields') {
+        if (baseShielding > 0) baseShielding = Math.round(baseShielding * 1.20);
+      } else if (specialty === 'commander' && playerAction.id === 'research-mission') {
+        if (baseScore > 0) baseScore = Math.round(baseScore * 1.15);
+      }
 
       // Scale positive effects by morale modifier
       const scaledEffects: Record<ResourceType, number> = {
-        power: playerAction.effects.power > 0
-          ? Math.round(playerAction.effects.power * moraleModifier)
-          : playerAction.effects.power,
-        oxygen: playerAction.effects.oxygen > 0
-          ? Math.round(playerAction.effects.oxygen * moraleModifier)
-          : playerAction.effects.oxygen,
-        shielding: playerAction.effects.shielding > 0
-          ? Math.round(playerAction.effects.shielding * moraleModifier)
-          : playerAction.effects.shielding,
+        power: basePower > 0
+          ? Math.round(basePower * moraleModifier)
+          : basePower,
+        oxygen: baseOxygen > 0
+          ? Math.round(baseOxygen * moraleModifier)
+          : baseOxygen,
+        shielding: baseShielding > 0
+          ? Math.round(baseShielding * moraleModifier)
+          : baseShielding,
       };
 
       let newState = applyEffects(
         state,
         scaledEffects,
-        playerAction.moraleEffect ?? 0,
-        playerAction.scoreEffect ?? 0,
+        baseMorale,
+        baseScore,
       );
 
       const logEntry: LogEntry = {
@@ -212,7 +236,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         title: playerAction.name,
         description: playerAction.description,
         resourceChanges: scaledEffects,
-        moraleChange: playerAction.moraleEffect,
+        moraleChange: baseMorale,
+        icon: playerAction.icon,
       };
 
       newState = { ...newState, log: [...newState.log, logEntry] };
@@ -251,9 +276,18 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       );
       if (!choice) return state;
 
+      const specialty = state.specialty || 'commander';
+      const resolvedEffects = { ...choice.effects };
+
+      // Radiation Physicist perk: -25% shield damage from solar events
+      const isSolarEvent = state.activeEvent.id.includes('solar') || state.activeEvent.title.includes('Solar');
+      if (specialty === 'physicist' && isSolarEvent && resolvedEffects.shielding < 0) {
+        resolvedEffects.shielding = Math.round(resolvedEffects.shielding * 0.75);
+      }
+
       let newState = applyEffects(
         state,
-        choice.effects,
+        resolvedEffects,
         choice.moraleEffect ?? 0,
         choice.scoreEffect ?? 0,
       );
@@ -263,8 +297,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         type: 'event',
         title: state.activeEvent.title,
         description: `${choice.text} — ${choice.outcome}`,
-        resourceChanges: choice.effects,
+        resourceChanges: resolvedEffects,
         moraleChange: choice.moraleEffect,
+        icon: state.activeEvent.icon,
       };
 
       newState = {
@@ -327,9 +362,27 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         };
       }
 
+      // Mission Commander perk: +2 morale boost every 5 sols survived
+      let moraleBonus = 0;
+      let logs = [...state.log];
+      if (state.specialty === 'commander' && (nextSol - 1) % 5 === 0 && (nextSol - 1) > 0) {
+        moraleBonus = 2;
+        logs.push({
+          sol: nextSol,
+          type: 'system',
+          title: '🎖️ Commander Leadership',
+          description: `Sol ${nextSol - 1} milestone reached! Commander leadership rallied crew (+2 Morale).`,
+          resourceChanges: {},
+          moraleChange: 2,
+          icon: '🎖️',
+        });
+      }
+
       return {
         ...state,
         sol: nextSol,
+        morale: clamp(state.morale + moraleBonus),
+        log: logs,
         phase: 'action',
       };
     }
@@ -337,7 +390,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     // ── Full reset ────────────────────────────────────────
     case 'RESTART':
     case 'RESET': {
-      return createInitialState(state.difficulty);
+      return createInitialState(state.difficulty, state.specialty || 'commander');
     }
 
     default:

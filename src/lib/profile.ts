@@ -1,7 +1,8 @@
-// ─── Junior Astronaut Mission Trainer – Cadet Profiles & Telemetry ───
+// ─── Junior Astronaut Mission Trainer – Cadet Profiles, Specialties & Telemetry ───
 
 import { useState, useEffect, useCallback } from 'react';
-import type { CadetProfile, CadetBadge, BadgeId, GameState } from './types';
+import type { CadetProfile, CadetBadge, BadgeId, GameState, CadetSpecialty } from './types';
+import { SPECIALTY_METAS } from './types';
 
 export const CADET_BADGES: CadetBadge[] = [
   {
@@ -43,13 +44,17 @@ export const CADET_BADGES: CadetBadge[] = [
 
 export const AVATAR_OPTIONS = ['🚀', '🛸', '🪐', '🛰️', '👨‍🚀', '👩‍🚀'] as const;
 
-const PROFILE_KEY = 'jat_profile_v1';
-const listeners = new Set<(profile: CadetProfile) => void>();
+export const PROFILE_KEY = 'jat_profile_v1';
+export const ROSTER_KEY = 'jat_cadet_roster_v1';
+
+const profileListeners = new Set<(profile: CadetProfile) => void>();
+const rosterListeners = new Set<(roster: CadetProfile[]) => void>();
 
 export const DEFAULT_PROFILE: CadetProfile = {
   cadetId: 'cadet-nova-01',
   callsign: 'CDR-NOVA-01',
   avatar: '🚀',
+  specialty: 'commander',
   createdAt: '2026-01-01T00:00:00.000Z',
   missionsPlayed: 0,
   missionsWon: 0,
@@ -63,24 +68,28 @@ export function validateCallsign(callsign: string): boolean {
   return /^[A-Za-z0-9\-]{3,16}$/.test(callsign.trim());
 }
 
-/** Generates a quick UUID (browser safe) */
-function generateId(): string {
+/** Generates a browser-safe unique cadet ID */
+export function generateCadetId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
   }
-  return 'cadet-' + Math.random().toString(36).substring(2, 11) + '-' + Date.now().toString(36);
+  return 'cadet-' + Math.random().toString(36).substring(2, 9) + '-' + Date.now().toString(36);
 }
 
 /** Default cadet generator (for client-side new profiles) */
-export function createDefaultProfile(): CadetProfile {
+export function createDefaultProfile(
+  callsignPrefix = 'CDR-NOVA',
+  specialty: CadetSpecialty = 'commander'
+): CadetProfile {
   if (typeof window === 'undefined') {
     return DEFAULT_PROFILE;
   }
   const randNum = Math.floor(10 + Math.random() * 90);
   return {
-    cadetId: generateId(),
-    callsign: `CDR-NOVA-${randNum}`,
+    cadetId: generateCadetId(),
+    callsign: `${callsignPrefix}-${randNum}`,
     avatar: '🚀',
+    specialty,
     createdAt: new Date().toISOString(),
     missionsPlayed: 0,
     missionsWon: 0,
@@ -90,7 +99,59 @@ export function createDefaultProfile(): CadetProfile {
   };
 }
 
-/** Get current profile from localStorage or create a fresh zero-friction profile */
+/** Cloud sync helper: push profile to Neon Postgres */
+export async function pushProfileToCloud(profile: CadetProfile): Promise<boolean> {
+  try {
+    const res = await fetch('/api/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profile }),
+    });
+    const data = await res.json();
+    return Boolean(data.success);
+  } catch (err) {
+    console.warn('Neon cloud profile sync error (offline or unreachable):', err);
+    return false;
+  }
+}
+
+/** Get the roster of all cadets on this device */
+export function getCadetRoster(): CadetProfile[] {
+  if (typeof window === 'undefined') {
+    return [DEFAULT_PROFILE];
+  }
+
+  try {
+    const raw = localStorage.getItem(ROSTER_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((p) => ({
+          ...p,
+          specialty: p.specialty || 'commander',
+        }));
+      }
+    }
+  } catch {}
+
+  const active = getOrCreateCadetProfile();
+  const initialRoster = [active];
+  try {
+    localStorage.setItem(ROSTER_KEY, JSON.stringify(initialRoster));
+  } catch {}
+  return initialRoster;
+}
+
+/** Save updated roster to localStorage and notify roster listeners */
+export function saveCadetRoster(roster: CadetProfile[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(ROSTER_KEY, JSON.stringify(roster));
+  } catch {}
+  rosterListeners.forEach((fn) => fn(roster));
+}
+
+/** Get current active profile from localStorage or create a fresh zero-friction profile */
 export function getOrCreateCadetProfile(): CadetProfile {
   if (typeof window === 'undefined') {
     return DEFAULT_PROFILE;
@@ -101,7 +162,10 @@ export function getOrCreateCadetProfile(): CadetProfile {
     if (raw) {
       const parsed = JSON.parse(raw) as CadetProfile;
       if (parsed.cadetId && parsed.callsign) {
-        return parsed;
+        return {
+          ...parsed,
+          specialty: parsed.specialty || 'commander',
+        };
       }
     }
   } catch {}
@@ -109,24 +173,124 @@ export function getOrCreateCadetProfile(): CadetProfile {
   const defaultProfile = createDefaultProfile();
   try {
     localStorage.setItem(PROFILE_KEY, JSON.stringify(defaultProfile));
+    localStorage.setItem(ROSTER_KEY, JSON.stringify([defaultProfile]));
   } catch {}
   return defaultProfile;
 }
 
-/** Save updated cadet profile to localStorage and notify subscribers */
-export function saveCadetProfile(profile: CadetProfile): void {
+/** Save updated cadet profile to active slot + roster + cloud */
+export function saveCadetProfile(profile: CadetProfile, syncCloud = true): void {
   if (typeof window === 'undefined') return;
+
+  const sanitized: CadetProfile = {
+    ...profile,
+    specialty: profile.specialty || 'commander',
+  };
+
   try {
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(sanitized));
   } catch {}
-  listeners.forEach((fn) => fn(profile));
+
+  // Update in roster as well
+  try {
+    const roster = getCadetRoster();
+    const idx = roster.findIndex((p) => p.cadetId === sanitized.cadetId);
+    if (idx >= 0) {
+      roster[idx] = sanitized;
+    } else {
+      roster.push(sanitized);
+    }
+    saveCadetRoster(roster);
+  } catch {}
+
+  profileListeners.forEach((fn) => fn(sanitized));
+
+  // Asynchronously sync to Neon Postgres in background
+  if (syncCloud) {
+    pushProfileToCloud(sanitized).catch(() => {});
+  }
+}
+
+/** Switch active cadet to another profile from the roster */
+export function switchActiveCadet(cadetId: string): CadetProfile | null {
+  const roster = getCadetRoster();
+  const target = roster.find((p) => p.cadetId === cadetId);
+  if (!target) return null;
+
+  saveCadetProfile(target, false);
+  return target;
+}
+
+/** Create a new cadet profile and switch to it immediately */
+export function createNewCadet(
+  callsignPrefix = 'CDR-NOVA',
+  avatar = '🚀',
+  specialty: CadetSpecialty = 'commander'
+): CadetProfile {
+  const newProfile = createDefaultProfile(callsignPrefix, specialty);
+  newProfile.avatar = avatar;
+
+  const roster = getCadetRoster();
+  roster.push(newProfile);
+  saveCadetRoster(roster);
+
+  saveCadetProfile(newProfile, true);
+  return newProfile;
+}
+
+/** Delete a cadet profile from the roster (must leave at least 1) */
+export function deleteCadet(cadetId: string): boolean {
+  const roster = getCadetRoster();
+  if (roster.length <= 1) return false;
+
+  const updatedRoster = roster.filter((p) => p.cadetId !== cadetId);
+  saveCadetRoster(updatedRoster);
+
+  const active = getOrCreateCadetProfile();
+  if (active.cadetId === cadetId) {
+    // Switch to first remaining
+    saveCadetProfile(updatedRoster[0], false);
+  }
+  return true;
+}
+
+/** Recover / sync profile from Neon Cloud by cadet ID */
+export async function syncCloudProfile(cadetId: string): Promise<CadetProfile | null> {
+  const trimmed = cadetId.trim();
+  if (!trimmed) return null;
+
+  try {
+    const res = await fetch(`/api/profile?cadetId=${encodeURIComponent(trimmed)}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.success && data.profile) {
+      const cloudProfile: CadetProfile = {
+        ...data.profile,
+        specialty: data.profile.specialty || 'commander',
+      };
+      saveCadetProfile(cloudProfile, false);
+      return cloudProfile;
+    }
+    return null;
+  } catch (err) {
+    console.error('Failed to sync cloud profile:', err);
+    return null;
+  }
 }
 
 /** Subscribe to profile changes */
 export function subscribeProfile(listener: (profile: CadetProfile) => void): () => void {
-  listeners.add(listener);
+  profileListeners.add(listener);
   return () => {
-    listeners.delete(listener);
+    profileListeners.delete(listener);
+  };
+}
+
+/** Subscribe to roster changes */
+export function subscribeRoster(listener: (roster: CadetProfile[]) => void): () => void {
+  rosterListeners.add(listener);
+  return () => {
+    rosterListeners.delete(listener);
   };
 }
 
@@ -195,28 +359,39 @@ export function evaluateBadges(
     badges: Array.from(earnedSet),
   };
 
-  saveCadetProfile(updatedProfile);
+  saveCadetProfile(updatedProfile, true);
 
   return { updatedProfile, newBadges };
 }
 
-/** React hook for managing cadet profile */
+/** React hook for managing cadet profile and roster */
 export function useProfile() {
   const [profile, setProfileState] = useState<CadetProfile>(DEFAULT_PROFILE);
+  const [roster, setRosterState] = useState<CadetProfile[]>([DEFAULT_PROFILE]);
+  const [isCloudSyncing, setIsCloudSyncing] = useState(false);
 
   useEffect(() => {
     setProfileState(getOrCreateCadetProfile());
-    const unsubscribe = subscribeProfile((updated) => {
+    setRosterState(getCadetRoster());
+
+    const unsubProfile = subscribeProfile((updated) => {
       setProfileState(updated);
     });
-    return unsubscribe;
+    const unsubRoster = subscribeRoster((updatedRoster) => {
+      setRosterState(updatedRoster);
+    });
+
+    return () => {
+      unsubProfile();
+      unsubRoster();
+    };
   }, []);
 
   const updateCallsign = useCallback(
     (newCallsign: string) => {
       if (!validateCallsign(newCallsign)) return false;
       const updated = { ...profile, callsign: newCallsign.trim().toUpperCase() };
-      saveCadetProfile(updated);
+      saveCadetProfile(updated, true);
       setProfileState(updated);
       return true;
     },
@@ -226,16 +401,72 @@ export function useProfile() {
   const updateAvatar = useCallback(
     (newAvatar: string) => {
       const updated = { ...profile, avatar: newAvatar };
-      saveCadetProfile(updated);
+      saveCadetProfile(updated, true);
       setProfileState(updated);
     },
     [profile]
   );
 
+  const updateSpecialty = useCallback(
+    (newSpecialty: CadetSpecialty) => {
+      const updated = { ...profile, specialty: newSpecialty };
+      saveCadetProfile(updated, true);
+      setProfileState(updated);
+    },
+    [profile]
+  );
+
+  const handleSwitchCadet = useCallback((cadetId: string) => {
+    const switched = switchActiveCadet(cadetId);
+    if (switched) {
+      setProfileState(switched);
+    }
+    return Boolean(switched);
+  }, []);
+
+  const handleCreateNewCadet = useCallback((prefix?: string, avatar?: string, specialty?: CadetSpecialty) => {
+    const created = createNewCadet(prefix, avatar, specialty);
+    setProfileState(created);
+    setRosterState(getCadetRoster());
+    return created;
+  }, []);
+
+  const handleDeleteCadet = useCallback((cadetId: string) => {
+    const ok = deleteCadet(cadetId);
+    if (ok) {
+      setProfileState(getOrCreateCadetProfile());
+      setRosterState(getCadetRoster());
+    }
+    return ok;
+  }, []);
+
+  const handleRecoverCloudProfile = useCallback(async (cadetId: string) => {
+    setIsCloudSyncing(true);
+    try {
+      const synced = await syncCloudProfile(cadetId);
+      if (synced) {
+        setProfileState(synced);
+        setRosterState(getCadetRoster());
+        return { success: true, profile: synced };
+      }
+      return { success: false, error: 'Cadet profile not found in cloud database.' };
+    } finally {
+      setIsCloudSyncing(false);
+    }
+  }, []);
+
   return {
     profile,
+    roster,
+    isCloudSyncing,
     updateCallsign,
     updateAvatar,
+    updateSpecialty,
+    switchCadet: handleSwitchCadet,
+    createNewCadet: handleCreateNewCadet,
+    deleteCadet: handleDeleteCadet,
+    recoverCloudProfile: handleRecoverCloudProfile,
     badgesMeta: CADET_BADGES,
+    specialtiesMeta: SPECIALTY_METAS,
   };
 }

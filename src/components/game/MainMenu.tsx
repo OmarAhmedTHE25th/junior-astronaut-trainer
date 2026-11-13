@@ -8,6 +8,7 @@ import ProfileModal from './ProfileModal';
 import LeaderboardModal from './LeaderboardModal';
 import { useSound } from '@/lib/sound';
 import { useProfile } from '@/lib/profile';
+import { SPECIALTY_METAS } from '@/lib/types';
 import type { GameState } from '@/lib/types';
 
 export default function MainMenu() {
@@ -59,15 +60,20 @@ export default function MainMenu() {
             title="Open Cadet Dossier & Flight Credentials"
             aria-label="Open Cadet Dossier"
           >
-            <div className="w-7 h-7 rounded-lg bg-[#0B1026] flex items-center justify-center text-base">
+            <div className="w-8 h-8 rounded-lg bg-[#0B1026] flex items-center justify-center text-lg">
               {profile.avatar}
             </div>
             <div className="text-left">
-              <span className="font-mono font-bold text-xs text-white block leading-tight">
-                {profile.callsign}
-              </span>
-              <span className="text-[10px] text-[#E87040] font-semibold block leading-tight">
-                ⭐ {profile.highestScore} pts • 🎖️ {profile.badges.length}
+              <div className="flex items-center gap-1.5">
+                <span className="font-mono font-bold text-xs text-white block leading-tight">
+                  {profile.callsign}
+                </span>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                  {SPECIALTY_METAS.find((s) => s.id === (profile.specialty || 'commander'))?.icon || '🎖️'} {SPECIALTY_METAS.find((s) => s.id === (profile.specialty || 'commander'))?.badge || 'Commander'}
+                </span>
+              </div>
+              <span className="text-[10px] text-[#E87040] font-semibold block leading-tight mt-0.5">
+                ⭐ {profile.highestScore} pts • 🎖️ {profile.badges.length} badges
               </span>
             </div>
           </button>

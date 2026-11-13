@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import { useProfile, AVATAR_OPTIONS, validateCallsign } from '@/lib/profile';
-import { playClick, playSuccess } from '@/lib/sound';
+import { playClick, playSuccess, playAlert } from '@/lib/sound';
+import type { CadetSpecialty } from '@/lib/types';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -12,10 +13,34 @@ interface ProfileModalProps {
 }
 
 export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
-  const { profile, updateCallsign, updateAvatar, badgesMeta } = useProfile();
+  const {
+    profile,
+    roster,
+    isCloudSyncing,
+    updateCallsign,
+    updateAvatar,
+    updateSpecialty,
+    switchCadet,
+    createNewCadet,
+    deleteCadet,
+    recoverCloudProfile,
+    badgesMeta,
+    specialtiesMeta,
+  } = useProfile();
+
   const [callsignInput, setCallsignInput] = useState(profile.callsign);
   const [callsignError, setCallsignError] = useState('');
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  // Recovery input state
+  const [recoveryId, setRecoveryId] = useState('');
+  const [recoveryMsg, setRecoveryMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [copiedId, setCopiedId] = useState(false);
+
+  // Sync callsign input if profile changes
+  useEffect(() => {
+    setCallsignInput(profile.callsign);
+  }, [profile.callsign, profile.cadetId]);
 
   const handleSaveCallsign = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +62,51 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     updateAvatar(avatar);
   };
 
+  const handleSelectSpecialty = (specialty: CadetSpecialty) => {
+    playClick();
+    updateSpecialty(specialty);
+  };
+
+  const handleCreateCadet = () => {
+    playSuccess();
+    createNewCadet();
+  };
+
+  const handleSwitch = (id: string) => {
+    playClick();
+    switchCadet(id);
+  };
+
+  const handleDelete = (id: string) => {
+    playAlert();
+    deleteCadet(id);
+  };
+
+  const handleRecover = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRecoveryMsg(null);
+    if (!recoveryId.trim()) return;
+
+    const res = await recoverCloudProfile(recoveryId);
+    if (res.success) {
+      playSuccess();
+      setRecoveryMsg({ type: 'success', text: `Profile recovered: ${res.profile?.callsign}!` });
+      setRecoveryId('');
+    } else {
+      playAlert();
+      setRecoveryMsg({ type: 'error', text: res.error || 'Failed to recover profile.' });
+    }
+  };
+
+  const handleCopyId = () => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(profile.cadetId);
+      setCopiedId(true);
+      playClick();
+      setTimeout(() => setCopiedId(false), 2000);
+    }
+  };
+
   const winRate =
     profile.missionsPlayed > 0
       ? Math.round((profile.missionsWon / profile.missionsPlayed) * 100)
@@ -45,6 +115,60 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="👨‍🚀 Cadet Dossier & Flight Credentials">
       <div className="space-y-6 max-h-[75vh] overflow-y-auto pr-1">
+        {/* Multi-Cadet Switcher Bar */}
+        <div className="bg-[#0B1026]/90 rounded-2xl p-3.5 border border-white/10 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+              <span>👥</span> Active Cadet Roster ({roster.length})
+            </span>
+            <button
+              type="button"
+              onClick={handleCreateCadet}
+              className="text-xs font-bold px-2.5 py-1 rounded-lg bg-[#E87040]/20 hover:bg-[#E87040]/30 text-[#E87040] border border-[#E87040]/40 transition-colors flex items-center gap-1 cursor-pointer"
+            >
+              <span>+</span> New Cadet
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-2 pt-1">
+            {roster.map((c) => {
+              const isActive = c.cadetId === profile.cadetId;
+              return (
+                <div
+                  key={c.cadetId}
+                  className={`
+                    group flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs transition-all cursor-pointer
+                    ${
+                      isActive
+                        ? 'bg-[#E87040]/20 border-[#E87040] text-white font-bold shadow-md shadow-[#E87040]/20 ring-1 ring-[#E87040]'
+                        : 'bg-[#1a1f3d]/60 border-white/10 text-white/70 hover:bg-[#1a1f3d] hover:text-white'
+                    }
+                  `}
+                  onClick={() => !isActive && handleSwitch(c.cadetId)}
+                >
+                  <span className="text-base">{c.avatar}</span>
+                  <span className="font-mono">{c.callsign}</span>
+                  {isActive && <span className="text-[10px] text-[#22C55E]">● Active</span>}
+                  {roster.length > 1 && !isActive && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(c.cadetId);
+                      }}
+                      className="ml-1 opacity-0 group-hover:opacity-100 hover:text-red-400 text-white/40 p-0.5 transition-opacity"
+                      title="Delete profile"
+                      aria-label={`Delete profile ${c.callsign}`}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Callsign & Avatar Identity Section */}
         <div className="bg-[#1a1f3d]/90 rounded-2xl p-5 border border-[#6B3FA0]/40 shadow-xl space-y-4">
           <div className="flex flex-col sm:flex-row items-center gap-5">
@@ -90,7 +214,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 )}
                 {savedSuccess && (
                   <p className="text-xs text-[#22C55E] font-medium flex items-center gap-1">
-                    <span>✓</span> Callsign updated successfully!
+                    <span>✓</span> Callsign updated and synced to cloud!
                   </p>
                 )}
               </form>
@@ -123,6 +247,56 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+
+        {/* Astronaut Mission Specialty Selection */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <span>🚀</span> Mission Specialty &amp; Gameplay Perks
+            </h4>
+            <span className="text-xs text-[#E87040] font-mono">
+              Active: {specialtiesMeta.find((s) => s.id === profile.specialty)?.name || 'Mission Commander'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {specialtiesMeta.map((spec) => {
+              const isSelected = (profile.specialty || 'commander') === spec.id;
+              return (
+                <div
+                  key={spec.id}
+                  onClick={() => handleSelectSpecialty(spec.id)}
+                  className={`
+                    p-3.5 rounded-2xl border transition-all cursor-pointer relative flex flex-col justify-between
+                    ${
+                      isSelected
+                        ? `bg-gradient-to-br ${spec.color} ring-2 ring-white/50 shadow-lg scale-[1.02]`
+                        : 'bg-[#0B1026]/70 border-white/10 hover:border-white/30 hover:bg-[#1a1f3d]/50'
+                    }
+                  `}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-2xl">{spec.icon}</span>
+                      <div>
+                        <h5 className="font-bold text-sm text-white">{spec.name}</h5>
+                        <p className="text-[11px] text-[#F8FAFC]/60">{spec.title}</p>
+                      </div>
+                    </div>
+                    {isSelected && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#22C55E]/30 text-[#22C55E] uppercase border border-[#22C55E]/50">
+                        Selected
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-[#F8FAFC]/80 mt-2.5 font-medium leading-relaxed">
+                    ⚡ {spec.perkDescription}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -213,10 +387,59 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           </div>
         </div>
 
+        {/* Cloud Recovery & Sync Section */}
+        <div className="p-4 rounded-2xl bg-[#0B1026]/80 border border-white/10 space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+              <span>☁️</span> Neon Cloud Sync &amp; Device Recovery
+            </h4>
+            <button
+              type="button"
+              onClick={handleCopyId}
+              className="text-[11px] font-mono text-[#3B82F6] hover:text-[#60A5FA] cursor-pointer flex items-center gap-1"
+            >
+              {copiedId ? '✓ Copied!' : 'Copy Cadet ID'}
+            </button>
+          </div>
+
+          <p className="text-xs text-[#F8FAFC]/60">
+            Your career progress is automatically backed up. Use your Cadet ID to transfer your profile to any classroom computer or judging device:
+          </p>
+
+          <form onSubmit={handleRecover} className="flex gap-2">
+            <input
+              type="text"
+              value={recoveryId}
+              onChange={(e) => setRecoveryId(e.target.value)}
+              placeholder="Paste Cadet ID (e.g. cadet-xyz...)"
+              className="
+                flex-1 px-3 py-2 rounded-xl bg-[#1a1f3d] border border-white/20
+                text-white font-mono text-xs
+                focus:outline-none focus:ring-2 focus:ring-[#3B82F6]
+              "
+            />
+            <Button
+              type="submit"
+              variant="secondary"
+              size="sm"
+              disabled={isCloudSyncing || !recoveryId.trim()}
+              className="px-4"
+            >
+              {isCloudSyncing ? 'Syncing...' : 'Recover'}
+            </Button>
+          </form>
+
+          {recoveryMsg && (
+            <p className={`text-xs font-medium ${recoveryMsg.type === 'success' ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
+              {recoveryMsg.text}
+            </p>
+          )}
+        </div>
+
         {/* Footer */}
         <div className="flex justify-between items-center pt-3 border-t border-white/10">
           <span className="text-xs font-mono text-[#F8FAFC]/40 truncate max-w-[200px]">
-            ID: {profile.cadetId.substring(0, 18)}...
+            Cadet ID: {profile.cadetId.substring(0, 16)}...
           </span>
           <Button variant="secondary" onClick={onClose}>
             Close Dossier

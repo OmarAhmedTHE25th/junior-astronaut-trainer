@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { GameProvider } from "@/components/game/GameProvider";
 import GameBoard from "@/components/game/GameBoard";
 import type { Difficulty, GameState } from "@/lib/types";
+import { SPECIALTY_METAS } from "@/lib/types";
+import { useProfile } from "@/lib/profile";
 import { playClick, playAction } from "@/lib/sound";
 
 const difficulties: { value: Difficulty; label: string; emoji: string; desc: string }[] = [
@@ -28,9 +30,12 @@ const difficulties: { value: Difficulty; label: string; emoji: string; desc: str
 ];
 
 export default function GamePage() {
+  const { profile } = useProfile();
   const [launched, setLaunched] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty>("commander");
   const [savedRun, setSavedRun] = useState<GameState | null>(null);
+
+  const activeSpecialty = SPECIALTY_METAS.find((s) => s.id === (profile.specialty || 'commander'));
 
   useEffect(() => {
     try {
@@ -74,6 +79,27 @@ export default function GamePage() {
                 Real solar flare and radiation data from NASA will challenge you
                 along the way. Good luck, astronaut!
               </p>
+            </div>
+
+            {/* Active Cadet Profile Callout */}
+            <div className="mb-6 p-3.5 rounded-2xl bg-[#0B1026]/90 border border-white/10 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">{profile.avatar}</span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-white text-sm">{profile.callsign}</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                      {activeSpecialty?.icon} {activeSpecialty?.name}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#F8FAFC]/70 mt-0.5">
+                    ⚡ {activeSpecialty?.perkDescription}
+                  </p>
+                </div>
+              </div>
+              <span className="hidden sm:inline-block text-xs font-mono text-[#22C55E]">
+                ● Ready for Launch
+              </span>
             </div>
 
             {/* Resume button if active run exists */}
@@ -177,7 +203,11 @@ export default function GamePage() {
   }
 
   return (
-    <GameProvider difficulty={difficulty} initialState={savedRun || undefined}>
+    <GameProvider
+      difficulty={difficulty}
+      specialty={profile.specialty}
+      initialState={savedRun || undefined}
+    >
       <GameBoard
         onChangeDifficulty={() => {
           setSavedRun(null);

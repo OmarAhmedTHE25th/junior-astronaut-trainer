@@ -7,6 +7,7 @@ import { useGame } from './GameProvider';
 import { calculateScore } from '@/lib/gameEngine';
 import { playVictory, playGameOver, playClick, playSuccess } from '@/lib/sound';
 import { useProfile, evaluateBadges, CADET_BADGES } from '@/lib/profile';
+import { SPECIALTY_METAS } from '@/lib/types';
 import type { BadgeId } from '@/lib/types';
 
 function ConfettiPiece({ index }: { index: number }) {
@@ -42,10 +43,15 @@ export default function EndScreen() {
   const [newlyUnlockedBadges, setNewlyUnlockedBadges] = useState<BadgeId[]>([]);
   const [leaderboardRank, setLeaderboardRank] = useState<number | null>(null);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [showCertificateView, setShowCertificateView] = useState(false);
   const submittedRef = useRef(false);
 
   const isVictory = state.phase === 'victory';
   const finalScore = calculateScore(state);
+
+  const activeSpecialty = SPECIALTY_METAS.find(
+    (s) => s.id === (state.specialty || profile.specialty || 'commander')
+  );
 
   // Star rating: 1-5 based on score
   const stars = Math.min(5, Math.max(1, Math.ceil(finalScore / 200)));
@@ -100,25 +106,67 @@ export default function EndScreen() {
     dispatch({ type: 'RESTART' });
   };
 
+  const handlePrint = () => {
+    playClick();
+    if (typeof window !== 'undefined') {
+      window.print();
+    }
+  };
+
+  const currentDateFormatted = new Date().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
   return (
     <>
+      <style jsx global>{`
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+          #mars-certificate,
+          #mars-certificate * {
+            visibility: visible !important;
+          }
+          #mars-certificate {
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            margin: 0 !important;
+            padding: 40px !important;
+            background: white !important;
+            color: #0f172a !important;
+            border: 8px double #1e293b !important;
+            box-shadow: none !important;
+            z-index: 999999 !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+        }
+      `}</style>
+
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-[fade-in_0.5s_ease-out]">
         {/* Backdrop */}
-        <div className="absolute inset-0 bg-[#0B1026]/90 backdrop-blur-md" aria-hidden="true" />
+        <div className="absolute inset-0 bg-[#0B1026]/90 backdrop-blur-md no-print" aria-hidden="true" />
 
         {/* Confetti */}
         {showConfetti && (
-          <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+          <div className="absolute inset-0 overflow-hidden pointer-events-none no-print" aria-hidden="true">
             {Array.from({ length: 60 }, (_, i) => (
               <ConfettiPiece key={i} index={i} />
             ))}
           </div>
         )}
 
-        {/* Card */}
+        {/* Main End Card */}
         <div
           className={`
-            relative z-10 w-full max-w-lg text-center
+            relative z-10 w-full max-w-xl text-center
             bg-gradient-to-b from-[#1a1f3d] to-[#0B1026]
             rounded-3xl border-2
             ${isVictory ? 'border-[#22C55E]/60 shadow-[#22C55E]/20' : 'border-[#EF4444]/60 shadow-[#EF4444]/20'}
@@ -139,13 +187,13 @@ export default function EndScreen() {
               isVictory ? 'text-[#22C55E]' : 'text-[#EF4444]'
             }`}
           >
-            {isVictory ? 'Mission Complete!' : 'Mission Failed'}
+            {isVictory ? 'Mars Outpost Mission Complete!' : 'Mission Depletion: Abort'}
           </h2>
 
           <p className="text-sm text-[#F8FAFC]/70 mb-4">
             {isVictory
-              ? `Commander ${profile.callsign}, you survived all ${state.maxSol} sols on Mars!`
-              : `Your outpost sustained operations for ${state.sol} sols on Mars.`}
+              ? `Commander ${profile.callsign}, you successfully survived all ${state.maxSol} sols on Mars!`
+              : `Your outpost sustained operations for ${state.sol} sols before mission abort.`}
           </p>
 
           {/* Stars & Score */}
@@ -165,6 +213,111 @@ export default function EndScreen() {
               </div>
             )}
           </div>
+
+          {/* Official Mars Outpost Completion Certificate Preview on Victory */}
+          {isVictory && (
+            <div className="mb-6 text-left">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-mono font-extrabold text-[#22C55E] uppercase tracking-wider flex items-center gap-1">
+                  <span>📜</span> Official Mars Outpost Certificate
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowCertificateView(!showCertificateView)}
+                  className="text-xs text-[#3B82F6] hover:underline font-mono"
+                >
+                  {showCertificateView ? 'Hide Certificate' : 'Preview Certificate'}
+                </button>
+              </div>
+
+              {/* Certificate Box */}
+              <div
+                id="mars-certificate"
+                className={`
+                  p-6 rounded-2xl border-2 border-amber-400/40 bg-gradient-to-b from-[#1a1f3d] to-[#0d1226]
+                  text-white shadow-xl relative overflow-hidden
+                  ${showCertificateView ? 'block' : 'hidden sm:block'}
+                `}
+              >
+                {/* NASA Space Apps Header */}
+                <div className="flex items-center justify-between border-b border-amber-400/30 pb-3 mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-3xl">🪐</span>
+                    <div>
+                      <h3 className="font-heading font-extrabold text-sm sm:text-base text-amber-300 uppercase tracking-wider">
+                        NASA Space Apps Challenge 2026
+                      </h3>
+                      <p className="text-[10px] text-white/60 font-mono">
+                        Junior Astronaut Mission Trainer Expedition Program
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-mono font-bold text-[#22C55E] block">
+                      SOL 30 VERIFIED
+                    </span>
+                    <span className="text-[10px] text-white/50">{currentDateFormatted}</span>
+                  </div>
+                </div>
+
+                {/* Recipient / Callsign */}
+                <div className="text-center py-2 space-y-1">
+                  <span className="text-xs font-mono uppercase text-amber-200/80 tracking-widest block">
+                    This official certificate is proudly awarded to
+                  </span>
+                  <div className="text-2xl sm:text-3xl font-extrabold font-mono text-white flex items-center justify-center gap-2">
+                    <span>{profile.avatar}</span>
+                    <span className="tracking-wide">{profile.callsign}</span>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 text-xs font-medium mt-1">
+                    <span>{activeSpecialty?.icon}</span>
+                    <span>{activeSpecialty?.name}</span>
+                    <span>•</span>
+                    <span>{activeSpecialty?.title}</span>
+                  </div>
+                </div>
+
+                {/* Body Text */}
+                <p className="text-xs text-white/80 text-center my-3 leading-relaxed max-w-md mx-auto">
+                  For outstanding courage, resource management, and scientific resilience demonstrated during the 30-Sol Mars Outpost Expedition under NASA DONKI solar event conditions.
+                </p>
+
+                {/* Earned Badges & Rank on Certificate */}
+                <div className="grid grid-cols-2 gap-2 pt-3 border-t border-amber-400/20 text-xs font-mono">
+                  <div>
+                    <span className="text-white/50 block text-[10px]">MISSION SCORE &amp; RANK:</span>
+                    <span className="text-amber-300 font-bold">
+                      {finalScore.toLocaleString()} PTS {leaderboardRank ? `(RANK #${leaderboardRank})` : ''}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-white/50 block text-[10px]">HONORS ATTAINED:</span>
+                    <span className="text-[#22C55E] font-bold">
+                      {profile.badges.length} CAREER BADGES
+                    </span>
+                  </div>
+                </div>
+
+                {/* Seal & Verification */}
+                <div className="mt-4 pt-3 border-t border-amber-400/20 flex items-center justify-between text-[10px] text-white/40 font-mono">
+                  <span>EXPEDITION ID: {profile.cadetId.substring(0, 14)}</span>
+                  <span className="text-amber-300/80 font-bold">★ SEAL OF MARS BASE ALPHA ★</span>
+                </div>
+              </div>
+
+              {/* Print Button */}
+              <div className="mt-2.5 flex justify-end">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handlePrint}
+                  className="text-xs flex items-center gap-1.5"
+                >
+                  <span>🖨️</span> Print / Save Certificate
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Newly Unlocked Badges Alert */}
           {newlyUnlockedBadges.length > 0 && (
@@ -218,9 +371,9 @@ export default function EndScreen() {
           </div>
 
           {/* Action Buttons */}
-          <div className="space-y-2.5">
+          <div className="space-y-2.5 no-print">
             <Button variant="primary" size="lg" onClick={handlePlayAgain} className="w-full justify-center">
-              🚀 Play Another Sol
+              🚀 Play Another Mission
             </Button>
             <Button
               variant="secondary"

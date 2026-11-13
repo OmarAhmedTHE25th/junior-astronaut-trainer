@@ -142,6 +142,7 @@ async function ensureSchema(sql: NeonQueryFunction<false, false>): Promise<void>
         cadet_id TEXT PRIMARY KEY,
         callsign TEXT NOT NULL,
         avatar TEXT NOT NULL,
+        specialty TEXT DEFAULT 'commander',
         missions_played INT DEFAULT 0,
         missions_won INT DEFAULT 0,
         total_sols INT DEFAULT 0,
@@ -149,6 +150,10 @@ async function ensureSchema(sql: NeonQueryFunction<false, false>): Promise<void>
         badges JSONB DEFAULT '[]'::jsonb,
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
+    `;
+
+    await sql`
+      ALTER TABLE cadet_profiles ADD COLUMN IF NOT EXISTS specialty TEXT DEFAULT 'commander';
     `;
 
     await sql`
@@ -395,15 +400,17 @@ export async function saveCloudProfile(profile: CadetProfile): Promise<void> {
   if (sql) {
     try {
       const badgesJson = JSON.stringify(profile.badges || []);
+      const specialty = profile.specialty || 'commander';
       await sql`
         INSERT INTO cadet_profiles 
-          (cadet_id, callsign, avatar, missions_played, missions_won, total_sols, highest_score, badges, updated_at)
+          (cadet_id, callsign, avatar, specialty, missions_played, missions_won, total_sols, highest_score, badges, updated_at)
         VALUES 
-          (${profile.cadetId}, ${profile.callsign}, ${profile.avatar}, ${profile.missionsPlayed}, ${profile.missionsWon}, ${profile.totalSolsSurvived}, ${profile.highestScore}, ${badgesJson}::jsonb, NOW())
+          (${profile.cadetId}, ${profile.callsign}, ${profile.avatar}, ${specialty}, ${profile.missionsPlayed}, ${profile.missionsWon}, ${profile.totalSolsSurvived}, ${profile.highestScore}, ${badgesJson}::jsonb, NOW())
         ON CONFLICT (cadet_id) 
         DO UPDATE SET 
           callsign = EXCLUDED.callsign,
           avatar = EXCLUDED.avatar,
+          specialty = EXCLUDED.specialty,
           missions_played = EXCLUDED.missions_played,
           missions_won = EXCLUDED.missions_won,
           total_sols = EXCLUDED.total_sols,
@@ -431,6 +438,7 @@ export async function getCloudProfile(cadetId: string): Promise<CadetProfile | n
         cadet_id: string;
         callsign: string;
         avatar: string;
+        specialty?: string;
         missions_played: number;
         missions_won: number;
         total_sols: number;
@@ -440,7 +448,7 @@ export async function getCloudProfile(cadetId: string): Promise<CadetProfile | n
       };
 
       const rows = (await sql`
-        SELECT cadet_id, callsign, avatar, missions_played, missions_won, total_sols, highest_score, badges, updated_at
+        SELECT cadet_id, callsign, avatar, specialty, missions_played, missions_won, total_sols, highest_score, badges, updated_at
         FROM cadet_profiles 
         WHERE cadet_id = ${cadetId} 
         LIMIT 1;
@@ -453,6 +461,7 @@ export async function getCloudProfile(cadetId: string): Promise<CadetProfile | n
           cadetId: r.cadet_id,
           callsign: r.callsign,
           avatar: r.avatar,
+          specialty: (r.specialty as any) || 'commander',
           createdAt: r.updated_at ? new Date(r.updated_at).toISOString() : new Date().toISOString(),
           missionsPlayed: r.missions_played,
           missionsWon: r.missions_won,

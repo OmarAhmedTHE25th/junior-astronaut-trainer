@@ -96,12 +96,14 @@ export interface GameState {
   usedEventIds: string[];
   /** Chosen difficulty */
   difficulty: Difficulty;
+  /** Chosen astronaut specialty */
+  specialty?: CadetSpecialty;
 }
 
 // ── Reducer Actions ─────────────────────────────────────────
 
 export type GameAction =
-  | { type: 'START_MISSION'; difficulty: Difficulty }
+  | { type: 'START_MISSION'; difficulty: Difficulty; specialty?: CadetSpecialty }
   | { type: 'LOAD_STATE'; state: GameState }
   | { type: 'PERFORM_ACTION'; action?: PlayerAction; payload?: PlayerAction }
   | { type: 'TRIGGER_EVENT'; event: GameEvent }
@@ -112,7 +114,58 @@ export type GameAction =
   | { type: 'RESET' }
   | { type: 'RESTART' };
 
-// ── Cadet Profiles & Badges ─────────────────────────────────
+// ── Cadet Profiles, Specialties & Badges ────────────────────
+
+export type CadetSpecialty = 'engineer' | 'biologist' | 'physicist' | 'commander';
+
+export interface SpecialtyMeta {
+  id: CadetSpecialty;
+  name: string;
+  icon: string;
+  title: string;
+  perkDescription: string;
+  badge: string;
+  color: string;
+}
+
+export const SPECIALTY_METAS: SpecialtyMeta[] = [
+  {
+    id: 'engineer',
+    name: 'Systems Engineer',
+    icon: '🔧',
+    title: 'Systems & Power Specialist',
+    perkDescription: '+20% power gain from Solar Panel Repair & Resource Conservation',
+    badge: 'Power Tech',
+    color: 'from-amber-500/20 to-orange-500/20 border-amber-500/40 text-amber-300'
+  },
+  {
+    id: 'biologist',
+    name: 'Astrobiologist',
+    icon: '🌱',
+    title: 'Life Support & Ecology Lead',
+    perkDescription: '+25% oxygen and morale recovery from O₂ Generators & Hydroponics',
+    badge: 'Bio Lead',
+    color: 'from-emerald-500/20 to-teal-500/20 border-emerald-500/40 text-emerald-300'
+  },
+  {
+    id: 'physicist',
+    name: 'Radiation Physicist',
+    icon: '🛡️',
+    title: 'Magnetosphere & Defense Officer',
+    perkDescription: '+20% shielding boost from Boost Shields & -25% shield damage from solar storms',
+    badge: 'Shield Officer',
+    color: 'from-cyan-500/20 to-blue-500/20 border-cyan-500/40 text-cyan-300'
+  },
+  {
+    id: 'commander',
+    name: 'Mission Commander',
+    icon: '🎖️',
+    title: 'Expedition Commander',
+    perkDescription: '+15% science score bonus on Research Missions & +2 morale every 5 sols survived',
+    badge: 'Commander',
+    color: 'from-purple-500/20 to-indigo-500/20 border-purple-500/40 text-purple-300'
+  }
+];
 
 export type BadgeId =
   | 'solar_storm_survivor'
@@ -133,6 +186,7 @@ export interface CadetProfile {
   cadetId: string;
   callsign: string;
   avatar: string;
+  specialty: CadetSpecialty;
   createdAt: string;
   missionsPlayed: number;
   missionsWon: number;
