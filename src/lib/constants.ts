@@ -21,9 +21,9 @@ export const RESOURCE_MAX = 100;
 // ── Starting Resources ──────────────────────────────────────
 
 export const INITIAL_RESOURCES = {
-  power: 80,
-  oxygen: 85,
-  shielding: 70,
+  power: 95,
+  oxygen: 95,
+  shielding: 90,
   morale: 75,
 } as const;
 
@@ -48,8 +48,8 @@ export interface DifficultyConfig {
 export const DIFFICULTY_SETTINGS: Record<Difficulty, DifficultyConfig> = {
   cadet: {
     label: 'Space Cadet',
-    depletionMultiplier: 0.7,
-    eventChanceMultiplier: 0.8,
+    depletionMultiplier: 0.5,
+    eventChanceMultiplier: 0.6,
     scoreMultiplier: 1.0,
     description: 'Easier resource drain — great for first-time astronauts!',
   },
