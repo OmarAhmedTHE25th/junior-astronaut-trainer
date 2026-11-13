@@ -23,6 +23,7 @@ export default function LeaderboardModal({
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isCloud, setIsCloud] = useState<boolean>(false);
+  const [storageType, setStorageType] = useState<string>('local');
 
   const fetchScores = useCallback(async (difficulty: string) => {
     setIsLoading(true);
@@ -34,6 +35,7 @@ export default function LeaderboardModal({
       if (data.success) {
         setEntries(data.entries || []);
         setIsCloud(Boolean(data.isCloudStorage));
+        setStorageType(data.storageType || (data.isCloudStorage ? 'neon' : 'local'));
       }
     } catch {
       // If server unreachable, check client local backup
@@ -79,7 +81,7 @@ export default function LeaderboardModal({
               Storage Adapter:
             </span>
             <span className="font-bold text-white">
-              {isCloud ? '☁️ Upstash Cloud Redis (Live)' : '💾 Zero-Setup In-Memory Fallback'}
+              {isCloud || storageType === 'neon' ? '🟢 Neon Postgres Live' : '💾 Zero-Setup In-Memory Fallback'}
             </span>
           </div>
           <span className="text-[#F8FAFC]/40 text-[11px] font-mono">

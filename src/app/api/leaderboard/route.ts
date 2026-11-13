@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
       success: true,
       entries: result.entries,
       isCloudStorage: result.isCloudStorage,
+      storageType: result.storageType,
     });
   } catch (error) {
     return NextResponse.json(
@@ -72,6 +73,7 @@ export async function POST(request: NextRequest) {
       score: authoritativeScore,
       isVictory: isVerifiedVictory,
       isCloudStorage: saveResult.isCloudStorage,
+      storageType: saveResult.storageType,
     });
   } catch (error) {
     return NextResponse.json(

@@ -1,7 +1,8 @@
 // ─── Junior Astronaut Mission Trainer – Storage Adapter ───
-// Dual-tier architecture: Upstash Redis / Vercel KV REST in production,
-// with graceful in-memory server fallback and client localStorage mirroring.
+// Neon Serverless Postgres (@neondatabase/serverless) with graceful
+// in-memory server fallback and client localStorage mirroring.
 
+import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
 import type { CadetProfile, LeaderboardEntry, GameState, Difficulty } from './types';
 
 // Default legendary historical astronaut entries
@@ -102,6 +103,8 @@ interface ServerMemoryStore {
 declare global {
   // eslint-disable-next-line no-var
   var __jat_store__: ServerMemoryStore | undefined;
+  // eslint-disable-next-line no-var
+  var __jat_neon_schema_ready__: boolean | undefined;
 }
 
 function getMemoryStore(): ServerMemoryStore {
@@ -115,35 +118,84 @@ function getMemoryStore(): ServerMemoryStore {
   return globalThis.__jat_store__;
 }
 
-/** Check if Upstash Redis or Vercel KV environment variables are present */
-export function isCloudStorageConfigured(): boolean {
-  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
-  return Boolean(url && token);
+/** Check if Neon Postgres connection string is present */
+export function getConnectionString(): string | null {
+  const url = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+  return url && url.trim().length > 0 ? url.trim() : null;
 }
 
-/** Execute command against Upstash REST API using native fetch */
-async function executeUpstashCommand<T = unknown>(command: (string | number)[]): Promise<T | null> {
-  const url = (process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL)?.replace(/\/$/, '');
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+export function isCloudStorageConfigured(): boolean {
+  return Boolean(getConnectionString());
+}
 
-  if (!url || !token) return null;
+export function isNeonConfigured(): boolean {
+  return isCloudStorageConfigured();
+}
+
+/** Idempotent schema initialization for Neon Serverless Postgres */
+async function ensureSchema(sql: NeonQueryFunction<false, false>): Promise<void> {
+  if (globalThis.__jat_neon_schema_ready__) return;
 
   try {
-    const res = await fetch(`${url}/`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(command),
-      cache: 'no-store',
-    });
+    await sql`
+      CREATE TABLE IF NOT EXISTS cadet_profiles (
+        cadet_id TEXT PRIMARY KEY,
+        callsign TEXT NOT NULL,
+        avatar TEXT NOT NULL,
+        missions_played INT DEFAULT 0,
+        missions_won INT DEFAULT 0,
+        total_sols INT DEFAULT 0,
+        highest_score INT DEFAULT 0,
+        badges JSONB DEFAULT '[]'::jsonb,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `;
 
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.result as T;
-  } catch {
+    await sql`
+      CREATE TABLE IF NOT EXISTS active_saves (
+        cadet_id TEXT PRIMARY KEY,
+        game_state JSONB NOT NULL,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS leaderboard_entries (
+        id SERIAL PRIMARY KEY,
+        cadet_id TEXT NOT NULL,
+        callsign TEXT NOT NULL,
+        avatar TEXT NOT NULL,
+        difficulty TEXT NOT NULL,
+        sols_survived INT NOT NULL,
+        score INT NOT NULL,
+        is_victory BOOLEAN NOT NULL,
+        badges_count INT DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_leaderboard_score_created
+      ON leaderboard_entries (score DESC, created_at ASC);
+    `;
+
+    globalThis.__jat_neon_schema_ready__ = true;
+  } catch (err) {
+    console.error('Failed to run ensureSchema on Neon Postgres:', err);
+  }
+}
+
+/** Lazily get authenticated Neon SQL client with schema verification */
+async function getSqlClient(): Promise<NeonQueryFunction<false, false> | null> {
+  const connStr = getConnectionString();
+  if (!connStr) return null;
+
+  try {
+    const sql = neon(connStr);
+    await ensureSchema(sql);
+    return sql;
+  } catch (err) {
+    console.error('Failed to initialize Neon client:', err);
     return null;
   }
 }
@@ -154,26 +206,58 @@ async function executeUpstashCommand<T = unknown>(command: (string | number)[]):
 export async function getLeaderboard(
   difficulty: string = 'all',
   limit: number = 25
-): Promise<{ entries: LeaderboardEntry[]; isCloudStorage: boolean }> {
-  const isCloud = isCloudStorageConfigured();
+): Promise<{ entries: LeaderboardEntry[]; isCloudStorage: boolean; storageType: 'neon' | 'local' }> {
+  const sql = await getSqlClient();
 
-  if (isCloud) {
-    const setKey = difficulty && difficulty !== 'all'
-      ? `jat:lb:${difficulty}`
-      : 'jat:lb:all';
+  if (sql) {
+    try {
+      type DbRow = {
+        cadet_id: string;
+        callsign: string;
+        avatar: string;
+        difficulty: string;
+        sols_survived: number;
+        score: number;
+        is_victory: boolean;
+        badges_count: number;
+        created_at: string;
+      };
 
-    const rawList = await executeUpstashCommand<string[]>(['ZREVRANGE', setKey, 0, limit - 1]);
-
-    if (rawList && rawList.length > 0) {
-      const parsed: LeaderboardEntry[] = [];
-      for (const item of rawList) {
-        try {
-          const entry = typeof item === 'string' ? JSON.parse(item) : item;
-          parsed.push(entry);
-        } catch {}
+      let rows: DbRow[];
+      if (difficulty && difficulty !== 'all') {
+        rows = (await sql`
+          SELECT cadet_id, callsign, avatar, difficulty, sols_survived, score, is_victory, badges_count, created_at
+          FROM leaderboard_entries
+          WHERE LOWER(difficulty) = LOWER(${difficulty})
+          ORDER BY score DESC, created_at ASC
+          LIMIT ${limit};
+        `) as unknown as DbRow[];
+      } else {
+        rows = (await sql`
+          SELECT cadet_id, callsign, avatar, difficulty, sols_survived, score, is_victory, badges_count, created_at
+          FROM leaderboard_entries
+          ORDER BY score DESC, created_at ASC
+          LIMIT ${limit};
+        `) as unknown as DbRow[];
       }
-      const ranked = parsed.map((e, idx) => ({ ...e, rank: idx + 1 }));
-      return { entries: ranked, isCloudStorage: true };
+
+      if (rows && rows.length > 0) {
+        const entries: LeaderboardEntry[] = rows.map((r, idx) => ({
+          rank: idx + 1,
+          cadetId: r.cadet_id,
+          callsign: r.callsign,
+          avatar: r.avatar,
+          difficulty: r.difficulty as Difficulty,
+          solsSurvived: r.sols_survived,
+          score: r.score,
+          badgesCount: r.badges_count || 0,
+          timestamp: new Date(r.created_at).getTime(),
+          verified: true,
+        }));
+        return { entries, isCloudStorage: true, storageType: 'neon' };
+      }
+    } catch (err) {
+      console.error('Neon getLeaderboard error:', err);
     }
   }
 
@@ -188,25 +272,40 @@ export async function getLeaderboard(
   filtered.sort((a, b) => b.score - a.score);
   const sliced = filtered.slice(0, limit).map((e, idx) => ({ ...e, rank: idx + 1 }));
 
-  return { entries: sliced, isCloudStorage: isCloud };
+  return { entries: sliced, isCloudStorage: false, storageType: 'local' };
 }
 
 /** Save an authoritative leaderboard entry */
 export async function saveLeaderboardEntry(
   entry: LeaderboardEntry
-): Promise<{ rank: number; isCloudStorage: boolean }> {
-  const isCloud = isCloudStorageConfigured();
-  const entryJson = JSON.stringify(entry);
+): Promise<{ rank: number; isCloudStorage: boolean; storageType: 'neon' | 'local' }> {
+  const sql = await getSqlClient();
 
-  if (isCloud) {
-    // Add to global set and difficulty-specific set
-    await executeUpstashCommand(['ZADD', 'jat:lb:all', entry.score, entryJson]);
-    await executeUpstashCommand(['ZADD', `jat:lb:${entry.difficulty}`, entry.score, entryJson]);
+  if (sql) {
+    try {
+      const isVictory = entry.solsSurvived >= 30;
+      const createdAt = new Date(entry.timestamp).toISOString();
 
-    // Query rank
-    const rank0 = await executeUpstashCommand<number>(['ZREVRANK', 'jat:lb:all', entryJson]);
-    const computedRank = rank0 !== null ? rank0 + 1 : 1;
-    return { rank: computedRank, isCloudStorage: true };
+      await sql`
+        INSERT INTO leaderboard_entries 
+          (cadet_id, callsign, avatar, difficulty, sols_survived, score, is_victory, badges_count, created_at)
+        VALUES 
+          (${entry.cadetId}, ${entry.callsign}, ${entry.avatar}, ${entry.difficulty}, ${entry.solsSurvived}, ${entry.score}, ${isVictory}, ${entry.badgesCount}, ${createdAt});
+      `;
+
+      type CountRow = { higher_count: string | number };
+      const countRows = (await sql`
+        SELECT COUNT(*) as higher_count
+        FROM leaderboard_entries
+        WHERE score > ${entry.score} 
+           OR (score = ${entry.score} AND created_at < ${createdAt});
+      `) as unknown as CountRow[];
+
+      const rank = countRows && countRows[0] ? Number(countRows[0].higher_count) + 1 : 1;
+      return { rank, isCloudStorage: true, storageType: 'neon' };
+    } catch (err) {
+      console.error('Neon saveLeaderboardEntry error:', err);
+    }
   }
 
   // Fallback to in-memory
@@ -219,19 +318,26 @@ export async function saveLeaderboardEntry(
   );
   const rank = foundIndex >= 0 ? foundIndex + 1 : 1;
 
-  return { rank, isCloudStorage: false };
+  return { rank, isCloudStorage: false, storageType: 'local' };
 }
 
 /** Save active mission state */
 export async function saveActiveMission(cadetId: string, state: GameState): Promise<void> {
-  const isCloud = isCloudStorageConfigured();
-  const key = `jat:save:${cadetId}`;
-  const json = JSON.stringify(state);
+  const sql = await getSqlClient();
 
-  if (isCloud) {
-    // Save with 7-day TTL
-    await executeUpstashCommand(['SET', key, json, 'EX', 604800]);
-    return;
+  if (sql) {
+    try {
+      const jsonState = JSON.stringify(state);
+      await sql`
+        INSERT INTO active_saves (cadet_id, game_state, updated_at)
+        VALUES (${cadetId}, ${jsonState}::jsonb, NOW())
+        ON CONFLICT (cadet_id) 
+        DO UPDATE SET game_state = EXCLUDED.game_state, updated_at = NOW();
+      `;
+      return;
+    } catch (err) {
+      console.error('Neon saveActiveMission error:', err);
+    }
   }
 
   const store = getMemoryStore();
@@ -240,17 +346,23 @@ export async function saveActiveMission(cadetId: string, state: GameState): Prom
 
 /** Fetch active mission state */
 export async function getActiveMission(cadetId: string): Promise<GameState | null> {
-  const isCloud = isCloudStorageConfigured();
-  const key = `jat:save:${cadetId}`;
+  const sql = await getSqlClient();
 
-  if (isCloud) {
-    const raw = await executeUpstashCommand<string>(['GET', key]);
-    if (raw) {
-      try {
-        return JSON.parse(raw) as GameState;
-      } catch {}
+  if (sql) {
+    try {
+      type SaveRow = { game_state: unknown };
+      const rows = (await sql`
+        SELECT game_state FROM active_saves WHERE cadet_id = ${cadetId} LIMIT 1;
+      `) as unknown as SaveRow[];
+
+      if (rows && rows.length > 0) {
+        const gs = rows[0].game_state;
+        return typeof gs === 'string' ? JSON.parse(gs) : (gs as GameState);
+      }
+      return null;
+    } catch (err) {
+      console.error('Neon getActiveMission error:', err);
     }
-    return null;
   }
 
   const store = getMemoryStore();
@@ -259,12 +371,17 @@ export async function getActiveMission(cadetId: string): Promise<GameState | nul
 
 /** Delete active mission state (on completion/game over) */
 export async function deleteActiveMission(cadetId: string): Promise<void> {
-  const isCloud = isCloudStorageConfigured();
-  const key = `jat:save:${cadetId}`;
+  const sql = await getSqlClient();
 
-  if (isCloud) {
-    await executeUpstashCommand(['DEL', key]);
-    return;
+  if (sql) {
+    try {
+      await sql`
+        DELETE FROM active_saves WHERE cadet_id = ${cadetId};
+      `;
+      return;
+    } catch (err) {
+      console.error('Neon deleteActiveMission error:', err);
+    }
   }
 
   const store = getMemoryStore();
@@ -273,13 +390,31 @@ export async function deleteActiveMission(cadetId: string): Promise<void> {
 
 /** Save cadet profile to cloud or fallback */
 export async function saveCloudProfile(profile: CadetProfile): Promise<void> {
-  const isCloud = isCloudStorageConfigured();
-  const key = `jat:profile:${profile.cadetId}`;
-  const json = JSON.stringify(profile);
+  const sql = await getSqlClient();
 
-  if (isCloud) {
-    await executeUpstashCommand(['SET', key, json]);
-    return;
+  if (sql) {
+    try {
+      const badgesJson = JSON.stringify(profile.badges || []);
+      await sql`
+        INSERT INTO cadet_profiles 
+          (cadet_id, callsign, avatar, missions_played, missions_won, total_sols, highest_score, badges, updated_at)
+        VALUES 
+          (${profile.cadetId}, ${profile.callsign}, ${profile.avatar}, ${profile.missionsPlayed}, ${profile.missionsWon}, ${profile.totalSolsSurvived}, ${profile.highestScore}, ${badgesJson}::jsonb, NOW())
+        ON CONFLICT (cadet_id) 
+        DO UPDATE SET 
+          callsign = EXCLUDED.callsign,
+          avatar = EXCLUDED.avatar,
+          missions_played = EXCLUDED.missions_played,
+          missions_won = EXCLUDED.missions_won,
+          total_sols = EXCLUDED.total_sols,
+          highest_score = EXCLUDED.highest_score,
+          badges = EXCLUDED.badges,
+          updated_at = NOW();
+      `;
+      return;
+    } catch (err) {
+      console.error('Neon saveCloudProfile error:', err);
+    }
   }
 
   const store = getMemoryStore();
@@ -288,17 +423,48 @@ export async function saveCloudProfile(profile: CadetProfile): Promise<void> {
 
 /** Fetch cadet profile from cloud or fallback */
 export async function getCloudProfile(cadetId: string): Promise<CadetProfile | null> {
-  const isCloud = isCloudStorageConfigured();
-  const key = `jat:profile:${cadetId}`;
+  const sql = await getSqlClient();
 
-  if (isCloud) {
-    const raw = await executeUpstashCommand<string>(['GET', key]);
-    if (raw) {
-      try {
-        return JSON.parse(raw) as CadetProfile;
-      } catch {}
+  if (sql) {
+    try {
+      type ProfileRow = {
+        cadet_id: string;
+        callsign: string;
+        avatar: string;
+        missions_played: number;
+        missions_won: number;
+        total_sols: number;
+        highest_score: number;
+        badges: unknown;
+        updated_at: string;
+      };
+
+      const rows = (await sql`
+        SELECT cadet_id, callsign, avatar, missions_played, missions_won, total_sols, highest_score, badges, updated_at
+        FROM cadet_profiles 
+        WHERE cadet_id = ${cadetId} 
+        LIMIT 1;
+      `) as unknown as ProfileRow[];
+
+      if (rows && rows.length > 0) {
+        const r = rows[0];
+        const badges = typeof r.badges === 'string' ? JSON.parse(r.badges) : r.badges;
+        return {
+          cadetId: r.cadet_id,
+          callsign: r.callsign,
+          avatar: r.avatar,
+          createdAt: r.updated_at ? new Date(r.updated_at).toISOString() : new Date().toISOString(),
+          missionsPlayed: r.missions_played,
+          missionsWon: r.missions_won,
+          totalSolsSurvived: r.total_sols,
+          highestScore: r.highest_score,
+          badges: Array.isArray(badges) ? badges : [],
+        };
+      }
+      return null;
+    } catch (err) {
+      console.error('Neon getCloudProfile error:', err);
     }
-    return null;
   }
 
   const store = getMemoryStore();
