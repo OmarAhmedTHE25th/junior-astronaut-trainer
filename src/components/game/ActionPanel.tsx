@@ -5,12 +5,14 @@ import Button from '@/components/ui/Button';
 import { useGame } from './GameProvider';
 import { AVAILABLE_ACTIONS } from '@/lib/constants';
 import type { PlayerAction } from '@/lib/types';
+import { playAction } from '@/lib/sound';
 
 export default function ActionPanel() {
   const { state, dispatch } = useGame();
   const isDisabled = state.phase !== 'action';
 
   const handleAction = (action: PlayerAction) => {
+    playAction();
     dispatch({ type: 'PERFORM_ACTION', payload: action });
   };
 

@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Button from '@/components/ui/Button';
 import { useGame } from './GameProvider';
+import { playSuccess, playClick } from '@/lib/sound';
 
 const categoryIcons: Record<string, string> = {
   mars: '🔴',
@@ -20,7 +21,18 @@ interface NASAFactPopupProps {
 export default function NASAFactPopup({ onDismiss }: NASAFactPopupProps) {
   const { currentFact } = useGame();
 
+  useEffect(() => {
+    if (currentFact) {
+      playSuccess();
+    }
+  }, [currentFact]);
+
   if (!currentFact) return null;
+
+  const handleDismiss = () => {
+    playClick();
+    onDismiss();
+  };
 
   const icon = categoryIcons[currentFact.category] || '🌟';
 
@@ -81,7 +93,7 @@ export default function NASAFactPopup({ onDismiss }: NASAFactPopupProps) {
           <Button
             variant="primary"
             size="md"
-            onClick={onDismiss}
+            onClick={handleDismiss}
             className="w-full"
             ariaLabel="Continue to next sol"
           >

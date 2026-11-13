@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Button from '@/components/ui/Button';
 import { useGame } from './GameProvider';
 import type { EventChoice } from '@/lib/types';
+import { playAlert, playSuccess } from '@/lib/sound';
 
 const severityBorder: Record<number, string> = {
   1: 'border-[#3B82F6]',
@@ -21,9 +22,16 @@ export default function EventCard() {
   const { state, dispatch } = useGame();
   const event = state.activeEvent;
 
+  useEffect(() => {
+    if (event) {
+      playAlert(event.severity);
+    }
+  }, [event]);
+
   if (!event || state.phase !== 'event') return null;
 
   const handleChoice = (choice: EventChoice) => {
+    playSuccess();
     dispatch({ type: 'RESOLVE_EVENT', payload: choice });
   };
 

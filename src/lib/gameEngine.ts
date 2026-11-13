@@ -172,6 +172,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...initial, phase: 'action' };
     }
 
+    // ── Load a saved mission ──────────────────────────────
+    case 'LOAD_STATE': {
+      return action.state;
+    }
+
     // ── Player performs an action ─────────────────────────
     case 'PERFORM_ACTION': {
       if (state.phase !== 'action') return state;

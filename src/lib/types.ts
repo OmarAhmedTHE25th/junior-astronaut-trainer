@@ -102,6 +102,7 @@ export interface GameState {
 
 export type GameAction =
   | { type: 'START_MISSION'; difficulty: Difficulty }
+  | { type: 'LOAD_STATE'; state: GameState }
   | { type: 'PERFORM_ACTION'; action?: PlayerAction; payload?: PlayerAction }
   | { type: 'TRIGGER_EVENT'; event: GameEvent }
   | { type: 'RESOLVE_EVENT'; choiceId?: string; payload?: EventChoice }
@@ -110,3 +111,48 @@ export type GameAction =
   | { type: 'NEXT_SOL' }
   | { type: 'RESET' }
   | { type: 'RESTART' };
+
+// ── Cadet Profiles & Badges ─────────────────────────────────
+
+export type BadgeId =
+  | 'solar_storm_survivor'
+  | 'veteran_30_sols'
+  | 'mars_pioneer'
+  | 'chief_scientist'
+  | 'iron_dome';
+
+export interface CadetBadge {
+  id: BadgeId;
+  name: string;
+  icon: string;
+  description: string;
+  requirement: string;
+}
+
+export interface CadetProfile {
+  cadetId: string;
+  callsign: string;
+  avatar: string;
+  createdAt: string;
+  missionsPlayed: number;
+  missionsWon: number;
+  totalSolsSurvived: number;
+  highestScore: number;
+  badges: BadgeId[];
+}
+
+// ── Global Leaderboard ──────────────────────────────────────
+
+export interface LeaderboardEntry {
+  rank?: number;
+  cadetId: string;
+  callsign: string;
+  avatar: string;
+  difficulty: Difficulty;
+  solsSurvived: number;
+  score: number;
+  badgesCount: number;
+  timestamp: number;
+  verified: boolean;
+}
+

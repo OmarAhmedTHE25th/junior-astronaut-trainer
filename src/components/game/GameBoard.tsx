@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useGame } from './GameProvider';
 import HUD from './HUD';
 import ActionPanel from './ActionPanel';
@@ -9,11 +9,45 @@ import MissionLog from './MissionLog';
 import EndScreen from './EndScreen';
 import NASAFactPopup from './NASAFactPopup';
 import MarsView from './MarsView';
+import PauseMenu from './PauseMenu';
+import { startAmbientHum, stopAmbientHum } from '@/lib/sound';
 
-export default function GameBoard() {
+interface GameBoardProps {
+  onChangeDifficulty?: () => void;
+}
+
+export default function GameBoard({ onChangeDifficulty }: GameBoardProps) {
   const { state, dispatch, rotateFact } = useGame();
   const [showFact, setShowFact] = useState(false);
   const [lastFactSol, setLastFactSol] = useState(0);
+  const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
+
+  // Start subtle ambient hum on mount and clean up on unmount
+  useEffect(() => {
+    startAmbientHum();
+    return () => {
+      stopAmbientHum();
+    };
+  }, []);
+
+  // Listen for Escape key: open Pause Menu if not already open.
+  // When already open, the Modal component captures Escape and invokes onClose().
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      // Don't open if another popup (like NASA Fact) is active
+      if (showFact) return;
+      if (!isPauseMenuOpen) {
+        setIsPauseMenuOpen(true);
+      }
+    }
+  }, [showFact, isPauseMenuOpen]);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleKeyDown]);
 
   // Show NASA fact popup between turns (when sol advances and phase is 'action')
   useEffect(() => {
@@ -43,7 +77,7 @@ export default function GameBoard() {
 
       {/* HUD overlay */}
       <div className="relative z-10 flex flex-col min-h-screen">
-        <HUD />
+        <HUD onOpenMenu={() => setIsPauseMenuOpen(true)} />
 
         {/* Main content area */}
         <main className="flex-1 flex flex-col lg:flex-row gap-4 p-4 items-start">
@@ -74,6 +108,13 @@ export default function GameBoard() {
           <MissionLog />
         </main>
       </div>
+
+      {/* Pause & Command Menu */}
+      <PauseMenu
+        isOpen={isPauseMenuOpen}
+        onClose={() => setIsPauseMenuOpen(false)}
+        onChangeDifficulty={onChangeDifficulty}
+      />
 
       {/* NASA Fact popup */}
       {showFact && <NASAFactPopup onDismiss={() => setShowFact(false)} />}

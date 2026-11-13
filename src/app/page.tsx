@@ -1,4 +1,5 @@
 import Link from "next/link";
+import MainMenu from "@/components/game/MainMenu";
 
 /* ─── Feature cards ───────────────────────────────────────────── */
 const features = [
@@ -49,12 +50,12 @@ const steps = [
 
 /* ─── NASA data sources ───────────────────────────────────────── */
 const dataSources = [
-  { name: "DONKI", label: "Solar Events" },
-  { name: "RadLab", label: "Radiation Data" },
-  { name: "OSDR", label: "Space Biology" },
-  { name: "Mars Rover Photos", label: "Mars Imagery" },
-  { name: "APOD", label: "Astronomy Pictures" },
-  { name: "Mars Trek", label: "Mars Terrain" },
+  { name: "DONKI", label: "Solar Events", url: "https://ccmc.gsfc.nasa.gov/tools/DONKI/" },
+  { name: "RadLab", label: "Radiation Data", url: "https://visualization.osdr.nasa.gov/radlab/gui/data-api/" },
+  { name: "OSDR", label: "Space Biology", url: "https://osdr.nasa.gov/bio/repo/" },
+  { name: "Mars Rover Photos", label: "Mars Imagery", url: "https://api.nasa.gov/" },
+  { name: "APOD", label: "Astronomy Pictures", url: "https://api.nasa.gov/" },
+  { name: "Mars Trek", label: "Mars Terrain", url: "https://trek.nasa.gov/mars/" },
 ];
 
 export default function HomePage() {
@@ -63,9 +64,12 @@ export default function HomePage() {
       {/* Starfield background */}
       <div className="starfield-bg" aria-hidden="true" />
 
-      <main className="relative z-10 flex flex-col">
-        {/* ───────── HERO ───────── */}
-        <section className="flex flex-col items-center justify-center min-h-[90vh] px-4 text-center gap-6">
+      <main className="relative z-10 flex flex-col min-h-screen">
+        {/* ───────── COMMAND CENTER HEADER & MAIN MENU ───────── */}
+        <MainMenu />
+
+        {/* ───────── HERO SECTION ───────── */}
+        <section className="flex flex-col items-center justify-center px-4 pt-6 pb-16 text-center gap-6">
           {/* Floating rocket */}
           <span className="text-6xl md:text-8xl animate-float" aria-hidden="true">
             🚀
@@ -86,32 +90,27 @@ export default function HomePage() {
             <span className="text-o2-blue font-semibold">real NASA data</span>.
           </p>
 
-          {/* CTA */}
+          {/* Quick Start Mission Button */}
           <Link
             href="/game"
             className="
-              mt-4 inline-flex items-center gap-3
+              mt-2 inline-flex items-center gap-3
               px-10 py-5 rounded-2xl
               bg-gradient-to-r from-mars-orange to-cosmic-purple
               text-white font-heading font-bold text-xl md:text-2xl
               animate-glow-pulse hover:scale-105
               transition-transform duration-200
               focus:outline-none focus:ring-4 focus:ring-mars-orange/50
-              animate-fade-in [animation-delay:400ms]
+              animate-fade-in [animation-delay:400ms] shadow-2xl shadow-mars-orange/30
             "
           >
-            Start Mission
+            Launch Sol 1
             <span className="text-2xl" aria-hidden="true">🛸</span>
           </Link>
-
-          {/* Scroll hint */}
-          <div className="mt-12 animate-float [animation-delay:1s] text-starlight/40 text-sm">
-            ↓ Scroll to learn more
-          </div>
         </section>
 
         {/* ───────── FEATURE CARDS ───────── */}
-        <section className="max-w-6xl mx-auto px-4 py-20">
+        <section className="max-w-6xl mx-auto px-4 py-16">
           <h2 className="font-heading text-3xl md:text-4xl font-bold text-center mb-14">
             Three Resources. One Mission.{" "}
             <span className="text-mars-orange">Zero Margin for Error.</span>
@@ -140,7 +139,7 @@ export default function HomePage() {
         </section>
 
         {/* ───────── HOW IT WORKS ───────── */}
-        <section className="max-w-4xl mx-auto px-4 py-20">
+        <section className="max-w-4xl mx-auto px-4 py-16">
           <h2 className="font-heading text-3xl md:text-4xl font-bold text-center mb-14">
             How It Works
           </h2>
@@ -159,7 +158,7 @@ export default function HomePage() {
                   <p className="text-cosmic-purple font-mono text-sm font-bold tracking-widest mb-1">
                     STEP {s.num}
                   </p>
-                  <h3 className="font-heading text-xl font-bold mb-1">{s.title}</h3>
+                  <h3 className="font-heading text-xl font-bold mb-2">{s.title}</h3>
                   <p className="text-starlight/70 leading-relaxed">{s.desc}</p>
                 </div>
               </div>
@@ -167,61 +166,56 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ───────── NASA DATA SOURCES ───────── */}
-        <section className="max-w-5xl mx-auto px-4 py-20 text-center">
+        {/* ───────── REAL NASA DATA SOURCES ───────── */}
+        <section className="max-w-6xl mx-auto px-4 py-16 text-center">
           <h2 className="font-heading text-3xl md:text-4xl font-bold mb-4">
-            Powered by{" "}
-            <span className="text-o2-blue">Real NASA Data</span> 🛰️
+            Powered by <span className="text-o2-blue">Real NASA Data</span>
           </h2>
-          <p className="text-starlight/60 mb-10 max-w-2xl mx-auto">
-            Every solar storm, radiation reading, and Mars fact comes from
-            actual NASA missions and instruments.
+          <p className="text-starlight/60 max-w-xl mx-auto mb-10">
+            No invented numbers. Every solar flare, radiation reading, and biological effect is modeled after real open NASA research.
           </p>
 
-          <div className="flex flex-wrap justify-center gap-4">
-            {dataSources.map((d) => (
-              <span
-                key={d.name}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            {dataSources.map((ds) => (
+              <a
+                key={ds.name}
+                href={ds.url}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="
-                  inline-flex items-center gap-2 px-5 py-2.5
-                  rounded-full border border-starlight/20
-                  bg-starlight/5 backdrop-blur-sm
-                  text-sm font-medium text-starlight/90
-                  hover:border-o2-blue hover:text-o2-blue
-                  transition-colors duration-200
+                  flex flex-col items-center justify-center p-4 rounded-xl
+                  border border-starlight/10 bg-space-navy/60 backdrop-blur-sm
+                  hover:border-o2-blue/50 hover:scale-105 transition-all duration-200
+                  group
                 "
               >
-                <span className="w-2 h-2 rounded-full bg-shield-green" aria-hidden="true" />
-                {d.name}
-                <span className="text-starlight/40 hidden sm:inline">— {d.label}</span>
-              </span>
+                <span className="font-heading font-bold text-lg text-starlight group-hover:text-o2-blue transition-colors">
+                  {ds.name}
+                </span>
+                <span className="text-xs text-starlight/50 mt-1">{ds.label}</span>
+              </a>
             ))}
           </div>
         </section>
 
         {/* ───────── FOOTER ───────── */}
-        <footer className="border-t border-starlight/10 py-10 text-center text-sm text-starlight/40">
-          <p className="mb-2">
-            Built for{" "}
+        <footer className="border-t border-starlight/10 bg-space-navy/90 backdrop-blur-md py-10 px-4 text-center text-sm text-starlight/50">
+          <p>
+            Built for the{" "}
             <span className="text-mars-orange font-semibold">
               NASA Space Apps Challenge 2026
             </span>
           </p>
-          <p>
-            Data provided by NASA Open APIs · Not affiliated with or endorsed by NASA
+          <p className="mt-1">
+            Challenge: Junior Astronaut Mission Trainer • Space Agency Partner: Canadian Space Agency (CSA)
           </p>
-          <div className="mt-4 flex justify-center gap-6">
-            <Link
-              href="/about"
-              className="text-starlight/60 hover:text-starlight transition-colors"
-            >
-              About &amp; Sources
+          <div className="mt-4 flex justify-center gap-6 text-starlight/70">
+            <Link href="/about" className="hover:text-mars-orange transition-colors">
+              About &amp; NASA Science Credits
             </Link>
-            <Link
-              href="/game"
-              className="text-mars-orange hover:text-mars-orange/80 transition-colors font-semibold"
-            >
-              Play Now →
+            <span>•</span>
+            <Link href="/game" className="hover:text-mars-orange transition-colors">
+              Play Game
             </Link>
           </div>
         </footer>

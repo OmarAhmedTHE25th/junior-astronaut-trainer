@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { GameProvider } from "@/components/game/GameProvider";
 import GameBoard from "@/components/game/GameBoard";
-import type { Difficulty } from "@/lib/types";
+import type { Difficulty, GameState } from "@/lib/types";
+import { playClick, playAction } from "@/lib/sound";
 
 const difficulties: { value: Difficulty; label: string; emoji: string; desc: string }[] = [
   {
@@ -29,6 +30,23 @@ const difficulties: { value: Difficulty; label: string; emoji: string; desc: str
 export default function GamePage() {
   const [launched, setLaunched] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty>("commander");
+  const [savedRun, setSavedRun] = useState<GameState | null>(null);
+
+  useEffect(() => {
+    try {
+      const search = window.location.search;
+      const raw = localStorage.getItem("jat_active_save_v1");
+      if (raw) {
+        const parsed = JSON.parse(raw) as GameState;
+        if (parsed && parsed.sol && parsed.phase !== "victory" && parsed.phase !== "gameover") {
+          setSavedRun(parsed);
+          if (search.includes("resume=true")) {
+            setLaunched(true);
+          }
+        }
+      }
+    } catch {}
+  }, []);
 
   if (!launched) {
     return (
@@ -58,6 +76,37 @@ export default function GamePage() {
               </p>
             </div>
 
+            {/* Resume button if active run exists */}
+            {savedRun && (
+              <div className="mb-8 p-4 rounded-2xl bg-[#E87040]/15 border-2 border-[#E87040] flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+                <div>
+                  <span className="text-xs font-mono font-bold text-[#E87040] uppercase tracking-wider block">
+                    Telemetry Check: Active Run Detected
+                  </span>
+                  <p className="text-sm font-bold text-white mt-0.5">
+                    Sol {savedRun.sol} of 30 • {savedRun.difficulty.toUpperCase()} MODE
+                  </p>
+                  <p className="text-xs text-white/60">
+                    Power: {savedRun.power}% • O₂: {savedRun.oxygen}% • Shield: {savedRun.shielding}%
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    playAction();
+                    setLaunched(true);
+                  }}
+                  className="
+                    px-6 py-3 rounded-xl bg-gradient-to-r from-[#E87040] to-[#6B3FA0]
+                    text-white font-bold text-sm hover:scale-105 active:scale-95 transition-all
+                    cursor-pointer shadow-lg shadow-[#E87040]/20 flex-shrink-0 min-h-[44px]
+                  "
+                >
+                  ▶️ Resume Mission
+                </button>
+              </div>
+            )}
+
             {/* Difficulty selector */}
             <fieldset className="mb-8">
               <legend className="font-heading text-lg font-bold mb-4 text-center">
@@ -71,7 +120,11 @@ export default function GamePage() {
                     <button
                       key={d.value}
                       type="button"
-                      onClick={() => setDifficulty(d.value)}
+                      onClick={() => {
+                        playClick();
+                        setDifficulty(d.value);
+                        setSavedRun(null); // start fresh on difficulty click
+                      }}
                       className={`
                         relative flex flex-col items-center gap-2 p-5 rounded-2xl border-2
                         transition-all duration-200 cursor-pointer text-center
@@ -97,7 +150,11 @@ export default function GamePage() {
             <div className="text-center">
               <button
                 type="button"
-                onClick={() => setLaunched(true)}
+                onClick={() => {
+                  playAction();
+                  setSavedRun(null); // Launch new mission
+                  setLaunched(true);
+                }}
                 className="
                   inline-flex items-center gap-3
                   px-10 py-4 rounded-2xl
@@ -109,7 +166,7 @@ export default function GamePage() {
                   cursor-pointer
                 "
               >
-                Launch Mission
+                Launch New Mission
                 <span className="text-2xl" aria-hidden="true">🚀</span>
               </button>
             </div>
@@ -120,8 +177,13 @@ export default function GamePage() {
   }
 
   return (
-    <GameProvider difficulty={difficulty}>
-      <GameBoard />
+    <GameProvider difficulty={difficulty} initialState={savedRun || undefined}>
+      <GameBoard
+        onChangeDifficulty={() => {
+          setSavedRun(null);
+          setLaunched(false);
+        }}
+      />
     </GameProvider>
   );
 }

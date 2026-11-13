@@ -7,10 +7,12 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useRef,
   type ReactNode,
 } from 'react';
 import type { GameState, GameAction, Difficulty } from '@/lib/types';
 import { gameReducer, createInitialState } from '@/lib/gameEngine';
+import { getOrCreateCadetProfile } from '@/lib/profile';
 import nasaFacts from '@/data/nasa-facts.json';
 
 interface NASAFact {
@@ -42,11 +44,20 @@ export function useGame(): GameContextType {
 interface GameProviderProps {
   children: ReactNode;
   difficulty?: Difficulty;
+  initialState?: GameState;
 }
 
-export function GameProvider({ children, difficulty = 'commander' }: GameProviderProps) {
-  const [state, dispatch] = useReducer(gameReducer, createInitialState(difficulty));
+export function GameProvider({
+  children,
+  difficulty = 'commander',
+  initialState,
+}: GameProviderProps) {
+  const [state, dispatch] = useReducer(
+    gameReducer,
+    initialState || createInitialState(difficulty)
+  );
   const [factIndex, setFactIndex] = useState(0);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const facts = nasaFacts as NASAFact[];
 
@@ -58,6 +69,53 @@ export function GameProvider({ children, difficulty = 'commander' }: GameProvide
   useEffect(() => {
     rotateFact();
   }, [state.sol, rotateFact]);
+
+  // ── Debounced Auto-Save & Cleanup ─────────────────────────
+  useEffect(() => {
+    const profile = getOrCreateCadetProfile();
+
+    if (state.phase === 'victory' || state.phase === 'gameover') {
+      // Clear active save slot when mission concludes
+      try {
+        localStorage.removeItem('jat_active_save_v1');
+      } catch {}
+
+      if (profile.cadetId) {
+        fetch(`/api/save?cadetId=${encodeURIComponent(profile.cadetId)}`, {
+          method: 'DELETE',
+        }).catch(() => {});
+      }
+      return;
+    }
+
+    if (state.phase === 'action' || state.phase === 'event') {
+      // Instant local persistence
+      try {
+        localStorage.setItem('jat_active_save_v1', JSON.stringify(state));
+      } catch {}
+
+      // Debounced 500ms cloud sync
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+
+      saveTimeoutRef.current = setTimeout(() => {
+        if (profile.cadetId) {
+          fetch('/api/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cadetId: profile.cadetId, state }),
+          }).catch(() => {});
+        }
+      }, 500);
+    }
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [state]);
 
   const currentFact = facts.length > 0 ? facts[factIndex] : null;
 

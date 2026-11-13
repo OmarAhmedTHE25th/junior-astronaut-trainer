@@ -1,11 +1,28 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import ProgressBar from '@/components/ui/ProgressBar';
 import { useGame } from './GameProvider';
+import { useSound } from '@/lib/sound';
 
-export default function HUD() {
+interface HUDProps {
+  onOpenMenu?: () => void;
+}
+
+export default function HUD({ onOpenMenu }: HUDProps) {
   const { state } = useGame();
+  const { isMuted, toggleSound, playClick, playWarning } = useSound();
+  const prevLowRef = useRef<boolean>(false);
+
+  // Monitor for vital resources dropping <= 20%
+  const isAnyLow = state.power <= 20 || state.oxygen <= 20 || state.shielding <= 20;
+
+  useEffect(() => {
+    if (isAnyLow && !prevLowRef.current && state.phase === 'action') {
+      playWarning();
+    }
+    prevLowRef.current = isAnyLow;
+  }, [isAnyLow, state.phase, playWarning]);
 
   return (
     <header
@@ -14,7 +31,7 @@ export default function HUD() {
       role="banner"
       aria-label="Mission status"
     >
-      {/* Sol counter */}
+      {/* Left: Sol counter */}
       <div className="flex items-center gap-2">
         <span className="text-2xl" aria-hidden="true">🪐</span>
         <div className="flex flex-col">
@@ -30,7 +47,7 @@ export default function HUD() {
         </div>
       </div>
 
-      {/* Resource bars */}
+      {/* Center: Resource bars */}
       <div className="flex flex-wrap items-center gap-4 flex-1 justify-center min-w-0">
         <ProgressBar
           value={state.power}
@@ -55,8 +72,9 @@ export default function HUD() {
         />
       </div>
 
-      {/* Morale & Score */}
-      <div className="flex items-center gap-4">
+      {/* Right: Morale, Score, Sound & Command Menu */}
+      <div className="flex items-center gap-3">
+        {/* Morale */}
         <div className="flex items-center gap-1" title="Crew Morale">
           <span className="text-lg" aria-hidden="true">
             {state.morale >= 70 ? '😊' : state.morale >= 40 ? '😐' : '😟'}
@@ -65,6 +83,8 @@ export default function HUD() {
             {state.morale}%
           </span>
         </div>
+
+        {/* Score */}
         <div
           className="flex items-center gap-1 bg-[#6B3FA0]/20 px-3 py-1 rounded-lg"
           title="Mission Score"
@@ -74,6 +94,41 @@ export default function HUD() {
             {state.score}
           </span>
         </div>
+
+        {/* Audio Mute/Unmute Button */}
+        <button
+          onClick={toggleSound}
+          title={isMuted ? 'Unmute synthesized sound effects' : 'Mute sound effects'}
+          aria-label={isMuted ? 'Unmute sound effects' : 'Mute sound effects'}
+          className="
+            p-2 rounded-xl bg-[#1a1f3d] border border-white/10 hover:border-[#6B3FA0]
+            transition-transform hover:scale-105 active:scale-95 cursor-pointer
+            min-h-[44px] min-w-[44px] flex items-center justify-center text-lg
+          "
+        >
+          {isMuted ? '🔇' : '🔊'}
+        </button>
+
+        {/* Pause/Command Menu Button */}
+        {onOpenMenu && (
+          <button
+            onClick={() => {
+              playClick();
+              onOpenMenu();
+            }}
+            title="Open Outpost Command Menu (ESC)"
+            aria-label="Open Outpost Command Menu"
+            className="
+              px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#E87040] to-[#6B3FA0]
+              text-white font-bold text-sm shadow-md shadow-[#E87040]/20
+              hover:scale-105 active:scale-95 transition-transform cursor-pointer
+              min-h-[44px] flex items-center gap-2
+            "
+          >
+            <span aria-hidden="true">☰</span>
+            <span className="hidden sm:inline">Menu</span>
+          </button>
+        )}
       </div>
     </header>
   );
