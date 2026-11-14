@@ -61,7 +61,9 @@ export async function POST(req: NextRequest) {
           retries--;
         }
 
-        const room = await createSquadRoom(roomCode, landingZone, weatherSeed, hostCadet);
+        const isTimedMode = Boolean(body.isTimedMode);
+
+        const room = await createSquadRoom(roomCode, landingZone, weatherSeed, hostCadet, isTimedMode);
         if (!room) {
           return NextResponse.json(
             { success: false, error: 'Failed to create squad room' },

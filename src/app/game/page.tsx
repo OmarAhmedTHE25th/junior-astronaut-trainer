@@ -38,6 +38,7 @@ export default function GamePage() {
   const [squadCode, setSquadCode] = useState<string | null>(null);
   const [weatherSeed, setWeatherSeed] = useState<number | null>(null);
   const [savedRun, setSavedRun] = useState<GameState | null>(null);
+  const [isTimedMode, setIsTimedMode] = useState<boolean>(false);
 
   const activeCadet =
     isLoaded && profile.cadetId !== 'cadet-nova-01'
@@ -53,6 +54,11 @@ export default function GamePage() {
       const search = window.location.search;
       const params = new URLSearchParams(search);
       const squadParam = params.get("squad");
+      const timedParam = params.get("timed");
+
+      if (timedParam === "true" || timedParam === "1") {
+        setIsTimedMode(true);
+      }
 
       if (squadParam) {
         const cleanSquad = squadParam.trim().toUpperCase();
@@ -65,6 +71,9 @@ export default function GamePage() {
             if (data.success && data.room) {
               setLandingSite(data.room.landingZone || "jezero");
               setWeatherSeed(data.room.weatherSeed || 424242);
+              if (data.room.isTimedMode) {
+                setIsTimedMode(true);
+              }
             }
           })
           .catch(() => {})
@@ -79,6 +88,9 @@ export default function GamePage() {
         const parsed = JSON.parse(raw) as GameState;
         if (parsed && parsed.sol && parsed.phase !== "victory" && parsed.phase !== "gameover") {
           setSavedRun(parsed);
+          if (parsed.isTimedMode !== undefined) {
+            setIsTimedMode(parsed.isTimedMode);
+          }
           if (search.includes("resume=true")) {
             setLaunched(true);
           }
@@ -214,6 +226,77 @@ export default function GamePage() {
               </div>
             </fieldset>
 
+            {/* Mode Selection Toggle: Standard (Untimed) vs Timed Crisis Mode */}
+            <div className="mb-8 p-4 rounded-2xl bg-[#0B1026]/90 border border-white/10">
+              <span className="text-xs font-mono font-extrabold uppercase tracking-widest text-[#E87040] block mb-2 text-center">
+                Select Mission Pace &amp; Crisis Protocol
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    playClick();
+                    setIsTimedMode(false);
+                  }}
+                  className={`
+                    p-3.5 rounded-xl border text-left transition-all cursor-pointer
+                    ${
+                      !isTimedMode
+                        ? 'bg-[#1a1f3d] border-[#22C55E] ring-1 ring-[#22C55E]/40 shadow-lg'
+                        : 'bg-white/5 border-white/10 hover:border-white/20 opacity-75'
+                    }
+                  `}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xl">🛡️</span>
+                    <span className="font-heading font-bold text-sm text-white">
+                      Standard Mode
+                    </span>
+                    {!isTimedMode && (
+                      <span className="ml-auto text-[10px] font-mono px-2 py-0.5 rounded bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/40">
+                        ACTIVE
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-[#F8FAFC]/70 leading-snug">
+                    Untimed tactical decision making. Plan each Sol carefully at your own pace.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    playClick();
+                    setIsTimedMode(true);
+                  }}
+                  className={`
+                    p-3.5 rounded-xl border text-left transition-all cursor-pointer relative overflow-hidden
+                    ${
+                      isTimedMode
+                        ? 'bg-rose-950/40 border-rose-500 ring-1 ring-rose-500/40 shadow-lg'
+                        : 'bg-white/5 border-white/10 hover:border-white/20 opacity-75'
+                    }
+                  `}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xl">⏱️</span>
+                    <span className="font-heading font-bold text-sm text-white">
+                      Timed Crisis Mode
+                    </span>
+                    {isTimedMode && (
+                      <span className="ml-auto text-[10px] font-mono px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse font-bold">
+                        15s / SOL
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-[#F8FAFC]/70 leading-snug">
+                    15s decision clock! Auto-advance on 0s timeout &amp; earn Rapid Response speed bonuses!
+                  </p>
+                </button>
+              </div>
+            </div>
+
             {/* Launch button */}
             <div className="text-center">
               <button
@@ -257,6 +340,7 @@ export default function GamePage() {
       squadCode={squadCode || undefined}
       weatherSeed={weatherSeed || undefined}
       initialState={savedRun || undefined}
+      isTimedMode={isTimedMode}
     >
       <GameBoard
         onChangeDifficulty={() => {

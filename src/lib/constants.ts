@@ -8,6 +8,20 @@ import type { PlayerAction, Difficulty, LandingSiteId, LandingSite } from './typ
 /** How many sols the mission lasts */
 export const MISSION_LENGTH = 30;
 
+/** Timed Crisis Mode countdown window in seconds per Sol */
+export const TIMED_CRISIS_SOL_SECONDS = 15;
+
+/** Fallback default action executed when Sol decision timer hits 0 */
+export const TIMEOUT_FALLBACK_ACTION: PlayerAction = {
+  id: 'timeout-hold-position',
+  name: 'Hold Position / Minimal Maintenance',
+  description: 'Emergency countdown expired! Habitat locked down in minimal maintenance mode.',
+  effects: { power: 0, oxygen: 0, shielding: 0 },
+  moraleEffect: -2,
+  scoreEffect: 0,
+  icon: '⏱️',
+};
+
 /** Chance (0-1) of a random event each sol */
 export const EVENT_CHANCE = 0.45;
 

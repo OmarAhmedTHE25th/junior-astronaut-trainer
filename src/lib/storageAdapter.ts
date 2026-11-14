@@ -205,8 +205,13 @@ async function ensureSchema(sql: NeonQueryFunction<false, false>): Promise<void>
         weather_seed INTEGER NOT NULL,
         status VARCHAR(16) NOT NULL DEFAULT 'LOBBY',
         cadets JSONB NOT NULL DEFAULT '[]'::jsonb,
+        is_timed_mode BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+    `;
+
+    await sql`
+      ALTER TABLE squad_rooms ADD COLUMN IF NOT EXISTS is_timed_mode BOOLEAN DEFAULT FALSE;
     `;
 
     await sql`
@@ -556,6 +561,7 @@ type SquadRoomRow = {
   status: string;
   cadets: unknown;
   created_at: string;
+  is_timed_mode?: boolean;
 };
 
 function formatSquadRoom(r: SquadRoomRow): SquadRoom {
@@ -567,6 +573,7 @@ function formatSquadRoom(r: SquadRoomRow): SquadRoom {
     status: (r.status as SquadRoomStatus) || 'LOBBY',
     cadets: Array.isArray(cadetsRaw) ? sortSquadCadets(cadetsRaw) : [],
     createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
+    isTimedMode: Boolean(r.is_timed_mode),
   };
 }
 
@@ -574,7 +581,8 @@ export async function createSquadRoom(
   roomCode: string,
   landingZone: LandingSiteId,
   weatherSeed: number,
-  hostCadet: SquadCadetState
+  hostCadet: SquadCadetState,
+  isTimedMode: boolean = false
 ): Promise<SquadRoom | null> {
   const normalizedCode = roomCode.trim().toUpperCase();
   const initialCadets = [hostCadet];
@@ -583,20 +591,22 @@ export async function createSquadRoom(
   if (sql) {
     try {
       await sql`
-        INSERT INTO squad_rooms (room_code, landing_zone, weather_seed, status, cadets, created_at)
+        INSERT INTO squad_rooms (room_code, landing_zone, weather_seed, status, cadets, created_at, is_timed_mode)
         VALUES (
           ${normalizedCode},
           ${landingZone},
           ${weatherSeed},
           'LOBBY',
           ${JSON.stringify(initialCadets)}::jsonb,
-          NOW()
+          NOW(),
+          ${Boolean(isTimedMode)}
         )
         ON CONFLICT (room_code) DO UPDATE
         SET landing_zone = EXCLUDED.landing_zone,
             weather_seed = EXCLUDED.weather_seed,
             status = 'LOBBY',
             cadets = EXCLUDED.cadets,
+            is_timed_mode = EXCLUDED.is_timed_mode,
             created_at = NOW();
       `;
 
@@ -607,6 +617,7 @@ export async function createSquadRoom(
         status: 'LOBBY',
         cadets: initialCadets,
         createdAt: new Date().toISOString(),
+        isTimedMode: Boolean(isTimedMode),
       };
     } catch (err) {
       console.error('Neon createSquadRoom error:', err);
@@ -621,6 +632,7 @@ export async function createSquadRoom(
     status: 'LOBBY',
     cadets: initialCadets,
     createdAt: new Date().toISOString(),
+    isTimedMode: Boolean(isTimedMode),
   };
   store.squadRooms.set(normalizedCode, room);
   return room;
@@ -633,7 +645,7 @@ export async function getSquadRoom(roomCode: string): Promise<SquadRoom | null> 
   if (sql) {
     try {
       const rows = (await sql`
-        SELECT room_code, landing_zone, weather_seed, status, cadets, created_at
+        SELECT room_code, landing_zone, weather_seed, status, cadets, created_at, is_timed_mode
         FROM squad_rooms
         WHERE room_code = ${normalizedCode}
         LIMIT 1;

@@ -17,12 +17,13 @@ interface HUDProps {
 }
 
 export default function HUD({ onOpenMenu }: HUDProps) {
-  const { state } = useGame();
+  const { state, timeRemaining } = useGame();
   const { profile } = useProfile();
-  const { isMuted, toggleSound, playClick, playWarning } = useSound();
+  const { isMuted, toggleSound, playClick, playWarning, playTimerTick } = useSound();
   const [isTelemetryOpen, setIsTelemetryOpen] = useState(false);
   const [squadCadets, setSquadCadets] = useState<SquadCadetState[]>([]);
   const prevLowRef = useRef<boolean>(false);
+  const lastTickSecondRef = useRef<number>(15);
 
   const activeSpecialty = SPECIALTY_METAS.find((s) => s.id === (state.specialty || profile.specialty || 'commander'));
   const currentAvatar = state.avatar || (profile.cadetId !== 'cadet-nova-01' ? profile.avatar : '🚀');
@@ -64,6 +65,18 @@ export default function HUD({ onOpenMenu }: HUDProps) {
     prevLowRef.current = isAnyLow;
   }, [isAnyLow, state.phase, playWarning]);
 
+  // Timed Crisis Mode: Urgent audio blip when timeRemaining <= 3s
+  useEffect(() => {
+    if (!state.isTimedMode) return;
+    const currentSec = Math.ceil(timeRemaining);
+    if (currentSec <= 3 && currentSec > 0 && currentSec !== lastTickSecondRef.current && state.phase === 'action') {
+      playTimerTick();
+      lastTickSecondRef.current = currentSec;
+    } else if (currentSec > 3) {
+      lastTickSecondRef.current = currentSec;
+    }
+  }, [timeRemaining, state.isTimedMode, state.phase, playTimerTick]);
+
   return (
     <>
       {/* Live NASA Space Weather Telemetry Ticker */}
@@ -91,6 +104,52 @@ export default function HUD({ onOpenMenu }: HUDProps) {
             </span>
           </div>
         </div>
+
+        {/* Timed Crisis Mode Countdown Widget */}
+        {state.isTimedMode && (
+          <div
+            className={`
+              flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200
+              ${
+                timeRemaining <= 3
+                  ? 'bg-rose-950/80 border-rose-500 text-rose-300 ring-2 ring-rose-500/50 animate-pulse'
+                  : timeRemaining <= 6
+                  ? 'bg-amber-950/80 border-amber-500 text-amber-300 shadow-amber-500/20'
+                  : 'bg-[#1a1f3d]/90 border-cyan-500/40 text-cyan-300 shadow-cyan-500/10'
+              }
+              shadow-lg
+            `}
+            role="timer"
+            aria-label={`Sol Decision Countdown: ${timeRemaining.toFixed(1)} seconds remaining`}
+          >
+            <span className={`text-base ${timeRemaining <= 3 ? 'animate-bounce' : ''}`}>
+              ⏱️
+            </span>
+            <div className="flex flex-col">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[9px] font-mono font-extrabold uppercase tracking-widest opacity-80">
+                  {timeRemaining <= 3 ? 'CRITICAL TIME' : timeRemaining <= 6 ? 'DECISION TIME' : 'CRISIS CLOCK'}
+                </span>
+                <span className="text-xs font-mono font-extrabold tabular-nums">
+                  {timeRemaining.toFixed(1)}s
+                </span>
+              </div>
+              {/* Visual Progress Bar */}
+              <div className="w-20 sm:w-24 h-1.5 rounded-full bg-black/60 overflow-hidden mt-0.5 border border-white/10">
+                <div
+                  className={`h-full transition-all duration-100 rounded-full ${
+                    timeRemaining <= 3
+                      ? 'bg-rose-500'
+                      : timeRemaining <= 6
+                      ? 'bg-amber-400'
+                      : 'bg-cyan-400'
+                  }`}
+                  style={{ width: `${Math.max(0, Math.min(100, (timeRemaining / 15) * 100))}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Cadet Profile & Specialty Pill */}
         <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-xl bg-[#1a1f3d]/80 border border-white/10">

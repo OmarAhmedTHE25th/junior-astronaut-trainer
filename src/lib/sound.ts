@@ -223,6 +223,32 @@ export function playWarning(): void {
   } catch {}
 }
 
+/** Urgent countdown tick blip when timer <= 3s in Timed Crisis Mode */
+export function playTimerTick(): void {
+  if (isSoundMuted()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, now);
+    osc.frequency.exponentialRampToValueAtTime(440, now + 0.05);
+
+    gain.gain.setValueAtTime(0.09, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.06);
+  } catch {}
+}
+
 /** Celebratory fanfare for mission victory */
 export function playVictory(): void {
   if (isSoundMuted()) return;
@@ -397,6 +423,7 @@ export function useSound() {
     playAlert,
     playSuccess,
     playWarning,
+    playTimerTick,
     playVictory,
     playGameOver,
     startAmbientHum,

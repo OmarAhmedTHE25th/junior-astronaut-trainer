@@ -110,6 +110,12 @@ export interface GameState {
   squadCode?: string;
   /** Deterministic weather seed for synchronized DONKI events across squad */
   weatherSeed?: number;
+  /** Whether Timed Crisis Mode is active (15s decision countdown per Sol) */
+  isTimedMode?: boolean;
+  /** Active mission elapsed time in seconds */
+  missionTimeSeconds?: number;
+  /** Accumulated Rapid Response Bonus points from fast decisions */
+  rapidResponseBonus?: number;
 }
 
 // ── Reducer Actions ─────────────────────────────────────────
@@ -122,11 +128,14 @@ export type GameAction =
       landingSite?: LandingSiteId;
       cadet?: { cadetId?: string; callsign?: string; avatar?: string };
       squad?: { squadCode?: string; weatherSeed?: number };
+      isTimedMode?: boolean;
     }
   | { type: 'LOAD_STATE'; state: GameState }
   | { type: 'PERFORM_ACTION'; action?: PlayerAction; payload?: PlayerAction }
   | { type: 'TRIGGER_EVENT'; event: GameEvent }
   | { type: 'RESOLVE_EVENT'; choiceId?: string; payload?: EventChoice }
+  | { type: 'RECORD_TIMED_BONUS'; bonusPoints: number }
+  | { type: 'UPDATE_MISSION_TIME'; seconds: number }
   | { type: 'ADVANCE_SOL' }
   | { type: 'END_TURN' }
   | { type: 'NEXT_SOL' }
@@ -303,6 +312,7 @@ export interface SquadRoom {
   status: SquadRoomStatus;
   cadets: SquadCadetState[];
   createdAt: string;
+  isTimedMode?: boolean;
 }
 
 

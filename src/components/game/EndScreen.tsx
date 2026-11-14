@@ -73,6 +73,13 @@ export default function EndScreen() {
   const stars = Math.min(5, Math.max(1, Math.ceil(finalScore / 200)));
   const starDisplay = '⭐'.repeat(stars) + '☆'.repeat(5 - stars);
 
+  const formatMissionDuration = (seconds?: number) => {
+    if (!seconds || seconds <= 0) return '00:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
   useEffect(() => {
     if (isVictory) {
       playVictory();
@@ -246,6 +253,21 @@ export default function EndScreen() {
             {leaderboardRank !== null && (
               <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E87040]/20 border border-[#E87040]/50 text-xs font-mono font-bold text-[#E87040]">
                 <span>🏆 Verified Global Rank: #{leaderboardRank}</span>
+              </div>
+            )}
+
+            {/* Timed Crisis Mode Statistics */}
+            {state.isTimedMode && (
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs font-mono">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/20 border border-rose-500/50 text-rose-300 font-bold">
+                  <span>⏱️ Timed Crisis Protocol</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-500/20 border border-cyan-500/50 text-cyan-300 font-bold">
+                  <span>🕒 Mission Time: {formatMissionDuration(state.missionTimeSeconds)}</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 font-bold">
+                  <span>⚡ Rapid Response: +{(state.rapidResponseBonus || 0).toLocaleString()} pts</span>
+                </span>
               </div>
             )}
           </div>

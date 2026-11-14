@@ -61,7 +61,8 @@ export function createInitialState(
   specialty: CadetSpecialty = 'commander',
   landingSite: LandingSiteId = 'jezero',
   cadet?: { cadetId?: string; callsign?: string; avatar?: string },
-  squad?: { squadCode?: string; weatherSeed?: number }
+  squad?: { squadCode?: string; weatherSeed?: number },
+  isTimedMode?: boolean
 ): GameState {
   const initialPoint: TelemetryPoint = {
     sol: 1,
@@ -92,6 +93,9 @@ export function createInitialState(
     avatar: cadet?.avatar,
     squadCode: squad?.squadCode,
     weatherSeed: squad?.weatherSeed,
+    isTimedMode: Boolean(isTimedMode),
+    missionTimeSeconds: 0,
+    rapidResponseBonus: 0,
   };
 }
 
@@ -202,7 +206,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         action.specialty || 'commander',
         action.landingSite || 'jezero',
         action.cadet,
-        action.squad
+        action.squad,
+        action.isTimedMode
       );
       return { ...initial, phase: 'action' };
     }
@@ -215,6 +220,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         landingSite: gs.landingSite || 'jezero',
         squadCode: gs.squadCode,
         weatherSeed: gs.weatherSeed,
+        isTimedMode: gs.isTimedMode,
+        missionTimeSeconds: gs.missionTimeSeconds ?? 0,
+        rapidResponseBonus: gs.rapidResponseBonus ?? 0,
         telemetryHistory:
           gs.telemetryHistory && gs.telemetryHistory.length > 0
             ? gs.telemetryHistory
@@ -392,6 +400,23 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return newState;
     }
 
+    // ── Record Rapid Response Bonus for Timed Mode ────────
+    case 'RECORD_TIMED_BONUS': {
+      return {
+        ...state,
+        rapidResponseBonus: (state.rapidResponseBonus || 0) + action.bonusPoints,
+        score: state.score + action.bonusPoints,
+      };
+    }
+
+    // ── Update total mission elapsed time ─────────────────
+    case 'UPDATE_MISSION_TIME': {
+      return {
+        ...state,
+        missionTimeSeconds: (state.missionTimeSeconds || 0) + action.seconds,
+      };
+    }
+
     // ── End the current turn: deplete, maybe event, advance sol ──
     case 'NEXT_SOL':
     case 'END_TURN': {
@@ -484,7 +509,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         {
           squadCode: state.squadCode,
           weatherSeed: state.weatherSeed,
-        }
+        },
+        state.isTimedMode
       );
     }
 

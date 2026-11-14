@@ -21,6 +21,7 @@ export default function MainMenu() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [isSquadOpen, setIsSquadOpen] = useState(false);
+  const [isCrisisTimed, setIsCrisisTimed] = useState(false);
   const [activeSave, setActiveSave] = useState<GameState | null>(null);
 
   const activeCadet =
@@ -156,46 +157,85 @@ export default function MainMenu() {
           </div>
 
           {/* Additive Mode Selector: Solo Mission vs Squad Race */}
-          <div className="mb-6 p-1.5 rounded-2xl bg-[#0B1026]/90 border border-white/10 flex flex-col sm:flex-row gap-2">
-            <Link
-              href="/game"
-              onClick={playClick}
-              className="
-                flex-1 py-3 px-4 rounded-xl text-center font-heading font-extrabold text-sm tracking-wider
-                bg-gradient-to-r from-[#E87040] to-[#E87040]/70 text-white shadow-lg shadow-[#E87040]/25
-                hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer
-              "
-            >
-              <span>🚀</span>
-              <span>SOLO MISSION</span>
-              <span className="text-xs font-mono font-normal opacity-75">(Standard 30 Sols)</span>
-            </Link>
+          <div className="mb-6 space-y-2.5">
+            <div className="p-1.5 rounded-2xl bg-[#0B1026]/90 border border-white/10 flex flex-col sm:flex-row gap-2">
+              <Link
+                href={isCrisisTimed ? '/game?timed=true' : '/game'}
+                onClick={playClick}
+                className="
+                  flex-1 py-3 px-4 rounded-xl text-center font-heading font-extrabold text-sm tracking-wider
+                  bg-gradient-to-r from-[#E87040] to-[#E87040]/70 text-white shadow-lg shadow-[#E87040]/25
+                  hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer
+                "
+              >
+                <span>🚀</span>
+                <span>SOLO MISSION</span>
+                <span className="text-xs font-mono font-normal opacity-80">
+                  ({isCrisisTimed ? '⏱️ 15s Crisis Mode' : 'Standard 30 Sols'})
+                </span>
+              </Link>
 
-            <button
-              type="button"
-              onClick={() => {
-                playClick();
-                setIsSquadOpen(true);
-              }}
-              className="
-                flex-1 py-3 px-4 rounded-xl text-center font-heading font-extrabold text-sm tracking-wider
-                bg-gradient-to-r from-cyan-600 to-[#6B3FA0] text-white shadow-lg shadow-cyan-500/20
-                hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer
-                border border-cyan-400/40 relative overflow-hidden group
-              "
-            >
-              <span className="animate-bounce">🏁</span>
-              <span>SQUAD RACE</span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-400/20 text-cyan-200 border border-cyan-400/30 uppercase font-bold">
-                4-Cadet Co-op
-              </span>
-            </button>
+              <button
+                type="button"
+                onClick={() => {
+                  playClick();
+                  setIsSquadOpen(true);
+                }}
+                className="
+                  flex-1 py-3 px-4 rounded-xl text-center font-heading font-extrabold text-sm tracking-wider
+                  bg-gradient-to-r from-cyan-600 to-[#6B3FA0] text-white shadow-lg shadow-cyan-500/20
+                  hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer
+                  border border-cyan-400/40 relative overflow-hidden group
+                "
+              >
+                <span className="animate-bounce">🏁</span>
+                <span>SQUAD RACE</span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-400/20 text-cyan-200 border border-cyan-400/30 uppercase font-bold">
+                  4-Cadet Co-op
+                </span>
+              </button>
+            </div>
+
+            {/* Quick Solo Crisis Pace Toggle */}
+            <div className="flex items-center justify-center gap-2 text-xs font-mono">
+              <span className="text-white/50 text-[11px]">SOLO CRISIS PACE:</span>
+              <div className="inline-flex p-0.5 rounded-lg bg-[#0B1026] border border-white/10">
+                <button
+                  type="button"
+                  onClick={() => {
+                    playClick();
+                    setIsCrisisTimed(false);
+                  }}
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                    !isCrisisTimed
+                      ? 'bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/40'
+                      : 'text-white/50 hover:text-white'
+                  }`}
+                >
+                  🛡️ Standard (Untimed)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    playClick();
+                    setIsCrisisTimed(true);
+                  }}
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                    isCrisisTimed
+                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                      : 'text-white/50 hover:text-white'
+                  }`}
+                >
+                  ⏱️ Timed Crisis (15s)
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
             {/* 1. Start Solo Mission */}
             <Link
-              href="/game"
+              href={isCrisisTimed ? '/game?timed=true' : '/game'}
               onClick={playClick}
               className="
                 group relative flex flex-col items-center justify-between p-4.5 rounded-2xl
@@ -213,7 +253,7 @@ export default function MainMenu() {
                   {activeSave ? 'Resume / Solo' : 'Solo Mission'}
                 </h3>
                 <p className="text-[11px] text-[#F8FAFC]/70 mt-1 leading-snug">
-                  Choose difficulty &amp; launch standard 30-sol expedition.
+                  {isCrisisTimed ? '15s countdown per Sol with speed bonuses.' : 'Choose difficulty & launch standard 30-sol expedition.'}
                 </p>
               </div>
               <span className="mt-2 text-xs font-bold text-[#E87040] flex items-center gap-1">

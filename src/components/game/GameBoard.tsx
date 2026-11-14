@@ -17,10 +17,15 @@ interface GameBoardProps {
 }
 
 export default function GameBoard({ onChangeDifficulty }: GameBoardProps) {
-  const { state, dispatch, rotateFact } = useGame();
+  const { state, dispatch, rotateFact, setIsPaused } = useGame();
   const [showFact, setShowFact] = useState(false);
   const [lastFactSol, setLastFactSol] = useState(0);
   const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
+
+  // Pause countdown when Pause Menu or NASA Fact popup is open
+  useEffect(() => {
+    setIsPaused(isPauseMenuOpen || showFact);
+  }, [isPauseMenuOpen, showFact, setIsPaused]);
 
   // Start subtle ambient hum on mount and clean up on unmount
   useEffect(() => {

@@ -29,6 +29,7 @@ export default function SquadRaceModal({ isOpen, onClose }: SquadRaceModalProps)
 
   const [tab, setTab] = useState<'create' | 'join'>('create');
   const [landingZone, setLandingZone] = useState<LandingSiteId>('jezero');
+  const [isTimedMode, setIsTimedMode] = useState<boolean>(false);
   const [callsign, setCallsign] = useState(activeCadet.callsign || 'CDR-NOVA-01');
   const [joinCode, setJoinCode] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -66,7 +67,8 @@ export default function SquadRaceModal({ isOpen, onClose }: SquadRaceModalProps)
           playAction();
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
           onClose();
-          router.push(`/game?squad=${data.room.roomCode}`);
+          const timedSuffix = data.room.isTimedMode ? '&timed=true' : '';
+          router.push(`/game?squad=${data.room.roomCode}${timedSuffix}`);
         }
       }
     } catch {
@@ -101,6 +103,7 @@ export default function SquadRaceModal({ isOpen, onClose }: SquadRaceModalProps)
         body: JSON.stringify({
           action: 'CREATE',
           landingZone,
+          isTimedMode,
           cadet: {
             cadetId: activeCadet.cadetId,
             callsign: callsign.trim().toUpperCase() || 'CDR-ALPHA',
@@ -191,7 +194,8 @@ export default function SquadRaceModal({ isOpen, onClose }: SquadRaceModalProps)
       if (data.success && data.room) {
         if (pollTimerRef.current) clearInterval(pollTimerRef.current);
         onClose();
-        router.push(`/game?squad=${data.room.roomCode}`);
+        const timedSuffix = data.room.isTimedMode ? '&timed=true' : '';
+        router.push(`/game?squad=${data.room.roomCode}${timedSuffix}`);
       } else {
         setErrorMsg(data.error || 'Failed to start squad mission');
       }
@@ -263,19 +267,26 @@ export default function SquadRaceModal({ isOpen, onClose }: SquadRaceModalProps)
             </div>
 
             {/* Room Telemetry Specs */}
-            <div className="grid grid-cols-2 gap-3 text-xs font-mono">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs font-mono">
               <div className="p-3 rounded-xl bg-[#0B1026]/70 border border-white/5">
                 <span className="text-[#F8FAFC]/50 block text-[10px]">LANDING ZONE:</span>
-                <span className="text-amber-300 font-bold flex items-center gap-1.5 mt-0.5">
+                <span className="text-amber-300 font-bold flex items-center gap-1.5 mt-0.5 truncate">
                   <span>🪐</span>
                   {LANDING_SITES[currentRoom.landingZone]?.name || 'Jezero Crater'}
                 </span>
               </div>
               <div className="p-3 rounded-xl bg-[#0B1026]/70 border border-white/5">
                 <span className="text-[#F8FAFC]/50 block text-[10px]">DONKI WEATHER SEED:</span>
-                <span className="text-cyan-300 font-bold flex items-center gap-1.5 mt-0.5">
+                <span className="text-cyan-300 font-bold flex items-center gap-1.5 mt-0.5 truncate">
                   <span>☀️</span>
-                  #{currentRoom.weatherSeed} (SYNCHRONIZED)
+                  #{currentRoom.weatherSeed}
+                </span>
+              </div>
+              <div className="p-3 rounded-xl bg-[#0B1026]/70 border border-white/5 col-span-2 sm:col-span-1">
+                <span className="text-[#F8FAFC]/50 block text-[10px]">CRISIS PROTOCOL:</span>
+                <span className={`font-bold flex items-center gap-1.5 mt-0.5 truncate ${currentRoom.isTimedMode ? 'text-rose-400' : 'text-emerald-400'}`}>
+                  <span>{currentRoom.isTimedMode ? '⏱️' : '🛡️'}</span>
+                  {currentRoom.isTimedMode ? '15s TIMED CRISIS' : 'STANDARD UNTIMED'}
                 </span>
               </div>
             </div>
@@ -498,6 +509,62 @@ export default function SquadRaceModal({ isOpen, onClose }: SquadRaceModalProps)
                         </button>
                       );
                     })}
+                  </div>
+                </div>
+
+                {/* Squad Crisis Protocol Mode Selector */}
+                <div>
+                  <label className="block text-xs font-mono font-bold uppercase tracking-wider text-white mb-2">
+                    Select Squad Crisis Protocol
+                  </label>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        playClick();
+                        setIsTimedMode(false);
+                      }}
+                      className={`
+                        p-2.5 rounded-xl border text-left transition-all cursor-pointer
+                        ${
+                          !isTimedMode
+                            ? 'bg-[#1a1f3d] border-[#22C55E] ring-1 ring-[#22C55E]/40'
+                            : 'bg-[#0B1026]/70 border-white/10 hover:border-white/20 opacity-75'
+                        }
+                      `}
+                    >
+                      <div className="flex items-center gap-1.5 font-bold text-xs text-white">
+                        <span>🛡️</span>
+                        <span>Standard Mode</span>
+                      </div>
+                      <span className="text-[10px] text-white/50 block mt-0.5">
+                        Untimed co-op race
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        playClick();
+                        setIsTimedMode(true);
+                      }}
+                      className={`
+                        p-2.5 rounded-xl border text-left transition-all cursor-pointer
+                        ${
+                          isTimedMode
+                            ? 'bg-rose-950/40 border-rose-500 ring-1 ring-rose-500/40'
+                            : 'bg-[#0B1026]/70 border-white/10 hover:border-white/20 opacity-75'
+                        }
+                      `}
+                    >
+                      <div className="flex items-center gap-1.5 font-bold text-xs text-white">
+                        <span>⏱️</span>
+                        <span>Timed Crisis</span>
+                      </div>
+                      <span className="text-[10px] text-rose-300/80 block mt-0.5">
+                        15s / Sol + speed bonuses
+                      </span>
+                    </button>
                   </div>
                 </div>
 
