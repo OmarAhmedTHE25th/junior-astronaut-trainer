@@ -3,7 +3,16 @@
 // in-memory server fallback and client localStorage mirroring.
 
 import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
-import type { CadetProfile, LeaderboardEntry, GameState, Difficulty } from './types';
+import type {
+  CadetProfile,
+  LeaderboardEntry,
+  GameState,
+  Difficulty,
+  SquadRoom,
+  SquadCadetState,
+  SquadRoomStatus,
+  LandingSiteId,
+} from './types';
 
 // Default legendary historical astronaut entries
 const DEFAULT_LEADERBOARD_ENTRIES: LeaderboardEntry[] = [
@@ -98,6 +107,7 @@ interface ServerMemoryStore {
   profiles: Map<string, CadetProfile>;
   saves: Map<string, GameState>;
   leaderboard: LeaderboardEntry[];
+  squadRooms: Map<string, SquadRoom>;
 }
 
 declare global {
@@ -113,7 +123,11 @@ function getMemoryStore(): ServerMemoryStore {
       profiles: new Map<string, CadetProfile>(),
       saves: new Map<string, GameState>(),
       leaderboard: [...DEFAULT_LEADERBOARD_ENTRIES],
+      squadRooms: new Map<string, SquadRoom>(),
     };
+  }
+  if (!globalThis.__jat_store__.squadRooms) {
+    globalThis.__jat_store__.squadRooms = new Map<string, SquadRoom>();
   }
   return globalThis.__jat_store__;
 }
@@ -182,6 +196,22 @@ async function ensureSchema(sql: NeonQueryFunction<false, false>): Promise<void>
     await sql`
       CREATE INDEX IF NOT EXISTS idx_leaderboard_score_created
       ON leaderboard_entries (score DESC, created_at ASC);
+    `;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS squad_rooms (
+        room_code VARCHAR(6) PRIMARY KEY,
+        landing_zone VARCHAR(32) NOT NULL,
+        weather_seed INTEGER NOT NULL,
+        status VARCHAR(16) NOT NULL DEFAULT 'LOBBY',
+        cadets JSONB NOT NULL DEFAULT '[]'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_squad_rooms_status
+      ON squad_rooms (status, created_at DESC);
     `;
 
     globalThis.__jat_neon_schema_ready__ = true;
@@ -500,4 +530,292 @@ export async function deleteCadetCloudData(cadetId: string): Promise<boolean> {
   store.saves.delete(cadetId);
   store.leaderboard = store.leaderboard.filter((entry) => entry.cadetId !== cadetId);
   return true;
+}
+
+// ── Competitive Squad Operations ─────────────────────────────
+
+export function sortSquadCadets(cadets: SquadCadetState[]): SquadCadetState[] {
+  return [...cadets].sort((a, b) => {
+    // 1. Alive status first
+    if (a.alive !== b.alive) {
+      return a.alive ? -1 : 1;
+    }
+    // 2. Score descending
+    if (b.score !== a.score) {
+      return b.score - a.score;
+    }
+    // 3. Sols survived descending
+    return b.sol - a.sol;
+  });
+}
+
+type SquadRoomRow = {
+  room_code: string;
+  landing_zone: string;
+  weather_seed: number;
+  status: string;
+  cadets: unknown;
+  created_at: string;
+};
+
+function formatSquadRoom(r: SquadRoomRow): SquadRoom {
+  const cadetsRaw = typeof r.cadets === 'string' ? JSON.parse(r.cadets) : r.cadets;
+  return {
+    roomCode: r.room_code,
+    landingZone: (r.landing_zone as LandingSiteId) || 'jezero',
+    weatherSeed: Number(r.weather_seed),
+    status: (r.status as SquadRoomStatus) || 'LOBBY',
+    cadets: Array.isArray(cadetsRaw) ? sortSquadCadets(cadetsRaw) : [],
+    createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
+  };
+}
+
+export async function createSquadRoom(
+  roomCode: string,
+  landingZone: LandingSiteId,
+  weatherSeed: number,
+  hostCadet: SquadCadetState
+): Promise<SquadRoom | null> {
+  const normalizedCode = roomCode.trim().toUpperCase();
+  const initialCadets = [hostCadet];
+
+  const sql = await getSqlClient();
+  if (sql) {
+    try {
+      await sql`
+        INSERT INTO squad_rooms (room_code, landing_zone, weather_seed, status, cadets, created_at)
+        VALUES (
+          ${normalizedCode},
+          ${landingZone},
+          ${weatherSeed},
+          'LOBBY',
+          ${JSON.stringify(initialCadets)}::jsonb,
+          NOW()
+        )
+        ON CONFLICT (room_code) DO UPDATE
+        SET landing_zone = EXCLUDED.landing_zone,
+            weather_seed = EXCLUDED.weather_seed,
+            status = 'LOBBY',
+            cadets = EXCLUDED.cadets,
+            created_at = NOW();
+      `;
+
+      return {
+        roomCode: normalizedCode,
+        landingZone,
+        weatherSeed,
+        status: 'LOBBY',
+        cadets: initialCadets,
+        createdAt: new Date().toISOString(),
+      };
+    } catch (err) {
+      console.error('Neon createSquadRoom error:', err);
+    }
+  }
+
+  const store = getMemoryStore();
+  const room: SquadRoom = {
+    roomCode: normalizedCode,
+    landingZone,
+    weatherSeed,
+    status: 'LOBBY',
+    cadets: initialCadets,
+    createdAt: new Date().toISOString(),
+  };
+  store.squadRooms.set(normalizedCode, room);
+  return room;
+}
+
+export async function getSquadRoom(roomCode: string): Promise<SquadRoom | null> {
+  const normalizedCode = roomCode.trim().toUpperCase();
+
+  const sql = await getSqlClient();
+  if (sql) {
+    try {
+      const rows = (await sql`
+        SELECT room_code, landing_zone, weather_seed, status, cadets, created_at
+        FROM squad_rooms
+        WHERE room_code = ${normalizedCode}
+        LIMIT 1;
+      `) as unknown as SquadRoomRow[];
+
+      if (rows && rows.length > 0) {
+        return formatSquadRoom(rows[0]);
+      }
+      return null;
+    } catch (err) {
+      console.error('Neon getSquadRoom error:', err);
+    }
+  }
+
+  const store = getMemoryStore();
+  const room = store.squadRooms.get(normalizedCode);
+  if (room) {
+    return {
+      ...room,
+      cadets: sortSquadCadets(room.cadets),
+    };
+  }
+  return null;
+}
+
+export async function joinSquadRoom(
+  roomCode: string,
+  cadet: SquadCadetState
+): Promise<{ room: SquadRoom | null; error?: string }> {
+  const normalizedCode = roomCode.trim().toUpperCase();
+  const existing = await getSquadRoom(normalizedCode);
+
+  if (!existing) {
+    return { room: null, error: 'Squad room not found. Check frequency code.' };
+  }
+
+  // Check if cadet already in squad
+  const existingIndex = existing.cadets.findIndex(
+    (c) => c.cadetId === cadet.cadetId || c.callsign.toLowerCase() === cadet.callsign.toLowerCase()
+  );
+
+  if (existing.status !== 'LOBBY' && existingIndex === -1) {
+    return { room: null, error: 'Mission already launched. Cannot join active squad.' };
+  }
+
+  if (existing.cadets.length >= 4 && existingIndex === -1) {
+    return { room: null, error: 'Squad frequency full (maximum 4 cadets).' };
+  }
+
+  let updatedCadets: SquadCadetState[];
+  if (existingIndex >= 0) {
+    updatedCadets = [...existing.cadets];
+    updatedCadets[existingIndex] = { ...updatedCadets[existingIndex], ...cadet, updatedAt: Date.now() };
+  } else {
+    updatedCadets = [...existing.cadets, { ...cadet, updatedAt: Date.now() }];
+  }
+
+  const sql = await getSqlClient();
+  if (sql) {
+    try {
+      await sql`
+        UPDATE squad_rooms
+        SET cadets = ${JSON.stringify(updatedCadets)}::jsonb
+        WHERE room_code = ${normalizedCode};
+      `;
+
+      return {
+        room: {
+          ...existing,
+          cadets: sortSquadCadets(updatedCadets),
+        },
+      };
+    } catch (err) {
+      console.error('Neon joinSquadRoom error:', err);
+    }
+  }
+
+  const store = getMemoryStore();
+  const updatedRoom: SquadRoom = {
+    ...existing,
+    cadets: sortSquadCadets(updatedCadets),
+  };
+  store.squadRooms.set(normalizedCode, updatedRoom);
+  return { room: updatedRoom };
+}
+
+export async function startSquadRoom(roomCode: string): Promise<SquadRoom | null> {
+  const normalizedCode = roomCode.trim().toUpperCase();
+  const existing = await getSquadRoom(normalizedCode);
+  if (!existing) return null;
+
+  const sql = await getSqlClient();
+  if (sql) {
+    try {
+      await sql`
+        UPDATE squad_rooms
+        SET status = 'ACTIVE'
+        WHERE room_code = ${normalizedCode};
+      `;
+
+      return {
+        ...existing,
+        status: 'ACTIVE',
+      };
+    } catch (err) {
+      console.error('Neon startSquadRoom error:', err);
+    }
+  }
+
+  const store = getMemoryStore();
+  const updatedRoom: SquadRoom = {
+    ...existing,
+    status: 'ACTIVE',
+  };
+  store.squadRooms.set(normalizedCode, updatedRoom);
+  return updatedRoom;
+}
+
+export async function syncSquadCadet(
+  roomCode: string,
+  cadet: SquadCadetState
+): Promise<SquadRoom | null> {
+  const normalizedCode = roomCode.trim().toUpperCase();
+  const existing = await getSquadRoom(normalizedCode);
+  if (!existing) return null;
+
+  const idx = existing.cadets.findIndex(
+    (c) => c.cadetId === cadet.cadetId || c.callsign.toLowerCase() === cadet.callsign.toLowerCase()
+  );
+
+  let updatedCadets: SquadCadetState[];
+  if (idx >= 0) {
+    updatedCadets = [...existing.cadets];
+    updatedCadets[idx] = {
+      ...updatedCadets[idx],
+      sol: cadet.sol,
+      power: cadet.power,
+      oxygen: cadet.oxygen,
+      shielding: cadet.shielding,
+      morale: cadet.morale,
+      score: cadet.score,
+      alive: cadet.alive,
+      avatar: cadet.avatar || updatedCadets[idx].avatar,
+      specialty: cadet.specialty || updatedCadets[idx].specialty,
+      updatedAt: Date.now(),
+    };
+  } else if (existing.cadets.length < 4) {
+    updatedCadets = [...existing.cadets, { ...cadet, updatedAt: Date.now() }];
+  } else {
+    updatedCadets = existing.cadets;
+  }
+
+  // Check if room should be marked FINISHED (all finished sol 30 or all dead)
+  const allFinished = updatedCadets.length > 0 && updatedCadets.every((c) => !c.alive || c.sol >= 30);
+  const nextStatus: SquadRoomStatus = allFinished ? 'FINISHED' : existing.status;
+
+  const sql = await getSqlClient();
+  if (sql) {
+    try {
+      await sql`
+        UPDATE squad_rooms
+        SET cadets = ${JSON.stringify(updatedCadets)}::jsonb,
+            status = ${nextStatus}
+        WHERE room_code = ${normalizedCode};
+      `;
+
+      return {
+        ...existing,
+        status: nextStatus,
+        cadets: sortSquadCadets(updatedCadets),
+      };
+    } catch (err) {
+      console.error('Neon syncSquadCadet error:', err);
+    }
+  }
+
+  const store = getMemoryStore();
+  const updatedRoom: SquadRoom = {
+    ...existing,
+    status: nextStatus,
+    cadets: sortSquadCadets(updatedCadets),
+  };
+  store.squadRooms.set(normalizedCode, updatedRoom);
+  return updatedRoom;
 }

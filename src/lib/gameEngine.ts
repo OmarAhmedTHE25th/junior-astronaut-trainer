@@ -60,7 +60,8 @@ export function createInitialState(
   difficulty: Difficulty = 'commander',
   specialty: CadetSpecialty = 'commander',
   landingSite: LandingSiteId = 'jezero',
-  cadet?: { cadetId?: string; callsign?: string; avatar?: string }
+  cadet?: { cadetId?: string; callsign?: string; avatar?: string },
+  squad?: { squadCode?: string; weatherSeed?: number }
 ): GameState {
   const initialPoint: TelemetryPoint = {
     sol: 1,
@@ -89,6 +90,8 @@ export function createInitialState(
     cadetId: cadet?.cadetId,
     callsign: cadet?.callsign,
     avatar: cadet?.avatar,
+    squadCode: squad?.squadCode,
+    weatherSeed: squad?.weatherSeed,
   };
 }
 
@@ -198,7 +201,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         action.difficulty,
         action.specialty || 'commander',
         action.landingSite || 'jezero',
-        action.cadet
+        action.cadet,
+        action.squad
       );
       return { ...initial, phase: 'action' };
     }
@@ -209,6 +213,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...gs,
         landingSite: gs.landingSite || 'jezero',
+        squadCode: gs.squadCode,
+        weatherSeed: gs.weatherSeed,
         telemetryHistory:
           gs.telemetryHistory && gs.telemetryHistory.length > 0
             ? gs.telemetryHistory
@@ -474,6 +480,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           cadetId: state.cadetId,
           callsign: state.callsign,
           avatar: state.avatar,
+        },
+        {
+          squadCode: state.squadCode,
+          weatherSeed: state.weatherSeed,
         }
       );
     }

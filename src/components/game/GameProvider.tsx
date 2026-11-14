@@ -47,6 +47,8 @@ interface GameProviderProps {
   specialty?: CadetSpecialty;
   landingSite?: LandingSiteId;
   cadet?: { cadetId?: string; callsign?: string; avatar?: string };
+  squadCode?: string;
+  weatherSeed?: number;
   initialState?: GameState;
 }
 
@@ -56,11 +58,20 @@ export function GameProvider({
   specialty = 'commander',
   landingSite = 'jezero',
   cadet,
+  squadCode,
+  weatherSeed,
   initialState,
 }: GameProviderProps) {
   const [state, dispatch] = useReducer(
     gameReducer,
-    initialState || createInitialState(difficulty, specialty, landingSite, cadet)
+    initialState ||
+      createInitialState(
+        difficulty,
+        specialty,
+        landingSite,
+        cadet,
+        squadCode ? { squadCode, weatherSeed } : undefined
+      )
   );
   const [factIndex, setFactIndex] = useState(0);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -123,6 +134,62 @@ export function GameProvider({
       }
     };
   }, [state, cadet]);
+
+  // ── Squad Mode Background Sync (Fire & Forget / Flaky Wi-Fi Resilient) ──
+  useEffect(() => {
+    const activeSquadCode = state.squadCode || squadCode;
+    const activeCadetId = state.cadetId || cadet?.cadetId;
+    if (!activeSquadCode || !activeCadetId) return;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3500);
+
+    fetch('/api/squad', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        action: 'SYNC',
+        roomCode: activeSquadCode,
+        cadet: {
+          cadetId: activeCadetId,
+          callsign: state.callsign || cadet?.callsign || 'ASTRONAUT',
+          avatar: state.avatar || cadet?.avatar || '🚀',
+          specialty: state.specialty || specialty,
+          sol: state.sol,
+          power: state.power,
+          oxygen: state.oxygen,
+          shielding: state.shielding,
+          morale: state.morale,
+          score: state.score,
+          alive: state.phase !== 'gameover',
+          updatedAt: Date.now(),
+        },
+      }),
+    })
+      .catch(() => {
+        // Flaky Wi-Fi or offline: silently catch error so game loop never freezes
+      })
+      .finally(() => {
+        clearTimeout(timer);
+      });
+  }, [
+    state.sol,
+    state.power,
+    state.oxygen,
+    state.shielding,
+    state.morale,
+    state.score,
+    state.phase,
+    state.squadCode,
+    state.cadetId,
+    state.callsign,
+    state.avatar,
+    state.specialty,
+    squadCode,
+    cadet,
+    specialty,
+  ]);
 
   const currentFact = facts.length > 0 ? facts[factIndex] : null;
 

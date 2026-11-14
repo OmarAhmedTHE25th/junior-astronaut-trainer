@@ -41,9 +41,11 @@ try {
 
 // ── Helpers ─────────────────────────────────────────────────
 
-/** Simple seeded-ish random from state for reproducibility-ish feel */
+let currentRng: () => number = Math.random;
+
+/** Pseudo-random generator (switches to deterministic PRNG in Squad Mode) */
 function random(): number {
-  return Math.random();
+  return currentRng();
 }
 
 function pick<T>(arr: readonly T[]): T {
@@ -287,6 +289,19 @@ const EVENT_BUILDERS: EventBuilder[] = [
  *   timestamp-based IDs mean repeat types can still surface.
  */
 export function generateEvent(state: GameState): GameEvent | null {
+  if (state.weatherSeed !== undefined) {
+    // Deterministic Mulberry32 seeded PRNG for identical squad weather sequence
+    let s = ((state.weatherSeed + state.sol * 1337 + state.usedEventIds.length * 31) >>> 0) || 12345;
+    currentRng = function () {
+      s = (s + 0x6D2B79F5) >>> 0;
+      let t = Math.imul(s ^ (s >>> 15), 1 | s);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  } else {
+    currentRng = Math.random;
+  }
+
   const diff = DIFFICULTY_SETTINGS[state.difficulty];
   let chance = EVENT_CHANCE * diff.eventChanceMultiplier;
 

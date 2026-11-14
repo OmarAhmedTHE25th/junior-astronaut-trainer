@@ -86,6 +86,14 @@ The codebase enforces a strict separation between **framework-agnostic domain lo
 * **Print & PDF Ready:** Features a print-optimized stylesheet for classroom diplomas and science fair presentations.
 * **Return to Command Center Button:** Enables one-click navigation back to the main menu without page reloads.
 
+### 6. 🏁 Competitive Squad Mode (4-Cadet Synchronized Mars Race)
+* **Deterministic Synchronized Simulation:** Up to 4 cadets compete simultaneously on the same Mars landing zone and identical NASA DONKI solar weather seed.
+* **Mulberry32 Seeded PRNG:** Events, dust storms, and solar particle strikes are deterministically generated via `Mulberry32(seed + sol * 1337 + usedEvents * 31)`, ensuring all players encounter the exact same operational challenges without requiring heavy peer-to-peer state streaming.
+* **Resilient Offline/Flaky Wi-Fi Mesh:** Game simulation runs purely in local client memory. Telemetry syncs (`POST /api/squad` action `SYNC`) fire non-blockingly in the background with a 3.5-second timeout and silent catch, guaranteeing network lags never freeze the turn-based loop.
+* **Lobby & Room System (`SquadRaceModal.tsx`):** Create or join 6-character room codes (e.g., `UFWTHM`) with landing site selection, host controls, and automatic 1.5s lobby polling.
+* **Live In-Flight Standings Ribbon (`HUD.tsx`):** Live telemetry ribbon displays real-time ranking (`#1` to `#4`), cadet callsign, Sol progression, vital averages, and active survival badges.
+* **Squad Mission Podium (`EndScreen.tsx`):** Debrief screen displays the final Squad Race Podium ranking all 4 cadets by survival status, final scores, and outpost health.
+
 ---
 
 ## ⚙️ Core Game Engine & State Machine
@@ -192,7 +200,9 @@ junior-astronaut-trainer/
 │   │   │   ├── nasa-live/route.ts      # 15-min ISR live DONKI solar flare ingestion
 │   │   │   ├── profile/route.ts        # Cloud cadet profile upsert & sync
 │   │   │   ├── rover-photos/route.ts   # Mars Rover photography API
-│   │   │   └── save/route.ts           # Debounced cloud mission auto-save
+│   │   │   ├── save/route.ts           # Debounced cloud mission auto-save
+│   │   │   ├── squad/route.ts          # Squad race room creation, joining & live telemetry sync
+│   │   │   └── squad/[code]/route.ts   # Squad room state & sorted leaderboard query
 │   │   ├── game/page.tsx               # Briefing, 3D Mars globe & GameProvider mount
 │   │   ├── globals.css                 # Tailwind v4 theme tokens & animations
 │   │   ├── layout.tsx                  # Root layout with typography & metadata
@@ -211,6 +221,7 @@ junior-astronaut-trainer/
 │   │   │   ├── MarsGlobeSelector.tsx   # Interactive HTML5 3D Martian landing globe
 │   │   │   ├── ProfileModal.tsx        # Multi-cadet switcher, callsigns & badges
 │   │   │   ├── RoverGalleryModal.tsx   # NASA Mars rover photo gallery & photo inspector
+│   │   │   ├── SquadRaceModal.tsx      # Competitive 4-cadet lobby, codes & launch coordination
 │   │   │   ├── TelemetryChart.tsx      # Pure SVG multi-series vital analytics curves
 │   │   │   └── NASAFactPopup.tsx       # Educational inter-sol micro-learning dialog
 │   │   └── ui/

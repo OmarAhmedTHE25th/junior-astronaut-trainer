@@ -16,7 +16,7 @@ import {
   getOrCreateCadetProfile,
 } from '@/lib/profile';
 import { SPECIALTY_METAS } from '@/lib/types';
-import type { BadgeId } from '@/lib/types';
+import type { BadgeId, SquadCadetState } from '@/lib/types';
 
 function ConfettiPiece({ index }: { index: number }) {
   const colors = ['#E87040', '#3B82F6', '#22C55E', '#6B3FA0', '#EF4444', '#F8FAFC'];
@@ -53,6 +53,7 @@ export default function EndScreen() {
   const [leaderboardRank, setLeaderboardRank] = useState<number | null>(null);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [showCertificateView, setShowCertificateView] = useState(false);
+  const [squadPodium, setSquadPodium] = useState<SquadCadetState[]>([]);
   const submittedRef = useRef(false);
 
   // Identify the exact cadet who played this mission (not the static SSR placeholder)
@@ -117,6 +118,24 @@ export default function EndScreen() {
       })
       .catch(() => {});
   }, [isLoaded, state, activeCadet]);
+
+  // If this mission was a Competitive Squad Race, fetch final squad standings
+  useEffect(() => {
+    if (!state.squadCode) return;
+    const fetchSquadPodium = () => {
+      fetch(`/api/squad/${state.squadCode}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.room?.cadets) {
+            setSquadPodium(data.room.cadets);
+          }
+        })
+        .catch(() => {});
+    };
+    fetchSquadPodium();
+    const interval = setInterval(fetchSquadPodium, 4000);
+    return () => clearInterval(interval);
+  }, [state.squadCode]);
 
   const handlePlayAgain = () => {
     playClick();
@@ -230,6 +249,88 @@ export default function EndScreen() {
               </div>
             )}
           </div>
+
+          {/* Squad Race Mission Podium (if in Squad Mode) */}
+          {state.squadCode && (
+            <div className="mb-6 text-left p-4 rounded-2xl bg-gradient-to-b from-[#1e1b4b]/80 to-[#0f172a]/90 border-2 border-purple-500/40 shadow-lg">
+              <div className="flex items-center justify-between mb-3 border-b border-purple-500/20 pb-2">
+                <span className="text-xs font-mono font-extrabold text-purple-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>🏁</span> Competitive Squad Mission Podium
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-500/20 text-purple-200 border border-purple-500/40">
+                  ROOM: {state.squadCode}
+                </span>
+              </div>
+
+              {squadPodium.length === 0 ? (
+                <div className="py-4 text-center text-xs font-mono text-white/50">
+                  Retrieving telemetry standings from squad relay...
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {squadPodium.map((cadet, idx) => {
+                    const isYou = cadet.cadetId === activeCadet.cadetId || cadet.callsign === activeCadet.callsign;
+                    const medals = ['🥇 1ST', '🥈 2ND', '🥉 3RD', '🎖️ 4TH'];
+                    const medalBadge = medals[idx] || `#${idx + 1}`;
+                    const rankStyles = [
+                      'border-amber-400/60 bg-amber-500/10 text-amber-300',
+                      'border-slate-300/50 bg-slate-400/10 text-slate-200',
+                      'border-amber-700/50 bg-amber-700/10 text-amber-500',
+                      'border-white/10 bg-white/5 text-slate-400',
+                    ];
+                    const rankStyle = rankStyles[idx] || 'border-white/10 bg-white/5 text-slate-400';
+
+                    return (
+                      <div
+                        key={cadet.cadetId}
+                        className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-mono transition-all ${
+                          isYou
+                            ? 'bg-purple-900/30 border-purple-400/60 ring-1 ring-purple-400/40 shadow-sm'
+                            : 'bg-[#0B1026]/70 border-white/5'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold border ${rankStyle}`}>
+                            {medalBadge}
+                          </span>
+                          <span className="text-base">{cadet.avatar || '🧑‍🚀'}</span>
+                          <div className="min-w-0">
+                            <div className="font-bold text-white flex items-center gap-1.5 truncate">
+                              <span className="truncate">{cadet.callsign}</span>
+                              {isYou && (
+                                <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-purple-500/40 text-purple-200 border border-purple-400/60">
+                                  YOU
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-white/50 flex items-center gap-2">
+                              <span>Sol {cadet.sol}/30</span>
+                              <span>•</span>
+                              <span className={cadet.alive ? 'text-emerald-400' : 'text-rose-400 font-bold'}>
+                                {cadet.alive ? (cadet.sol >= 30 ? 'SOL 30 REACHED' : 'ACTIVE') : 'FLATLINED'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="text-right flex flex-col items-end pl-2">
+                          <span className="text-sm font-extrabold text-[#E87040] tabular-nums">
+                            {cadet.score.toLocaleString()}
+                            <span className="text-[10px] font-normal text-white/40 ml-1">pts</span>
+                          </span>
+                          <div className="flex items-center gap-1.5 text-[9px] text-white/40">
+                            <span>⚡{cadet.power}%</span>
+                            <span>🫧{cadet.oxygen}%</span>
+                            <span>🛡️{cadet.shielding}%</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Telemetry Sparkline & Analytics Debrief */}
           <div className="mb-6 text-left">

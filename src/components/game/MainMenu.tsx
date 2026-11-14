@@ -7,6 +7,7 @@ import FieldManualModal from './FieldManualModal';
 import ProfileModal from './ProfileModal';
 import LeaderboardModal from './LeaderboardModal';
 import LiveTelemetryTicker from './LiveTelemetryTicker';
+import SquadRaceModal from './SquadRaceModal';
 import { useSound } from '@/lib/sound';
 import { useProfile, getOrCreateCadetProfile } from '@/lib/profile';
 import { SPECIALTY_METAS } from '@/lib/types';
@@ -19,6 +20,7 @@ export default function MainMenu() {
   const [isManualOpen, setIsManualOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [isSquadOpen, setIsSquadOpen] = useState(false);
   const [activeSave, setActiveSave] = useState<GameState | null>(null);
 
   const activeCadet =
@@ -153,36 +155,104 @@ export default function MainMenu() {
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* 1. Start Mission */}
+          {/* Additive Mode Selector: Solo Mission vs Squad Race */}
+          <div className="mb-6 p-1.5 rounded-2xl bg-[#0B1026]/90 border border-white/10 flex flex-col sm:flex-row gap-2">
             <Link
               href="/game"
               onClick={playClick}
               className="
-                group relative flex flex-col items-center justify-between p-5 rounded-2xl
+                flex-1 py-3 px-4 rounded-xl text-center font-heading font-extrabold text-sm tracking-wider
+                bg-gradient-to-r from-[#E87040] to-[#E87040]/70 text-white shadow-lg shadow-[#E87040]/25
+                hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer
+              "
+            >
+              <span>🚀</span>
+              <span>SOLO MISSION</span>
+              <span className="text-xs font-mono font-normal opacity-75">(Standard 30 Sols)</span>
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => {
+                playClick();
+                setIsSquadOpen(true);
+              }}
+              className="
+                flex-1 py-3 px-4 rounded-xl text-center font-heading font-extrabold text-sm tracking-wider
+                bg-gradient-to-r from-cyan-600 to-[#6B3FA0] text-white shadow-lg shadow-cyan-500/20
+                hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer
+                border border-cyan-400/40 relative overflow-hidden group
+              "
+            >
+              <span className="animate-bounce">🏁</span>
+              <span>SQUAD RACE</span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-400/20 text-cyan-200 border border-cyan-400/30 uppercase font-bold">
+                4-Cadet Co-op
+              </span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+            {/* 1. Start Solo Mission */}
+            <Link
+              href="/game"
+              onClick={playClick}
+              className="
+                group relative flex flex-col items-center justify-between p-4.5 rounded-2xl
                 bg-gradient-to-b from-[#E87040]/20 to-[#E87040]/5 border-2 border-[#E87040]
                 hover:from-[#E87040]/30 hover:to-[#E87040]/10 hover:scale-[1.03]
                 transition-all duration-200 shadow-lg shadow-[#E87040]/20 text-center
                 cursor-pointer min-h-[170px]
               "
             >
-              <div className="w-12 h-12 rounded-xl bg-[#E87040]/20 flex items-center justify-center text-3xl mb-1 group-hover:scale-110 transition-transform">
+              <div className="w-11 h-11 rounded-xl bg-[#E87040]/20 flex items-center justify-center text-2xl mb-1 group-hover:scale-110 transition-transform">
                 🚀
               </div>
               <div>
-                <h3 className="font-heading font-extrabold text-base text-white group-hover:text-[#E87040] transition-colors">
-                  {activeSave ? 'New Mission' : 'Start Mission'}
+                <h3 className="font-heading font-extrabold text-sm sm:text-base text-white group-hover:text-[#E87040] transition-colors">
+                  {activeSave ? 'Resume / Solo' : 'Solo Mission'}
                 </h3>
-                <p className="text-xs text-[#F8FAFC]/70 mt-1 leading-snug">
-                  Choose difficulty &amp; launch a 30-sol Martian outpost run.
+                <p className="text-[11px] text-[#F8FAFC]/70 mt-1 leading-snug">
+                  Choose difficulty &amp; launch standard 30-sol expedition.
                 </p>
               </div>
               <span className="mt-2 text-xs font-bold text-[#E87040] flex items-center gap-1">
-                Enter AirLock →
+                Launch Solo →
               </span>
             </Link>
 
-            {/* 2. Global Leaderboard */}
+            {/* 2. Squad Race */}
+            <button
+              type="button"
+              onClick={() => {
+                playClick();
+                setIsSquadOpen(true);
+              }}
+              className="
+                group relative flex flex-col items-center justify-between p-4.5 rounded-2xl
+                bg-gradient-to-b from-cyan-500/20 to-purple-500/5 border-2 border-cyan-500/60
+                hover:border-cyan-400 hover:from-cyan-500/30 hover:to-purple-500/15 hover:scale-[1.03]
+                transition-all duration-200 shadow-lg shadow-cyan-500/20 text-center
+                cursor-pointer min-h-[170px]
+              "
+            >
+              <div className="w-11 h-11 rounded-xl bg-cyan-500/20 flex items-center justify-center text-2xl mb-1 group-hover:scale-110 transition-transform">
+                🏁
+              </div>
+              <div>
+                <h3 className="font-heading font-extrabold text-sm sm:text-base text-white group-hover:text-cyan-300 transition-colors">
+                  Squad Race
+                </h3>
+                <p className="text-[11px] text-[#F8FAFC]/70 mt-1 leading-snug">
+                  Compete with up to 4 cadets on shared terrain &amp; solar seeds.
+                </p>
+              </div>
+              <span className="mt-2 text-xs font-bold text-cyan-300 flex items-center gap-1">
+                Lobby &amp; Codes 🛰️
+              </span>
+            </button>
+
+            {/* 3. Global Leaderboard */}
             <button
               type="button"
               onClick={() => {
@@ -297,6 +367,11 @@ export default function MainMenu() {
       <FieldManualModal
         isOpen={isManualOpen}
         onClose={() => setIsManualOpen(false)}
+      />
+
+      <SquadRaceModal
+        isOpen={isSquadOpen}
+        onClose={() => setIsSquadOpen(false)}
       />
     </>
   );

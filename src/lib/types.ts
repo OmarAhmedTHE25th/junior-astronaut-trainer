@@ -106,6 +106,10 @@ export interface GameState {
   cadetId?: string;
   callsign?: string;
   avatar?: string;
+  /** Active Competitive Squad Room code (if in squad race) */
+  squadCode?: string;
+  /** Deterministic weather seed for synchronized DONKI events across squad */
+  weatherSeed?: number;
 }
 
 // ── Reducer Actions ─────────────────────────────────────────
@@ -117,6 +121,7 @@ export type GameAction =
       specialty?: CadetSpecialty;
       landingSite?: LandingSiteId;
       cadet?: { cadetId?: string; callsign?: string; avatar?: string };
+      squad?: { squadCode?: string; weatherSeed?: number };
     }
   | { type: 'LOAD_STATE'; state: GameState }
   | { type: 'PERFORM_ACTION'; action?: PlayerAction; payload?: PlayerAction }
@@ -271,4 +276,33 @@ export interface LeaderboardEntry {
   timestamp: number;
   verified: boolean;
 }
+
+// ── Competitive Squad Race Mode ─────────────────────────────
+
+export interface SquadCadetState {
+  cadetId: string;
+  callsign: string;
+  avatar?: string;
+  specialty?: CadetSpecialty;
+  sol: number;
+  power: number;
+  oxygen: number;
+  shielding: number;
+  morale: number;
+  score: number;
+  alive: boolean;
+  updatedAt: number;
+}
+
+export type SquadRoomStatus = 'LOBBY' | 'ACTIVE' | 'FINISHED';
+
+export interface SquadRoom {
+  roomCode: string;
+  landingZone: LandingSiteId;
+  weatherSeed: number;
+  status: SquadRoomStatus;
+  cadets: SquadCadetState[];
+  createdAt: string;
+}
+
 

@@ -35,6 +35,8 @@ export default function GamePage() {
   const [launched, setLaunched] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty>("commander");
   const [landingSite, setLandingSite] = useState<LandingSiteId>("jezero");
+  const [squadCode, setSquadCode] = useState<string | null>(null);
+  const [weatherSeed, setWeatherSeed] = useState<number | null>(null);
   const [savedRun, setSavedRun] = useState<GameState | null>(null);
 
   const activeCadet =
@@ -49,6 +51,29 @@ export default function GamePage() {
   useEffect(() => {
     try {
       const search = window.location.search;
+      const params = new URLSearchParams(search);
+      const squadParam = params.get("squad");
+
+      if (squadParam) {
+        const cleanSquad = squadParam.trim().toUpperCase();
+        setSquadCode(cleanSquad);
+        setDifficulty("commander");
+
+        fetch(`/api/squad/${cleanSquad}`)
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.success && data.room) {
+              setLandingSite(data.room.landingZone || "jezero");
+              setWeatherSeed(data.room.weatherSeed || 424242);
+            }
+          })
+          .catch(() => {})
+          .finally(() => {
+            setLaunched(true);
+          });
+        return;
+      }
+
       const raw = localStorage.getItem("jat_active_save_v1");
       if (raw) {
         const parsed = JSON.parse(raw) as GameState;
@@ -229,6 +254,8 @@ export default function GamePage() {
         callsign: activeCadet.callsign,
         avatar: activeCadet.avatar,
       }}
+      squadCode={squadCode || undefined}
+      weatherSeed={weatherSeed || undefined}
       initialState={savedRun || undefined}
     >
       <GameBoard
