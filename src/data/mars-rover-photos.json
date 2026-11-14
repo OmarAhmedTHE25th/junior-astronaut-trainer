@@ -5,7 +5,8 @@
     "sol": 3936,
     "camera": "NAVCAM",
     "earthDate": "2023-09-18",
-    "imgSrc": "https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/03936/opgs/edr/ncam/NLB_756622471EDR_F1000790NCAM00354M_.JPG",
+    "imgSrc": "https://images-assets.nasa.gov/image/PIA19808/PIA19808~thumb.jpg",
+    "hdSrc": "https://images-assets.nasa.gov/image/PIA19808/PIA19808~orig.jpg",
     "description": "Curiosity's navigation camera captures the dusty Martian landscape stretching out toward distant hills in Gale Crater."
   },
   {
@@ -14,7 +15,8 @@
     "sol": 3154,
     "camera": "MAST",
     "earthDate": "2021-06-03",
-    "imgSrc": "https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/03154/opgs/edr/mcam/3154ML0168050000109246E01_DXXX.jpg",
+    "imgSrc": "https://images-assets.nasa.gov/image/PIA19839/PIA19839~thumb.jpg",
+    "hdSrc": "https://images-assets.nasa.gov/image/PIA19839/PIA19839~orig.jpg",
     "description": "The Mastcam snaps a close-up of layered Martian rock that was once at the bottom of an ancient lake billions of years ago."
   },
   {
@@ -23,7 +25,8 @@
     "sol": 2540,
     "camera": "CHEMCAM",
     "earthDate": "2019-10-11",
-    "imgSrc": "https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/02540/opgs/edr/ccam/CR0_637651588EDR_F0790000CCAM01540M_.JPG",
+    "imgSrc": "https://images-assets.nasa.gov/image/PIA16204/PIA16204~thumb.jpg",
+    "hdSrc": "https://images-assets.nasa.gov/image/PIA16204/PIA16204~orig.jpg",
     "description": "ChemCam uses a laser to zap rocks and study what they're made of. Here it targeted an interesting rock that might contain clay minerals."
   },
   {
@@ -32,7 +35,8 @@
     "sol": 1000,
     "camera": "MAST",
     "earthDate": "2015-05-30",
-    "imgSrc": "https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/01000/opgs/edr/mcam/1000ML0044630260305200E01_DXXX.jpg",
+    "imgSrc": "https://images-assets.nasa.gov/image/PIA19920/PIA19920~thumb.jpg",
+    "hdSrc": "https://images-assets.nasa.gov/image/PIA19920/PIA19920~orig.jpg",
     "description": "Curiosity celebrates its 1,000th Martian day! The view shows the winding path the rover has taken across the crater floor."
   },
   {
@@ -41,7 +45,8 @@
     "sol": 1,
     "camera": "NAVCAM",
     "earthDate": "2021-02-19",
-    "imgSrc": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00001/ids/edr/browse/ncam/NLF_0001_0667130320_367ECM_N0010052AUT_04096_00_2I3J01.png",
+    "imgSrc": "https://images-assets.nasa.gov/image/PIA24430/PIA24430~thumb.jpg",
+    "hdSrc": "https://images-assets.nasa.gov/image/PIA24430/PIA24430~orig.jpg",
     "description": "Perseverance's very first look around after landing in Jezero Crater! You can see the flat crater floor where an ancient river delta once flowed."
   },
   {
@@ -50,7 +55,8 @@
     "sol": 46,
     "camera": "MASTCAM-Z",
     "earthDate": "2021-04-06",
-    "imgSrc": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00046/ids/edr/browse/zcam/ZL0_0046_0671199990_000ECM_N0031416ZCAM03012_1100LUJ01.png",
+    "imgSrc": "https://images-assets.nasa.gov/image/PIA24542/PIA24542~thumb.jpg",
+    "hdSrc": "https://images-assets.nasa.gov/image/PIA24542/PIA24542~orig.jpg",
     "description": "Mastcam-Z zooms in on the Ingenuity helicopter sitting on the Martian surface, ready for its historic first powered flight on another planet!"
   },
   {
@@ -59,7 +65,8 @@
     "sol": 371,
     "camera": "NAVCAM",
     "earthDate": "2022-02-16",
-    "imgSrc": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00371/ids/edr/browse/ncam/NLF_0371_0699463965_556ECM_N0090000NCAM00501_01_295J01.png",
+    "imgSrc": "https://images-assets.nasa.gov/image/PIA24921/PIA24921~thumb.jpg",
+    "hdSrc": "https://images-assets.nasa.gov/image/PIA24921/PIA24921~orig.jpg",
     "description": "A panoramic view of the ancient river delta in Jezero Crater. Billions of years ago, water flowed here and might have carried tiny living things!"
   },
   {
@@ -68,7 +75,8 @@
     "sol": 198,
     "camera": "SHERLOC",
     "earthDate": "2021-09-05",
-    "imgSrc": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00198/ids/edr/browse/shrlc/SI1_0198_0684430832_012ECM_N0070000SRLC08015_0000LUJ01.png",
+    "imgSrc": "https://images-assets.nasa.gov/image/PIA24543/PIA24543~thumb.jpg",
+    "hdSrc": "https://images-assets.nasa.gov/image/PIA24543/PIA24543~orig.jpg",
     "description": "SHERLOC (yes, like the detective!) uses ultraviolet light to search for organic molecules in Martian rocks. It's hunting for signs of ancient life!"
   },
   {
@@ -77,7 +85,8 @@
     "sol": 5111,
     "camera": "PANCAM",
     "earthDate": "2018-06-10",
-    "imgSrc": "https://mars.nasa.gov/mer/gallery/all/1/p/5111/1P581919922EFFD2FCP2682L8M1-BR.JPG",
+    "imgSrc": "https://images-assets.nasa.gov/image/PIA22222/PIA22222~thumb.jpg",
+    "hdSrc": "https://images-assets.nasa.gov/image/PIA22222/PIA22222~orig.jpg",
     "description": "One of Opportunity's last photos before a massive dust storm covered its solar panels. This brave little rover explored Mars for over 14 years!"
   },
   {
@@ -86,7 +95,8 @@
     "sol": 4999,
     "camera": "NAVCAM",
     "earthDate": "2018-02-16",
-    "imgSrc": "https://mars.nasa.gov/mer/gallery/all/1/n/4999/1N580620845EFFCZRAP1951L0M1-BR.JPG",
+    "imgSrc": "https://images-assets.nasa.gov/image/PIA13197/PIA13197~thumb.jpg",
+    "hdSrc": "https://images-assets.nasa.gov/image/PIA13197/PIA13197~orig.jpg",
     "description": "Opportunity looks into Perseverance Valley on the rim of Endeavour Crater. The valley might have been carved by ancient water or wind."
   },
   {
@@ -95,7 +105,8 @@
     "sol": 1000,
     "camera": "PANCAM",
     "earthDate": "2006-10-26",
-    "imgSrc": "https://mars.nasa.gov/mer/gallery/all/2/p/1000/2P216735325EFFASDZP2600L7M1-BR.JPG",
+    "imgSrc": "https://images-assets.nasa.gov/image/PIA01907/PIA01907~thumb.jpg",
+    "hdSrc": "https://images-assets.nasa.gov/image/PIA01907/PIA01907~orig.jpg",
     "description": "Spirit celebrates sol 1000 at the Columbia Hills! Originally planned for just 90 sols, this tough rover kept going more than 10 times longer."
   },
   {
@@ -104,7 +115,8 @@
     "sol": 583,
     "camera": "PANCAM",
     "earthDate": "2005-08-24",
-    "imgSrc": "https://mars.nasa.gov/mer/gallery/all/2/p/583/2P172579480EFFAD00P2293L5M1-BR.JPG",
+    "imgSrc": "https://images-assets.nasa.gov/image/PIA03095/PIA03095~thumb.jpg",
+    "hdSrc": "https://images-assets.nasa.gov/image/PIA03095/PIA03095~orig.jpg",
     "description": "A spectacular view from the top of Husband Hill, the highest point Spirit ever reached. You can see for miles across Gusev Crater!"
   },
   {
@@ -113,7 +125,8 @@
     "sol": 2082,
     "camera": "MAHLI",
     "earthDate": "2018-06-15",
-    "imgSrc": "https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/02082/opgs/edr/mhli/2082MH0001630001003734C00_DXXX.jpg",
+    "imgSrc": "https://images-assets.nasa.gov/image/PIA22207/PIA22207~thumb.jpg",
+    "hdSrc": "https://images-assets.nasa.gov/image/PIA22207/PIA22207~orig.jpg",
     "description": "Curiosity takes a selfie! The Mars Hand Lens Imager on its arm can take close-up pictures of rocks AND rover selfies from multiple angles."
   },
   {
@@ -122,7 +135,8 @@
     "sol": 2729,
     "camera": "NAVCAM",
     "earthDate": "2020-03-16",
-    "imgSrc": "https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/02729/opgs/edr/ncam/NRB_657834959EDR_F0810628NCAM00280M_.JPG",
+    "imgSrc": "https://images-assets.nasa.gov/image/PIA00920/PIA00920~thumb.jpg",
+    "hdSrc": "https://images-assets.nasa.gov/image/PIA00920/PIA00920~orig.jpg",
     "description": "A Martian sunset captured by Curiosity's nav cam. Sunsets on Mars are blue because fine dust in the atmosphere scatters blue light toward the viewer!"
   },
   {
@@ -131,7 +145,8 @@
     "sol": 684,
     "camera": "MASTCAM-Z",
     "earthDate": "2023-01-10",
-    "imgSrc": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00684/ids/edr/browse/zcam/ZL0_0684_0726717740_900ECM_N0320000ZCAM03204_1100LUJ01.png",
+    "imgSrc": "https://images-assets.nasa.gov/image/PIA24309/PIA24309~thumb.jpg",
+    "hdSrc": "https://images-assets.nasa.gov/image/PIA24309/PIA24309~orig.jpg",
     "description": "Mastcam-Z photographs a sample tube left on the surface for future pickup. These tubes hold precious Mars rock samples that will one day be brought to Earth!"
   },
   {
@@ -140,7 +155,8 @@
     "sol": 3782,
     "camera": "MAST",
     "earthDate": "2023-04-15",
-    "imgSrc": "https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/03782/opgs/edr/mcam/3782ML0199520000110063E01_DXXX.jpg",
+    "imgSrc": "https://images-assets.nasa.gov/image/PIA19912/PIA19912~thumb.jpg",
+    "hdSrc": "https://images-assets.nasa.gov/image/PIA19912/PIA19912~orig.jpg",
     "description": "Mount Sharp towers in the background! Curiosity has been climbing this 5-kilometer-tall mountain since 2014, reading Mars's history in the rock layers."
   },
   {
@@ -149,7 +165,8 @@
     "sol": 100,
     "camera": "SUPERCAM",
     "earthDate": "2021-06-01",
-    "imgSrc": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00100/ids/edr/browse/scam/LRE_0100_0675916564_821ECM_N0040000SCAM02100_0000LUJ01.png",
+    "imgSrc": "https://images-assets.nasa.gov/image/PIA23764/PIA23764~thumb.jpg",
+    "hdSrc": "https://images-assets.nasa.gov/image/PIA23764/PIA23764~orig.jpg",
     "description": "SuperCam fires its laser at a rock from 7 meters away to figure out what minerals are inside. The zap makes the rock glow, and the camera reads the light!"
   }
 ]
