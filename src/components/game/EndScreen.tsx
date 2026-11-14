@@ -91,6 +91,21 @@ export default function EndScreen() {
     }
   }, [isVictory]);
 
+  // Ensure any active save slot is purged immediately on mission completion or defeat
+  useEffect(() => {
+    try {
+      localStorage.removeItem('jat_active_save_v1');
+    } catch {}
+    const activeCadetId =
+      state.cadetId ||
+      (typeof window !== 'undefined' ? getOrCreateCadetProfile().cadetId : undefined);
+    if (activeCadetId) {
+      fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
+        method: 'DELETE',
+      }).catch(() => {});
+    }
+  }, [state.cadetId]);
+
   // Evaluate badges & auto-submit to anti-cheat server leaderboard
   useEffect(() => {
     if (submittedRef.current) return;
@@ -145,6 +160,9 @@ export default function EndScreen() {
   }, [state.squadCode]);
 
   const handlePlayAgain = () => {
+    try {
+      localStorage.removeItem('jat_active_save_v1');
+    } catch {}
     playClick();
     dispatch({ type: 'RESTART' });
   };
@@ -549,6 +567,9 @@ export default function EndScreen() {
               variant="secondary"
               size="md"
               onClick={() => {
+                try {
+                  localStorage.removeItem('jat_active_save_v1');
+                } catch {}
                 playClick();
                 router.push('/');
               }}

@@ -86,7 +86,15 @@ export default function GamePage() {
       const raw = localStorage.getItem("jat_active_save_v1");
       if (raw) {
         const parsed = JSON.parse(raw) as GameState;
-        if (parsed && parsed.sol && parsed.phase !== "victory" && parsed.phase !== "gameover") {
+        if (
+          parsed &&
+          parsed.sol &&
+          parsed.phase !== "victory" &&
+          parsed.phase !== "gameover" &&
+          parsed.power > 0 &&
+          parsed.oxygen > 0 &&
+          parsed.shielding > 0
+        ) {
           setSavedRun(parsed);
           if (parsed.isTimedMode !== undefined) {
             setIsTimedMode(parsed.isTimedMode);
@@ -94,6 +102,10 @@ export default function GamePage() {
           if (search.includes("resume=true")) {
             setLaunched(true);
           }
+        } else {
+          // Mission ended or flatlined: purge save immediately
+          localStorage.removeItem("jat_active_save_v1");
+          setSavedRun(null);
         }
       }
     } catch {}

@@ -168,27 +168,43 @@ export function GameProvider({
 
   // ── Debounced Auto-Save & Cleanup ─────────────────────────
   useEffect(() => {
+    // 1. Mission concluded: WIPE save slot unconditionally and abort any pending save
+    if (state.phase === 'victory' || state.phase === 'gameover') {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+      try {
+        localStorage.removeItem('jat_active_save_v1');
+      } catch {}
+
+      const activeCadetId =
+        state.cadetId ||
+        cadet?.cadetId ||
+        (typeof window !== 'undefined' ? getOrCreateCadetProfile().cadetId : undefined);
+
+      if (activeCadetId) {
+        fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
+          method: 'DELETE',
+        }).catch(() => {});
+      }
+      return;
+    }
+
     const activeCadetId =
       state.cadetId ||
       cadet?.cadetId ||
       (typeof window !== 'undefined' ? getOrCreateCadetProfile().cadetId : undefined);
 
-    if (!activeCadetId || activeCadetId === 'cadet-nova-01') return;
+    if (!activeCadetId) return;
 
-    if (state.phase === 'victory' || state.phase === 'gameover') {
-      // Clear active save slot when mission concludes
-      try {
-        localStorage.removeItem('jat_active_save_v1');
-      } catch {}
-
-      fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
-        method: 'DELETE',
-      }).catch(() => {});
-      return;
-    }
-
-    if (state.phase === 'action' || state.phase === 'event') {
-      // Instant local persistence
+    if (
+      (state.phase === 'action' || state.phase === 'event') &&
+      state.power > 0 &&
+      state.oxygen > 0 &&
+      state.shielding > 0
+    ) {
+      // Instant local persistence for active runs
       try {
         localStorage.setItem('jat_active_save_v1', JSON.stringify(state));
       } catch {}

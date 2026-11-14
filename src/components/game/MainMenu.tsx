@@ -37,11 +37,27 @@ export default function MainMenu() {
       const raw = localStorage.getItem('jat_active_save_v1');
       if (raw) {
         const parsed = JSON.parse(raw) as GameState;
-        if (parsed && parsed.sol && parsed.phase !== 'victory' && parsed.phase !== 'gameover') {
+        if (
+          parsed &&
+          parsed.sol &&
+          parsed.phase !== 'victory' &&
+          parsed.phase !== 'gameover' &&
+          parsed.power > 0 &&
+          parsed.oxygen > 0 &&
+          parsed.shielding > 0
+        ) {
           setActiveSave(parsed);
+        } else {
+          // Mission ended or flatlined: purge save immediately
+          localStorage.removeItem('jat_active_save_v1');
+          setActiveSave(null);
         }
+      } else {
+        setActiveSave(null);
       }
-    } catch {}
+    } catch {
+      setActiveSave(null);
+    }
   }, []);
 
   return (
