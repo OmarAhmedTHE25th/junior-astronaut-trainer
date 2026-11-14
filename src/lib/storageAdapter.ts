@@ -479,3 +479,25 @@ export async function getCloudProfile(cadetId: string): Promise<CadetProfile | n
   const store = getMemoryStore();
   return store.profiles.get(cadetId) || null;
 }
+
+/** Permanently purge cadet profile, active saves, and leaderboard records from cloud & fallback */
+export async function deleteCadetCloudData(cadetId: string): Promise<boolean> {
+  const sql = await getSqlClient();
+
+  if (sql) {
+    try {
+      await sql`DELETE FROM cadet_profiles WHERE cadet_id = ${cadetId};`;
+      await sql`DELETE FROM active_saves WHERE cadet_id = ${cadetId};`;
+      await sql`DELETE FROM leaderboard_entries WHERE cadet_id = ${cadetId};`;
+      return true;
+    } catch (err) {
+      console.error('Neon deleteCadetCloudData error:', err);
+    }
+  }
+
+  const store = getMemoryStore();
+  store.profiles.delete(cadetId);
+  store.saves.delete(cadetId);
+  store.leaderboard = store.leaderboard.filter((entry) => entry.cadetId !== cadetId);
+  return true;
+}

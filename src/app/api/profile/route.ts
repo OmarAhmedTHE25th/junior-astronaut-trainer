@@ -2,7 +2,7 @@
 // Neon Serverless Postgres backed with local in-memory fallback.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getCloudProfile, saveCloudProfile, isNeonConfigured } from '@/lib/storageAdapter';
+import { getCloudProfile, saveCloudProfile, deleteCadetCloudData, isNeonConfigured } from '@/lib/storageAdapter';
 import type { CadetProfile } from '@/lib/types';
 
 export async function GET(request: NextRequest) {
@@ -49,5 +49,34 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     console.error('Error updating cadet profile:', err);
     return NextResponse.json({ success: false, error: 'Failed to save cadet profile' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    let cadetId = searchParams.get('cadetId');
+
+    if (!cadetId) {
+      try {
+        const body = await request.json();
+        cadetId = body?.cadetId;
+      } catch {}
+    }
+
+    if (!cadetId) {
+      return NextResponse.json({ success: false, error: 'Missing cadetId' }, { status: 400 });
+    }
+
+    await deleteCadetCloudData(cadetId);
+
+    return NextResponse.json({
+      success: true,
+      message: `Cadet data for ${cadetId} purged from cloud storage.`,
+      isCloud: isNeonConfigured(),
+    });
+  } catch (err) {
+    console.error('Error deleting cadet profile:', err);
+    return NextResponse.json({ success: false, error: 'Failed to delete cadet data' }, { status: 500 });
   }
 }

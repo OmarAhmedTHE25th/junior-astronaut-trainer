@@ -17,12 +17,14 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     profile,
     roster,
     isCloudSyncing,
+    isDeleting,
     updateCallsign,
     updateAvatar,
     updateSpecialty,
     switchCadet,
     createNewCadet,
     deleteCadet,
+    purgeCadetData,
     recoverCloudProfile,
     badgesMeta,
     specialtiesMeta,
@@ -36,6 +38,10 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const [recoveryId, setRecoveryId] = useState('');
   const [recoveryMsg, setRecoveryMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [copiedId, setCopiedId] = useState(false);
+
+  // Permanent Delete Confirmation State
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteStatusMsg, setDeleteStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Sync callsign input if profile changes
   useEffect(() => {
@@ -77,9 +83,32 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     switchCadet(id);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string, name?: string) => {
+    if (typeof window !== 'undefined' && window.confirm(`Delete cadet "${name || id}" from both local storage and cloud database?`)) {
+      playAlert();
+      await purgeCadetData(id);
+      playSuccess();
+    }
+  };
+
+  const handleExecutePurge = async () => {
     playAlert();
-    deleteCadet(id);
+    setDeleteStatusMsg(null);
+    const res = await purgeCadetData(profile.cadetId);
+    if (res.success) {
+      playSuccess();
+      setShowDeleteConfirm(false);
+      setDeleteStatusMsg({
+        type: 'success',
+        text: `All records for cadet permanently deleted from local device and cloud storage.`,
+      });
+      setTimeout(() => setDeleteStatusMsg(null), 4000);
+    } else {
+      setDeleteStatusMsg({
+        type: 'error',
+        text: res.error || 'Failed to complete deletion.',
+      });
+    }
   };
 
   const handleRecover = async (e: React.FormEvent) => {
@@ -154,10 +183,10 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDelete(c.cadetId);
+                        handleDelete(c.cadetId, c.callsign);
                       }}
                       className="ml-1 opacity-0 group-hover:opacity-100 hover:text-red-400 text-white/40 p-0.5 transition-opacity"
-                      title="Delete profile"
+                      title="Delete profile from local & cloud"
                       aria-label={`Delete profile ${c.callsign}`}
                     >
                       ✕
@@ -432,6 +461,76 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           {recoveryMsg && (
             <p className={`text-xs font-medium ${recoveryMsg.type === 'success' ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
               {recoveryMsg.text}
+            </p>
+          )}
+        </div>
+
+        {/* Danger Zone: Local & Cloud Data Erasure */}
+        <div className="p-4 rounded-2xl bg-red-950/20 border border-red-500/30 space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-mono font-bold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span>⚠️</span> Data Privacy &amp; Permanent Erasure
+            </h4>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/30">
+              Local + Cloud
+            </span>
+          </div>
+
+          <p className="text-xs text-[#F8FAFC]/70 leading-relaxed">
+            Permanently delete this cadet&apos;s dossier, active mission saves, career badges, and leaderboard rankings from both this device (<code className="text-amber-300 text-[11px]">localStorage</code>) and Neon Postgres cloud storage.
+          </p>
+
+          {!showDeleteConfirm ? (
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  playClick();
+                  setShowDeleteConfirm(true);
+                }}
+                className="
+                  px-4 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/40
+                  text-red-300 hover:text-red-200 font-mono text-xs font-bold transition-all
+                  flex items-center gap-2 cursor-pointer
+                "
+              >
+                <span>🗑️</span> Delete Cadet Data (Local &amp; Cloud)
+              </button>
+            </div>
+          ) : (
+            <div className="p-3.5 rounded-xl bg-red-900/30 border border-red-500/50 space-y-3">
+              <p className="text-xs text-red-200 font-medium">
+                Are you sure you want to permanently erase all records for <strong>{profile.callsign}</strong>? This action will purge your dossier, save state, and leaderboard rankings from both this browser and Neon cloud storage.
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleExecutePurge}
+                  disabled={isDeleting}
+                  className="bg-red-600 hover:bg-red-500 text-white border-red-700 text-xs px-4"
+                >
+                  {isDeleting ? 'Erasing Cloud & Local...' : 'Yes, Permanently Delete'}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    playClick();
+                    setShowDeleteConfirm(false);
+                  }}
+                  disabled={isDeleting}
+                  className="text-xs px-3"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {deleteStatusMsg && (
+            <p className={`text-xs font-medium ${deleteStatusMsg.type === 'success' ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
+              {deleteStatusMsg.text}
             </p>
           )}
         </div>

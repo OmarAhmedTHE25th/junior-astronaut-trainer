@@ -238,10 +238,79 @@ export function createNewCadet(
   return newProfile;
 }
 
+/** Cloud purge helper: delete cadet from Neon Postgres & cloud storage */
+export async function purgeCadetFromCloud(cadetId: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/profile?cadetId=${encodeURIComponent(cadetId)}`, {
+      method: 'DELETE',
+    });
+    const data = await res.json().catch(() => null);
+    return Boolean(data?.success);
+  } catch (err) {
+    console.warn('Neon cloud purge error (offline or unreachable):', err);
+    return false;
+  }
+}
+
+/**
+ * Permanently purge a cadet's data from both local storage and Neon cloud storage.
+ * If the purged cadet was active, switches to the next available cadet or creates a fresh one.
+ */
+export async function purgeCadetCompletely(cadetId: string): Promise<{ success: boolean; newActiveProfile: CadetProfile }> {
+  // 1. Purge from cloud storage
+  await purgeCadetFromCloud(cadetId);
+
+  // 2. Purge from local storage
+  const roster = getCadetRoster();
+  const updatedRoster = roster.filter((p) => p.cadetId !== cadetId);
+
+  const active = getOrCreateCadetProfile();
+  let nextActive: CadetProfile;
+
+  if (active.cadetId === cadetId) {
+    // Clear active save if it belonged to this cadet
+    try {
+      localStorage.removeItem('jat_active_save_v1');
+    } catch {}
+
+    if (updatedRoster.length > 0) {
+      nextActive = updatedRoster[0];
+    } else {
+      nextActive = createDefaultProfile();
+      updatedRoster.push(nextActive);
+    }
+
+    try {
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(nextActive));
+    } catch {}
+    profileListeners.forEach((fn) => fn(nextActive));
+  } else {
+    nextActive = active;
+  }
+
+  saveCadetRoster(updatedRoster);
+
+  // Clean local leaderboard entries for this cadet if present
+  try {
+    const rawLb = localStorage.getItem('jat_local_leaderboard_v1');
+    if (rawLb) {
+      const parsedLb = JSON.parse(rawLb);
+      if (Array.isArray(parsedLb)) {
+        const filteredLb = parsedLb.filter((e: { cadetId?: string }) => e.cadetId !== cadetId);
+        localStorage.setItem('jat_local_leaderboard_v1', JSON.stringify(filteredLb));
+      }
+    }
+  } catch {}
+
+  return { success: true, newActiveProfile: nextActive };
+}
+
 /** Delete a cadet profile from the roster (must leave at least 1) */
 export function deleteCadet(cadetId: string): boolean {
   const roster = getCadetRoster();
   if (roster.length <= 1) return false;
+
+  purgeCadetFromCloud(cadetId).catch(() => {});
 
   const updatedRoster = roster.filter((p) => p.cadetId !== cadetId);
   saveCadetRoster(updatedRoster);
@@ -369,6 +438,7 @@ export function useProfile() {
   const [profile, setProfileState] = useState<CadetProfile>(DEFAULT_PROFILE);
   const [roster, setRosterState] = useState<CadetProfile[]>([DEFAULT_PROFILE]);
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     setProfileState(getOrCreateCadetProfile());
@@ -455,16 +525,35 @@ export function useProfile() {
     }
   }, []);
 
+  const handlePurgeCadetData = useCallback(async (cadetId?: string) => {
+    const targetId = cadetId || profile.cadetId;
+    if (!targetId) return { success: false, error: 'No cadet ID provided' };
+    setIsDeleting(true);
+    try {
+      const res = await purgeCadetCompletely(targetId);
+      setProfileState(res.newActiveProfile);
+      setRosterState(getCadetRoster());
+      return { success: true, newProfile: res.newActiveProfile };
+    } catch (err) {
+      console.error('Failed to purge cadet data:', err);
+      return { success: false, error: 'Failed to erase data.' };
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [profile.cadetId]);
+
   return {
     profile,
     roster,
     isCloudSyncing,
+    isDeleting,
     updateCallsign,
     updateAvatar,
     updateSpecialty,
     switchCadet: handleSwitchCadet,
     createNewCadet: handleCreateNewCadet,
     deleteCadet: handleDeleteCadet,
+    purgeCadetData: handlePurgeCadetData,
     recoverCloudProfile: handleRecoverCloudProfile,
     badgesMeta: CADET_BADGES,
     specialtiesMeta: SPECIALTY_METAS,
