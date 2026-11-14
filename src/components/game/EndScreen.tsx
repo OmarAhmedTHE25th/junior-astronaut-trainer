@@ -221,7 +221,7 @@ export default function EndScreen() {
         >
           {/* Icon */}
           <div className="text-5xl sm:text-6xl mb-3" aria-hidden="true">
-            {isVictory ? '🎉' : '💔'}
+            {isVictory ? '🎉' : state.gameOverReason === 'timeout' ? '💥' : '💔'}
           </div>
 
           {/* Title */}
@@ -230,12 +230,18 @@ export default function EndScreen() {
               isVictory ? 'text-[#22C55E]' : 'text-[#EF4444]'
             }`}
           >
-            {isVictory ? 'Mars Outpost Mission Complete!' : 'Mission Depletion: Abort'}
+            {isVictory
+              ? 'Mars Outpost Mission Complete!'
+              : state.gameOverReason === 'timeout'
+              ? 'Mission Failure: Decision Timeout'
+              : 'Mission Depletion: Abort'}
           </h2>
 
           <p className="text-sm text-[#F8FAFC]/70 mb-4">
             {isVictory
               ? `Commander ${activeCadet.callsign}, you successfully survived all ${state.maxSol} sols on Mars!`
+              : state.gameOverReason === 'timeout'
+              ? `Commander ${activeCadet.callsign}, life-support collapsed on Sol ${state.sol} after failing to commit countermeasures before the 15s timer expired.`
               : `Your outpost sustained operations for ${state.sol} sols before mission abort.`}
           </p>
 

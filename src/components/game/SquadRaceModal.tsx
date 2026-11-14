@@ -562,7 +562,7 @@ export default function SquadRaceModal({ isOpen, onClose }: SquadRaceModalProps)
                         <span>Timed Crisis</span>
                       </div>
                       <span className="text-[10px] text-rose-300/80 block mt-0.5">
-                        15s / Sol + speed bonuses
+                        15s / Sol (loss on 0s) + speed bonuses
                       </span>
                     </button>
                   </div>

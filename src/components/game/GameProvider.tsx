@@ -129,10 +129,9 @@ export function GameProvider({
         const next = Math.max(0, +(prev - 0.1).toFixed(1));
         if (next <= 0) {
           clearInterval(interval);
-          // Auto timeout trigger: Hold Position / Minimal Maintenance
+          // Timer ended: Player immediately loses mission in Timed Crisis Mode
           rawDispatch({
-            type: 'PERFORM_ACTION',
-            action: TIMEOUT_FALLBACK_ACTION,
+            type: 'TRIGGER_TIMEOUT_GAMEOVER',
           });
           return 0;
         }

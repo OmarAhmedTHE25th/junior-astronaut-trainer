@@ -291,7 +291,7 @@ export default function GamePage() {
                     )}
                   </div>
                   <p className="text-[11px] text-[#F8FAFC]/70 leading-snug">
-                    15s decision clock! Auto-advance on 0s timeout &amp; earn Rapid Response speed bonuses!
+                    Strict 15s decision clock! Hit 0s and the mission is lost! Earn Rapid Response speed bonuses for fast choices.
                   </p>
                 </button>
               </div>

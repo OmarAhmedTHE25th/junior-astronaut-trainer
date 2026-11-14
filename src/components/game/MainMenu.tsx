@@ -253,7 +253,7 @@ export default function MainMenu() {
                   {activeSave ? 'Resume / Solo' : 'Solo Mission'}
                 </h3>
                 <p className="text-[11px] text-[#F8FAFC]/70 mt-1 leading-snug">
-                  {isCrisisTimed ? '15s countdown per Sol with speed bonuses.' : 'Choose difficulty & launch standard 30-sol expedition.'}
+                  {isCrisisTimed ? 'Strict 15s countdown per Sol (instant loss on 0s) with speed bonuses.' : 'Choose difficulty & launch standard 30-sol expedition.'}
                 </p>
               </div>
               <span className="mt-2 text-xs font-bold text-[#E87040] flex items-center gap-1">

@@ -94,6 +94,13 @@ The codebase enforces a strict separation between **framework-agnostic domain lo
 * **Live In-Flight Standings Ribbon (`HUD.tsx`):** Live telemetry ribbon displays real-time ranking (`#1` to `#4`), cadet callsign, Sol progression, vital averages, and active survival badges.
 * **Squad Mission Podium (`EndScreen.tsx`):** Debrief screen displays the final Squad Race Podium ranking all 4 cadets by survival status, final scores, and outpost health.
 
+### 7. ⏱️ Timed Crisis Mode (15s Decision Window & Rapid Response Bonuses)
+* **High-Stakes Decision Clock:** Optional mode available across both Solo Mission and Squad Race. Gives cadets a strict 15.0-second countdown on every Sol to evaluate telemetry and commit countermeasures.
+* **Dynamic Visual & Audio Warnings:** The HUD countdown clock transitions to warning amber below `6s`, pulsing emergency red below `3s`, with an audible countdown blip on critical seconds.
+* **Instant Loss on Timeout:** If the clock strikes `0.0s` before committing an action, life-support protocols suffer catastrophic failure, immediately ending the mission with a "Mission Failure: Decision Timeout" debrief.
+* **Rapid Response Speed Bonuses:** Fast decision-makers receive composite score bonuses (`Math.round(timeRemaining * 10)` pts) per Sol, logged into career credentials and synced to the Squad Leaderboard.
+* **Debrief & Certificate Integration:** Displays total mission duration (`MM:SS`) and accumulated Rapid Response Points on the post-mission summary screen.
+
 ---
 
 ## ⚙️ Core Game Engine & State Machine

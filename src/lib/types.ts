@@ -116,6 +116,8 @@ export interface GameState {
   missionTimeSeconds?: number;
   /** Accumulated Rapid Response Bonus points from fast decisions */
   rapidResponseBonus?: number;
+  /** Reason for game over if defeated */
+  gameOverReason?: 'timeout' | 'depletion';
 }
 
 // ── Reducer Actions ─────────────────────────────────────────
@@ -134,6 +136,7 @@ export type GameAction =
   | { type: 'PERFORM_ACTION'; action?: PlayerAction; payload?: PlayerAction }
   | { type: 'TRIGGER_EVENT'; event: GameEvent }
   | { type: 'RESOLVE_EVENT'; choiceId?: string; payload?: EventChoice }
+  | { type: 'TRIGGER_TIMEOUT_GAMEOVER' }
   | { type: 'RECORD_TIMED_BONUS'; bonusPoints: number }
   | { type: 'UPDATE_MISSION_TIME'; seconds: number }
   | { type: 'ADVANCE_SOL' }

@@ -221,6 +221,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         squadCode: gs.squadCode,
         weatherSeed: gs.weatherSeed,
         isTimedMode: gs.isTimedMode,
+        gameOverReason: gs.gameOverReason,
         missionTimeSeconds: gs.missionTimeSeconds ?? 0,
         rapidResponseBonus: gs.rapidResponseBonus ?? 0,
         telemetryHistory:
@@ -398,6 +399,40 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
       return newState;
+    }
+
+    // ── Decision window expired: immediate loss in Timed Mode ──
+    case 'TRIGGER_TIMEOUT_GAMEOVER': {
+      const logEntry: LogEntry = {
+        sol: state.sol,
+        type: 'system',
+        title: '⏱️ Decision Window Expired',
+        description:
+          'Critical life-support collapse: Decision timer hit 0s before countermeasures could be committed. Outpost systems flatlined.',
+        resourceChanges: {
+          power: -state.power,
+          oxygen: -state.oxygen,
+          shielding: -state.shielding,
+        },
+        moraleChange: -state.morale,
+        icon: '💥',
+      };
+
+      const finalState: GameState = {
+        ...state,
+        power: 0,
+        oxygen: 0,
+        shielding: 0,
+        morale: 0,
+        phase: 'gameover',
+        gameOverReason: 'timeout',
+        log: [...state.log, logEntry],
+      };
+
+      return {
+        ...finalState,
+        score: calculateScore(finalState),
+      };
     }
 
     // ── Record Rapid Response Bonus for Timed Mode ────────
