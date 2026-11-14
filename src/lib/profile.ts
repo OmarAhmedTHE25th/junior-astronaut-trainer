@@ -126,10 +126,20 @@ export function getCadetRoster(): CadetProfile[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.map((p) => ({
+        // Heal roster: filter out accidental SSR placeholder 'cadet-nova-01' if real cadets exist
+        const hasRealCadets = parsed.some((p) => p.cadetId && p.cadetId !== 'cadet-nova-01');
+        const validList = hasRealCadets
+          ? parsed.filter((p) => p.cadetId && p.cadetId !== 'cadet-nova-01')
+          : parsed;
+
+        const sanitized = validList.map((p) => ({
           ...p,
           specialty: p.specialty || 'commander',
         }));
+
+        if (sanitized.length > 0) {
+          return sanitized;
+        }
       }
     }
   } catch {}
@@ -151,6 +161,13 @@ export function saveCadetRoster(roster: CadetProfile[]): void {
   rosterListeners.forEach((fn) => fn(roster));
 }
 
+/** Get a cadet profile from the local roster by cadetId */
+export function getCadetProfileById(cadetId?: string): CadetProfile | null {
+  if (!cadetId || typeof window === 'undefined') return null;
+  const roster = getCadetRoster();
+  return roster.find((p) => p.cadetId === cadetId) || null;
+}
+
 /** Get current active profile from localStorage or create a fresh zero-friction profile */
 export function getOrCreateCadetProfile(): CadetProfile {
   if (typeof window === 'undefined') {
@@ -162,6 +179,25 @@ export function getOrCreateCadetProfile(): CadetProfile {
     if (raw) {
       const parsed = JSON.parse(raw) as CadetProfile;
       if (parsed.cadetId && parsed.callsign) {
+        // If the active profile in storage is the SSR fallback placeholder but real cadets exist in the roster, activate the real cadet
+        if (parsed.cadetId === 'cadet-nova-01') {
+          const rosterRaw = localStorage.getItem(ROSTER_KEY);
+          if (rosterRaw) {
+            const parsedRoster = JSON.parse(rosterRaw);
+            if (Array.isArray(parsedRoster)) {
+              const realCadet = parsedRoster.find((p) => p.cadetId && p.cadetId !== 'cadet-nova-01');
+              if (realCadet) {
+                const cleanedReal = {
+                  ...realCadet,
+                  specialty: realCadet.specialty || 'commander',
+                };
+                localStorage.setItem(PROFILE_KEY, JSON.stringify(cleanedReal));
+                return cleanedReal;
+              }
+            }
+          }
+        }
+
         return {
           ...parsed,
           specialty: parsed.specialty || 'commander',
@@ -181,6 +217,16 @@ export function getOrCreateCadetProfile(): CadetProfile {
 /** Save updated cadet profile to active slot + roster + cloud */
 export function saveCadetProfile(profile: CadetProfile, syncCloud = true): void {
   if (typeof window === 'undefined') return;
+
+  // SAFETY GUARD: Never persist the static SSR fallback placeholder 'cadet-nova-01'
+  if (
+    profile.cadetId === 'cadet-nova-01' &&
+    profile.callsign === 'CDR-NOVA-01' &&
+    profile.missionsPlayed === 0 &&
+    profile.highestScore === 0
+  ) {
+    return;
+  }
 
   const sanitized: CadetProfile = {
     ...profile,
@@ -369,8 +415,22 @@ export function subscribeRoster(listener: (roster: CadetProfile[]) => void): () 
  */
 export function evaluateBadges(
   finalState: GameState,
-  currentProfile: CadetProfile
+  fallbackProfile?: CadetProfile
 ): { updatedProfile: CadetProfile; newBadges: BadgeId[] } {
+  // 1. Locate the exact cadet who played this mission:
+  let targetProfile: CadetProfile | null = null;
+
+  if (finalState.cadetId) {
+    targetProfile = getCadetProfileById(finalState.cadetId);
+  }
+  if (!targetProfile && fallbackProfile && fallbackProfile.cadetId !== 'cadet-nova-01') {
+    targetProfile = fallbackProfile;
+  }
+  if (!targetProfile) {
+    targetProfile = getOrCreateCadetProfile();
+  }
+
+  const currentProfile = targetProfile;
   const earnedSet = new Set<BadgeId>(currentProfile.badges);
   const newBadges: BadgeId[] = [];
 
@@ -437,12 +497,16 @@ export function evaluateBadges(
 export function useProfile() {
   const [profile, setProfileState] = useState<CadetProfile>(DEFAULT_PROFILE);
   const [roster, setRosterState] = useState<CadetProfile[]>([DEFAULT_PROFILE]);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    setProfileState(getOrCreateCadetProfile());
-    setRosterState(getCadetRoster());
+    const active = getOrCreateCadetProfile();
+    const currentRoster = getCadetRoster();
+    setProfileState(active);
+    setRosterState(currentRoster);
+    setIsLoaded(true);
 
     const unsubProfile = subscribeProfile((updated) => {
       setProfileState(updated);
@@ -545,6 +609,7 @@ export function useProfile() {
   return {
     profile,
     roster,
+    isLoaded,
     isCloudSyncing,
     isDeleting,
     updateCallsign,

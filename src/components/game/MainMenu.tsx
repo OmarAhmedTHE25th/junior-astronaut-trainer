@@ -6,19 +6,27 @@ import RoverGalleryModal from './RoverGalleryModal';
 import FieldManualModal from './FieldManualModal';
 import ProfileModal from './ProfileModal';
 import LeaderboardModal from './LeaderboardModal';
+import LiveTelemetryTicker from './LiveTelemetryTicker';
 import { useSound } from '@/lib/sound';
-import { useProfile } from '@/lib/profile';
+import { useProfile, getOrCreateCadetProfile } from '@/lib/profile';
 import { SPECIALTY_METAS } from '@/lib/types';
 import type { GameState } from '@/lib/types';
 
 export default function MainMenu() {
   const { isMuted, toggleSound, playClick } = useSound();
-  const { profile } = useProfile();
+  const { profile, isLoaded } = useProfile();
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isManualOpen, setIsManualOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [activeSave, setActiveSave] = useState<GameState | null>(null);
+
+  const activeCadet =
+    isLoaded && profile.cadetId !== 'cadet-nova-01'
+      ? profile
+      : typeof window !== 'undefined'
+      ? getOrCreateCadetProfile()
+      : profile;
 
   // Check for active mission save in localStorage
   useEffect(() => {
@@ -35,8 +43,11 @@ export default function MainMenu() {
 
   return (
     <>
+      {/* Live NASA Space Weather Telemetry Ticker */}
+      <LiveTelemetryTicker />
+
       {/* Top Command Bar with Cadet Profile and Sound Controls */}
-      <div className="w-full max-w-6xl mx-auto px-4 pt-6 pb-2 flex flex-wrap items-center justify-between gap-3">
+      <div className="w-full max-w-6xl mx-auto px-4 pt-4 pb-2 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <span className="text-2xl" aria-hidden="true">🪐</span>
           <span className="font-heading font-extrabold text-sm sm:text-base tracking-wider text-starlight uppercase">
@@ -61,19 +72,19 @@ export default function MainMenu() {
             aria-label="Open Cadet Dossier"
           >
             <div className="w-8 h-8 rounded-lg bg-[#0B1026] flex items-center justify-center text-lg">
-              {profile.avatar}
+              {activeCadet.avatar}
             </div>
             <div className="text-left">
               <div className="flex items-center gap-1.5">
                 <span className="font-mono font-bold text-xs text-white block leading-tight">
-                  {profile.callsign}
+                  {activeCadet.callsign}
                 </span>
                 <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                  {SPECIALTY_METAS.find((s) => s.id === (profile.specialty || 'commander'))?.icon || '🎖️'} {SPECIALTY_METAS.find((s) => s.id === (profile.specialty || 'commander'))?.badge || 'Commander'}
+                  {SPECIALTY_METAS.find((s) => s.id === (activeCadet.specialty || 'commander'))?.icon || '🎖️'} {SPECIALTY_METAS.find((s) => s.id === (activeCadet.specialty || 'commander'))?.badge || 'Commander'}
                 </span>
               </div>
               <span className="text-[10px] text-[#E87040] font-semibold block leading-tight mt-0.5">
-                ⭐ {profile.highestScore} pts • 🎖️ {profile.badges.length} badges
+                ⭐ {activeCadet.highestScore} pts • 🎖️ {activeCadet.badges.length} badges
               </span>
             </div>
           </button>

@@ -1,7 +1,11 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import ProgressBar from '@/components/ui/ProgressBar';
+import Modal from '@/components/ui/Modal';
+import Button from '@/components/ui/Button';
+import LiveTelemetryTicker from './LiveTelemetryTicker';
+import TelemetryChart from './TelemetryChart';
 import { useGame } from './GameProvider';
 import { useSound } from '@/lib/sound';
 import { useProfile } from '@/lib/profile';
@@ -15,9 +19,12 @@ export default function HUD({ onOpenMenu }: HUDProps) {
   const { state } = useGame();
   const { profile } = useProfile();
   const { isMuted, toggleSound, playClick, playWarning } = useSound();
+  const [isTelemetryOpen, setIsTelemetryOpen] = useState(false);
   const prevLowRef = useRef<boolean>(false);
 
   const activeSpecialty = SPECIALTY_METAS.find((s) => s.id === (state.specialty || profile.specialty || 'commander'));
+  const currentAvatar = state.avatar || (profile.cadetId !== 'cadet-nova-01' ? profile.avatar : '🚀');
+  const currentCallsign = state.callsign || (profile.cadetId !== 'cadet-nova-01' ? profile.callsign : 'ASTRONAUT');
 
   // Monitor for vital resources dropping <= 20%
   const isAnyLow = state.power <= 20 || state.oxygen <= 20 || state.shielding <= 20;
@@ -30,12 +37,16 @@ export default function HUD({ onOpenMenu }: HUDProps) {
   }, [isAnyLow, state.phase, playWarning]);
 
   return (
-    <header
-      className="w-full bg-[#0B1026]/90 backdrop-blur-md border-b border-white/10
-                 px-4 py-3 flex flex-wrap items-center justify-between gap-3 z-30"
-      role="banner"
-      aria-label="Mission status"
-    >
+    <>
+      {/* Live NASA Space Weather Telemetry Ticker */}
+      <LiveTelemetryTicker />
+
+      <header
+        className="w-full bg-[#0B1026]/90 backdrop-blur-md border-b border-white/10
+                   px-4 py-3 flex flex-wrap items-center justify-between gap-3 z-30"
+        role="banner"
+        aria-label="Mission status"
+      >
       {/* Left: Sol counter & Cadet Profile Quick View */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
@@ -55,10 +66,10 @@ export default function HUD({ onOpenMenu }: HUDProps) {
 
         {/* Cadet Profile & Specialty Pill */}
         <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-xl bg-[#1a1f3d]/80 border border-white/10">
-          <span className="text-lg">{profile.avatar}</span>
+          <span className="text-lg">{currentAvatar}</span>
           <div className="flex flex-col">
             <span className="font-mono font-bold text-white text-xs leading-none">
-              {profile.callsign}
+              {currentCallsign}
             </span>
             <span className="text-[10px] text-[#E87040] font-medium flex items-center gap-0.5 mt-0.5">
               <span>{activeSpecialty?.icon || '🎖️'}</span> {activeSpecialty?.name || 'Mission Commander'}
@@ -115,6 +126,24 @@ export default function HUD({ onOpenMenu }: HUDProps) {
           </span>
         </div>
 
+        {/* Telemetry Curves Modal Button */}
+        <button
+          onClick={() => {
+            playClick();
+            setIsTelemetryOpen(true);
+          }}
+          title="View Real-Time Telemetry & Survival Curves"
+          aria-label="View Telemetry Curves"
+          className="
+            px-3 py-2 rounded-xl bg-[#1a1f3d] border border-white/10 hover:border-cyan-400
+            text-cyan-300 font-mono font-bold text-xs shadow-md transition-all
+            hover:scale-105 active:scale-95 cursor-pointer min-h-[44px] flex items-center gap-1.5
+          "
+        >
+          <span>📊</span>
+          <span className="hidden lg:inline">Telemetry</span>
+        </button>
+
         {/* Audio Mute/Unmute Button */}
         <button
           onClick={toggleSound}
@@ -151,5 +180,22 @@ export default function HUD({ onOpenMenu }: HUDProps) {
         )}
       </div>
     </header>
-  );
+
+    {/* Mid-Mission Telemetry Analytics Modal */}
+    <Modal
+      isOpen={isTelemetryOpen}
+      onClose={() => setIsTelemetryOpen(false)}
+      title="📊 Mission Telemetry Console & Diagnostics"
+    >
+      <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-1">
+        <TelemetryChart history={state.telemetryHistory ?? []} maxSol={state.maxSol} />
+        <div className="flex justify-end pt-2 border-t border-white/10">
+          <Button variant="secondary" onClick={() => setIsTelemetryOpen(false)}>
+            Close Telemetry
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  </>
+);
 }

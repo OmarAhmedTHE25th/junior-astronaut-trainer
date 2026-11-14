@@ -10,7 +10,7 @@ import React, {
   useRef,
   type ReactNode,
 } from 'react';
-import type { GameState, GameAction, Difficulty, CadetSpecialty } from '@/lib/types';
+import type { GameState, GameAction, Difficulty, CadetSpecialty, LandingSiteId } from '@/lib/types';
 import { gameReducer, createInitialState } from '@/lib/gameEngine';
 import { getOrCreateCadetProfile } from '@/lib/profile';
 import nasaFacts from '@/data/nasa-facts.json';
@@ -45,6 +45,8 @@ interface GameProviderProps {
   children: ReactNode;
   difficulty?: Difficulty;
   specialty?: CadetSpecialty;
+  landingSite?: LandingSiteId;
+  cadet?: { cadetId?: string; callsign?: string; avatar?: string };
   initialState?: GameState;
 }
 
@@ -52,11 +54,13 @@ export function GameProvider({
   children,
   difficulty = 'commander',
   specialty = 'commander',
+  landingSite = 'jezero',
+  cadet,
   initialState,
 }: GameProviderProps) {
   const [state, dispatch] = useReducer(
     gameReducer,
-    initialState || createInitialState(difficulty, specialty)
+    initialState || createInitialState(difficulty, specialty, landingSite, cadet)
   );
   const [factIndex, setFactIndex] = useState(0);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -74,7 +78,12 @@ export function GameProvider({
 
   // ── Debounced Auto-Save & Cleanup ─────────────────────────
   useEffect(() => {
-    const profile = getOrCreateCadetProfile();
+    const activeCadetId =
+      state.cadetId ||
+      cadet?.cadetId ||
+      (typeof window !== 'undefined' ? getOrCreateCadetProfile().cadetId : undefined);
+
+    if (!activeCadetId || activeCadetId === 'cadet-nova-01') return;
 
     if (state.phase === 'victory' || state.phase === 'gameover') {
       // Clear active save slot when mission concludes
@@ -82,11 +91,9 @@ export function GameProvider({
         localStorage.removeItem('jat_active_save_v1');
       } catch {}
 
-      if (profile.cadetId) {
-        fetch(`/api/save?cadetId=${encodeURIComponent(profile.cadetId)}`, {
-          method: 'DELETE',
-        }).catch(() => {});
-      }
+      fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
+        method: 'DELETE',
+      }).catch(() => {});
       return;
     }
 
@@ -102,13 +109,11 @@ export function GameProvider({
       }
 
       saveTimeoutRef.current = setTimeout(() => {
-        if (profile.cadetId) {
-          fetch('/api/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cadetId: profile.cadetId, state }),
-          }).catch(() => {});
-        }
+        fetch('/api/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cadetId: activeCadetId, state }),
+        }).catch(() => {});
       }, 500);
     }
 
@@ -117,7 +122,7 @@ export function GameProvider({
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [state]);
+  }, [state, cadet]);
 
   const currentFact = facts.length > 0 ? facts[factIndex] : null;
 

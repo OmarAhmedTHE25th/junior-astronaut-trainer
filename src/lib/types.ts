@@ -98,12 +98,26 @@ export interface GameState {
   difficulty: Difficulty;
   /** Chosen astronaut specialty */
   specialty?: CadetSpecialty;
+  /** Chosen landing site on Mars */
+  landingSite?: LandingSiteId;
+  /** Sol-by-sol telemetry history for analytics curves */
+  telemetryHistory?: TelemetryPoint[];
+  /** Cadet who owns this mission run */
+  cadetId?: string;
+  callsign?: string;
+  avatar?: string;
 }
 
 // ── Reducer Actions ─────────────────────────────────────────
 
 export type GameAction =
-  | { type: 'START_MISSION'; difficulty: Difficulty; specialty?: CadetSpecialty }
+  | {
+      type: 'START_MISSION';
+      difficulty: Difficulty;
+      specialty?: CadetSpecialty;
+      landingSite?: LandingSiteId;
+      cadet?: { cadetId?: string; callsign?: string; avatar?: string };
+    }
   | { type: 'LOAD_STATE'; state: GameState }
   | { type: 'PERFORM_ACTION'; action?: PlayerAction; payload?: PlayerAction }
   | { type: 'TRIGGER_EVENT'; event: GameEvent }
@@ -113,6 +127,54 @@ export type GameAction =
   | { type: 'NEXT_SOL' }
   | { type: 'RESET' }
   | { type: 'RESTART' };
+
+// ── Martian Landing Sites ───────────────────────────────────
+
+export type LandingSiteId = 'jezero' | 'gale' | 'olympus';
+
+export interface LandingSite {
+  id: LandingSiteId;
+  name: string;
+  roverMission: string;
+  lat: number;
+  lon: number;
+  elevation: string;
+  description: string;
+  perksSummary: string;
+  powerGainMod: number;
+  powerDepletionMod: number;
+  oxygenDepletionMod: number;
+  shieldDepletionMod: number;
+  researchScoreBonus: number;
+  pinColor: string;
+}
+
+// ── Sol Telemetry History ───────────────────────────────────
+
+export interface TelemetryPoint {
+  sol: number;
+  power: number;
+  oxygen: number;
+  shielding: number;
+  morale: number;
+  eventTitle?: string;
+  eventSeverity?: number;
+}
+
+// ── Live NASA Space Weather ─────────────────────────────────
+
+export interface LiveSpaceWeatherEvent {
+  id: string;
+  type: 'FLARE' | 'CME';
+  classType: string;
+  peakTime: string;
+  sourceLocation: string;
+  intensity: number;
+  summary: string;
+  link: string;
+  isLive: boolean;
+  radiationImpact?: string;
+}
 
 // ── Cadet Profiles, Specialties & Badges ────────────────────
 

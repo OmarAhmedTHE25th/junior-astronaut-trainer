@@ -1,12 +1,20 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import LeaderboardModal from './LeaderboardModal';
+import TelemetryChart from './TelemetryChart';
 import { useGame } from './GameProvider';
 import { calculateScore } from '@/lib/gameEngine';
 import { playVictory, playGameOver, playClick, playSuccess } from '@/lib/sound';
-import { useProfile, evaluateBadges, CADET_BADGES } from '@/lib/profile';
+import {
+  useProfile,
+  evaluateBadges,
+  CADET_BADGES,
+  getCadetProfileById,
+  getOrCreateCadetProfile,
+} from '@/lib/profile';
 import { SPECIALTY_METAS } from '@/lib/types';
 import type { BadgeId } from '@/lib/types';
 
@@ -37,8 +45,9 @@ function ConfettiPiece({ index }: { index: number }) {
 }
 
 export default function EndScreen() {
+  const router = useRouter();
   const { state, dispatch } = useGame();
-  const { profile } = useProfile();
+  const { profile, isLoaded } = useProfile();
   const [showConfetti, setShowConfetti] = useState(false);
   const [newlyUnlockedBadges, setNewlyUnlockedBadges] = useState<BadgeId[]>([]);
   const [leaderboardRank, setLeaderboardRank] = useState<number | null>(null);
@@ -46,11 +55,17 @@ export default function EndScreen() {
   const [showCertificateView, setShowCertificateView] = useState(false);
   const submittedRef = useRef(false);
 
+  // Identify the exact cadet who played this mission (not the static SSR placeholder)
+  const activeCadet =
+    (state.cadetId ? getCadetProfileById(state.cadetId) : null) ||
+    (isLoaded && profile.cadetId !== 'cadet-nova-01' ? profile : null) ||
+    (typeof window !== 'undefined' ? getOrCreateCadetProfile() : profile);
+
   const isVictory = state.phase === 'victory';
   const finalScore = calculateScore(state);
 
   const activeSpecialty = SPECIALTY_METAS.find(
-    (s) => s.id === (state.specialty || profile.specialty || 'commander')
+    (s) => s.id === (state.specialty || activeCadet.specialty || 'commander')
   );
 
   // Star rating: 1-5 based on score
@@ -71,23 +86,25 @@ export default function EndScreen() {
   // Evaluate badges & auto-submit to anti-cheat server leaderboard
   useEffect(() => {
     if (submittedRef.current) return;
+    // Safety: do not evaluate until loaded or until state.cadetId is available
+    if (!isLoaded && !state.cadetId && typeof window === 'undefined') return;
     submittedRef.current = true;
 
-    // 1. Evaluate achievement badges
-    const { updatedProfile, newBadges } = evaluateBadges(state, profile);
+    // 1. Evaluate achievement badges for the cadet who played this mission
+    const { updatedProfile, newBadges } = evaluateBadges(state, activeCadet);
     if (newBadges.length > 0) {
       setNewlyUnlockedBadges(newBadges);
       setTimeout(() => playSuccess(), 800);
     }
 
-    // 2. Submit to server-verified leaderboard API
+    // 2. Submit to server-verified leaderboard API with the real cadet's credentials
     fetch('/api/leaderboard', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        cadetId: profile.cadetId,
-        callsign: profile.callsign,
-        avatar: profile.avatar,
+        cadetId: updatedProfile.cadetId,
+        callsign: updatedProfile.callsign,
+        avatar: updatedProfile.avatar,
         finalState: state,
         badgesCount: updatedProfile.badges.length,
       }),
@@ -99,7 +116,7 @@ export default function EndScreen() {
         }
       })
       .catch(() => {});
-  }, [state, profile]);
+  }, [isLoaded, state, activeCadet]);
 
   const handlePlayAgain = () => {
     playClick();
@@ -192,7 +209,7 @@ export default function EndScreen() {
 
           <p className="text-sm text-[#F8FAFC]/70 mb-4">
             {isVictory
-              ? `Commander ${profile.callsign}, you successfully survived all ${state.maxSol} sols on Mars!`
+              ? `Commander ${activeCadet.callsign}, you successfully survived all ${state.maxSol} sols on Mars!`
               : `Your outpost sustained operations for ${state.sol} sols before mission abort.`}
           </p>
 
@@ -212,6 +229,19 @@ export default function EndScreen() {
                 <span>🏆 Verified Global Rank: #{leaderboardRank}</span>
               </div>
             )}
+          </div>
+
+          {/* Telemetry Sparkline & Analytics Debrief */}
+          <div className="mb-6 text-left">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-mono font-extrabold text-[#38BDF8] uppercase tracking-wider flex items-center gap-1.5">
+                <span>📊</span> Outpost Sol Telemetry Analysis
+              </span>
+              <span className="text-[10px] font-mono text-white/50">
+                {state.telemetryHistory?.length || 0} Sols Logged
+              </span>
+            </div>
+            <TelemetryChart history={state.telemetryHistory ?? []} maxSol={state.maxSol} />
           </div>
 
           {/* Official Mars Outpost Completion Certificate Preview on Victory */}
@@ -266,8 +296,8 @@ export default function EndScreen() {
                     This official certificate is proudly awarded to
                   </span>
                   <div className="text-2xl sm:text-3xl font-extrabold font-mono text-white flex items-center justify-center gap-2">
-                    <span>{profile.avatar}</span>
-                    <span className="tracking-wide">{profile.callsign}</span>
+                    <span>{activeCadet.avatar}</span>
+                    <span className="tracking-wide">{activeCadet.callsign}</span>
                   </div>
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 text-xs font-medium mt-1">
                     <span>{activeSpecialty?.icon}</span>
@@ -293,14 +323,14 @@ export default function EndScreen() {
                   <div className="text-right">
                     <span className="text-white/50 block text-[10px]">HONORS ATTAINED:</span>
                     <span className="text-[#22C55E] font-bold">
-                      {profile.badges.length} CAREER BADGES
+                      {activeCadet.badges.length} CAREER BADGES
                     </span>
                   </div>
                 </div>
 
                 {/* Seal & Verification */}
                 <div className="mt-4 pt-3 border-t border-amber-400/20 flex items-center justify-between text-[10px] text-white/40 font-mono">
-                  <span>EXPEDITION ID: {profile.cadetId.substring(0, 14)}</span>
+                  <span>EXPEDITION ID: {activeCadet.cadetId.substring(0, 14)}</span>
                   <span className="text-amber-300/80 font-bold">★ SEAL OF MARS BASE ALPHA ★</span>
                 </div>
               </div>
@@ -385,6 +415,17 @@ export default function EndScreen() {
               className="w-full justify-center text-xs"
             >
               🏆 View Global Leaderboard
+            </Button>
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={() => {
+                playClick();
+                router.push('/');
+              }}
+              className="w-full justify-center text-xs flex items-center gap-1.5"
+            >
+              <span>🏠</span> Return to Command Center
             </Button>
           </div>
         </div>

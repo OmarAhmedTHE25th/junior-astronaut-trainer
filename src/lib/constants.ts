@@ -1,7 +1,7 @@
 // ─── Junior Astronaut Mission Trainer – Game Balance Constants ───
 // Pure values. No React, no DOM.
 
-import type { PlayerAction, Difficulty } from './types';
+import type { PlayerAction, Difficulty, LandingSiteId, LandingSite } from './types';
 
 // ── Mission Parameters ──────────────────────────────────────
 
@@ -157,3 +157,56 @@ export const HEALTHY_RESOURCE_BONUS = 25;
 
 /** Morale bonus per point above 50 at mission end */
 export const MORALE_SCORE_FACTOR = 2;
+
+// ── Martian Landing Sites Configuration ─────────────────────
+
+export const LANDING_SITES: Record<LandingSiteId, LandingSite> = {
+  jezero: {
+    id: 'jezero',
+    name: 'Jezero Crater',
+    roverMission: 'Perseverance Rover Site (Mars 2020)',
+    lat: 18.38,
+    lon: 77.58,
+    elevation: '-2.5 km (Ancient Lake Basin)',
+    description: 'An ancient delta-lake system rich in phyllosilicates (clays) and microbial biosignature targets.',
+    perksSummary: 'Balanced conditions • +10% Science & Research Mission Points',
+    powerGainMod: 1.0,
+    powerDepletionMod: 1.0,
+    oxygenDepletionMod: 1.0,
+    shieldDepletionMod: 1.0,
+    researchScoreBonus: 0.10,
+    pinColor: '#3B82F6',
+  },
+  gale: {
+    id: 'gale',
+    name: 'Gale Crater (Aeolis Palus)',
+    roverMission: 'Curiosity MSL Site (Mars Science Laboratory)',
+    lat: -5.4,
+    lon: 137.8,
+    elevation: '-4.5 km (Deep Lowland)',
+    description: 'A deep impact crater with a thicker atmospheric column that mitigates solar radiation but traps atmospheric dust.',
+    perksSummary: '-15% O₂ Drain • -10% Shield Drain • -10% Solar Power (Dust Attenuation)',
+    powerGainMod: 0.90,
+    powerDepletionMod: 1.0,
+    oxygenDepletionMod: 0.85,
+    shieldDepletionMod: 0.90,
+    researchScoreBonus: 0.0,
+    pinColor: '#22C55E',
+  },
+  olympus: {
+    id: 'olympus',
+    name: 'Olympus Mons Caldera',
+    roverMission: 'High-Altitude Solar Observatory',
+    lat: 18.65,
+    lon: 226.2,
+    elevation: '+21.3 km (Volcanic Summit)',
+    description: 'The solar system’s tallest volcano. Soaring above 80% of Mars atmosphere, it captures intense, unfiltered sunlight but provides minimal atmospheric shielding.',
+    perksSummary: '+25% Solar Power Gain • +20% O₂ Drain • +15% Shield Drain',
+    powerGainMod: 1.25,
+    powerDepletionMod: 1.0,
+    oxygenDepletionMod: 1.20,
+    shieldDepletionMod: 1.15,
+    researchScoreBonus: 0.0,
+    pinColor: '#E87040',
+  },
+};

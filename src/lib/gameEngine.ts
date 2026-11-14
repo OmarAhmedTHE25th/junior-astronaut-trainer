@@ -7,6 +7,8 @@ import type {
   GameEvent,
   Difficulty,
   CadetSpecialty,
+  LandingSiteId,
+  TelemetryPoint,
   LogEntry,
   ResourceType,
 } from './types';
@@ -21,6 +23,7 @@ import {
   HEALTHY_RESOURCE_BONUS,
   MORALE_SCORE_FACTOR,
   STAR_THRESHOLDS,
+  LANDING_SITES,
 } from './constants';
 import { generateEvent } from './events';
 
@@ -51,12 +54,22 @@ function applyEffects(
 // ── Public Pure Functions ───────────────────────────────────
 
 /**
- * Create the initial game state for a given difficulty and specialty.
+ * Create the initial game state for a given difficulty, specialty, and landing site.
  */
 export function createInitialState(
   difficulty: Difficulty = 'commander',
-  specialty: CadetSpecialty = 'commander'
+  specialty: CadetSpecialty = 'commander',
+  landingSite: LandingSiteId = 'jezero',
+  cadet?: { cadetId?: string; callsign?: string; avatar?: string }
 ): GameState {
+  const initialPoint: TelemetryPoint = {
+    sol: 1,
+    power: INITIAL_RESOURCES.power,
+    oxygen: INITIAL_RESOURCES.oxygen,
+    shielding: INITIAL_RESOURCES.shielding,
+    morale: INITIAL_RESOURCES.morale,
+  };
+
   return {
     sol: 1,
     maxSol: MISSION_LENGTH,
@@ -71,6 +84,11 @@ export function createInitialState(
     usedEventIds: [],
     difficulty,
     specialty,
+    landingSite,
+    telemetryHistory: [initialPoint],
+    cadetId: cadet?.cadetId,
+    callsign: cadet?.callsign,
+    avatar: cadet?.avatar,
   };
 }
 
@@ -140,13 +158,16 @@ function applySolDepletion(state: GameState): GameState {
   const mult = diff.depletionMultiplier;
   const moraleModifier = getMoraleModifier(state.morale);
 
+  const siteId = state.landingSite || 'jezero';
+  const site = LANDING_SITES[siteId] || LANDING_SITES.jezero;
+
   // Higher morale slightly reduces depletion; lower morale worsens it
   const effectiveMult = mult / moraleModifier;
 
   const depletionEffects: Record<ResourceType, number> = {
-    power: Math.round(SOL_DEPLETION.power * effectiveMult),
-    oxygen: Math.round(SOL_DEPLETION.oxygen * effectiveMult),
-    shielding: Math.round(SOL_DEPLETION.shielding * effectiveMult),
+    power: Math.round(SOL_DEPLETION.power * effectiveMult * site.powerDepletionMod),
+    oxygen: Math.round(SOL_DEPLETION.oxygen * effectiveMult * site.oxygenDepletionMod),
+    shielding: Math.round(SOL_DEPLETION.shielding * effectiveMult * site.shieldDepletionMod),
   };
 
   const newState = applyEffects(state, depletionEffects, -1); // morale ticks down slightly
@@ -155,7 +176,7 @@ function applySolDepletion(state: GameState): GameState {
     sol: state.sol,
     type: 'depletion',
     title: 'Sol Depletion',
-    description: 'Mars takes its toll — resources naturally deplete each sol.',
+    description: `Mars atmospheric conditions at ${site.name} take their toll.`,
     resourceChanges: depletionEffects,
     moraleChange: -1,
   };
@@ -173,13 +194,34 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     // ── Start a new mission ───────────────────────────────
     case 'START_MISSION': {
-      const initial = createInitialState(action.difficulty, action.specialty || 'commander');
+      const initial = createInitialState(
+        action.difficulty,
+        action.specialty || 'commander',
+        action.landingSite || 'jezero',
+        action.cadet
+      );
       return { ...initial, phase: 'action' };
     }
 
     // ── Load a saved mission ──────────────────────────────
     case 'LOAD_STATE': {
-      return action.state;
+      const gs = action.state;
+      return {
+        ...gs,
+        landingSite: gs.landingSite || 'jezero',
+        telemetryHistory:
+          gs.telemetryHistory && gs.telemetryHistory.length > 0
+            ? gs.telemetryHistory
+            : [
+                {
+                  sol: gs.sol,
+                  power: gs.power,
+                  oxygen: gs.oxygen,
+                  shielding: gs.shielding,
+                  morale: gs.morale,
+                },
+              ],
+      };
     }
 
     // ── Player performs an action ─────────────────────────
@@ -191,6 +233,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       const moraleModifier = getMoraleModifier(state.morale);
       const specialty = state.specialty || 'commander';
+      const siteId = state.landingSite || 'jezero';
+      const site = LANDING_SITES[siteId] || LANDING_SITES.jezero;
 
       let basePower = playerAction.effects.power;
       let baseOxygen = playerAction.effects.oxygen;
@@ -208,6 +252,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         if (baseShielding > 0) baseShielding = Math.round(baseShielding * 1.20);
       } else if (specialty === 'commander' && playerAction.id === 'research-mission') {
         if (baseScore > 0) baseScore = Math.round(baseScore * 1.15);
+      }
+
+      // Landing Site Perks
+      if (basePower > 0 && site.powerGainMod !== 1.0) {
+        basePower = Math.round(basePower * site.powerGainMod);
+      }
+      if (playerAction.id === 'research-mission' && site.researchScoreBonus > 0) {
+        baseScore = Math.round(baseScore * (1 + site.researchScoreBonus));
       }
 
       // Scale positive effects by morale modifier
@@ -302,9 +354,23 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         icon: state.activeEvent.icon,
       };
 
+      const history = [...(state.telemetryHistory || [])];
+      if (history.length > 0) {
+        history[history.length - 1] = {
+          ...history[history.length - 1],
+          eventTitle: state.activeEvent.title,
+          eventSeverity: state.activeEvent.severity,
+          power: newState.power,
+          oxygen: newState.oxygen,
+          shielding: newState.shielding,
+          morale: newState.morale,
+        };
+      }
+
       newState = {
         ...newState,
         log: [...newState.log, logEntry],
+        telemetryHistory: history,
         activeEvent: null,
         phase: 'result',
       };
@@ -378,11 +444,21 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         });
       }
 
+      const updatedMorale = clamp(state.morale + moraleBonus);
+      const newPoint: TelemetryPoint = {
+        sol: nextSol,
+        power: state.power,
+        oxygen: state.oxygen,
+        shielding: state.shielding,
+        morale: updatedMorale,
+      };
+
       return {
         ...state,
         sol: nextSol,
-        morale: clamp(state.morale + moraleBonus),
+        morale: updatedMorale,
         log: logs,
+        telemetryHistory: [...(state.telemetryHistory || []), newPoint],
         phase: 'action',
       };
     }
@@ -390,7 +466,16 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     // ── Full reset ────────────────────────────────────────
     case 'RESTART':
     case 'RESET': {
-      return createInitialState(state.difficulty, state.specialty || 'commander');
+      return createInitialState(
+        state.difficulty,
+        state.specialty || 'commander',
+        state.landingSite || 'jezero',
+        {
+          cadetId: state.cadetId,
+          callsign: state.callsign,
+          avatar: state.avatar,
+        }
+      );
     }
 
     default:
