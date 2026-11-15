@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import RoverGalleryModal from './RoverGalleryModal';
 import FieldManualModal from './FieldManualModal';
@@ -108,57 +108,71 @@ export default function MainMenu() {
   }, []);
 
   // Fetch Commander Profile (Rank & Pet) & Wallet Credits
-  useEffect(() => {
-    let isMounted = true;
-    async function fetchCommanderData() {
-      if (!activeCadet?.cadetId) return;
+  const fetchCommanderData = useCallback(async () => {
+    if (!isLoaded || !profile?.cadetId) return;
 
-      try {
-        // 1. Fetch wallet
-        const wRes = await fetch(`/api/market/wallet?playerId=${encodeURIComponent(activeCadet.cadetId)}`);
-        if (wRes.ok) {
-          const wData = await wRes.json();
-          if (wData.success && wData.wallet && isMounted) {
-            setWalletCredits(wData.wallet.creditsBalance ?? 500);
-          }
+    try {
+      // 1. Fetch wallet directly for the loaded cadet ID
+      const wRes = await fetch(`/api/market/wallet?playerId=${encodeURIComponent(profile.cadetId)}`);
+      if (wRes.ok) {
+        const wData = await wRes.json();
+        if (wData.success && wData.wallet) {
+          setWalletCredits(wData.wallet.creditsBalance ?? 500);
         }
+      }
 
-        // 2. Fetch commander profile (Rank tier & equipped pet)
-        const callsign = activeCadet.callsign || 'CDR-NOVA';
-        const pRes = await fetch(`/api/profile/${encodeURIComponent(callsign)}`);
-        if (pRes.ok) {
-          const pData = await pRes.json();
-          if (pData.success && pData.profile && isMounted) {
-            if (pData.profile.rankMeta) {
-              setRankMeta(pData.profile.rankMeta);
-            }
-            const savedPetId = typeof window !== 'undefined' ? localStorage.getItem('jat_equipped_pet_v1') : null;
-            if (savedPetId && pData.profile.pets && pData.profile.pets.length > 0) {
-              const matched = pData.profile.pets.find((p: { id: string; nickname?: string; name?: string; avatar?: string; level?: number }) => p.id === savedPetId);
-              if (matched) {
-                setEquippedPet({
-                  name: matched.nickname || matched.name || 'Companion',
-                  avatar: matched.avatar || '🐾',
-                  level: matched.level || 1,
-                });
-              } else if (pData.profile.equippedPet) {
-                setEquippedPet(pData.profile.equippedPet);
-              }
+      // 2. Fetch commander profile (Rank tier & equipped pet)
+      const callsign = profile.callsign || 'CDR-NOVA';
+      const pRes = await fetch(`/api/profile/${encodeURIComponent(callsign)}`);
+      if (pRes.ok) {
+        const pData = await pRes.json();
+        if (pData.success && pData.profile) {
+          if (pData.profile.rankMeta) {
+            setRankMeta(pData.profile.rankMeta);
+          }
+          const savedPetId = typeof window !== 'undefined' ? localStorage.getItem('jat_equipped_pet_v1') : null;
+          if (savedPetId && pData.profile.pets && pData.profile.pets.length > 0) {
+            const matched = pData.profile.pets.find((p: { id: string; nickname?: string; name?: string; avatar?: string; level?: number }) => p.id === savedPetId);
+            if (matched) {
+              setEquippedPet({
+                name: matched.nickname || matched.name || 'Companion',
+                avatar: matched.avatar || '🐾',
+                level: matched.level || 1,
+              });
             } else if (pData.profile.equippedPet) {
               setEquippedPet(pData.profile.equippedPet);
             }
+          } else if (pData.profile.equippedPet) {
+            setEquippedPet(pData.profile.equippedPet);
           }
         }
-      } catch (err) {
-        console.warn('Non-blocking Commander Status sync notice:', err);
       }
+    } catch (err) {
+      console.warn('Non-blocking Commander Status sync notice:', err);
+    }
+  }, [isLoaded, profile?.cadetId, profile?.callsign]);
+
+  useEffect(() => {
+    if (isLoaded && profile?.cadetId) {
+      fetchCommanderData();
     }
 
-    fetchCommanderData();
-    return () => {
-      isMounted = false;
+    const handleFocus = () => {
+      fetchCommanderData();
     };
-  }, [activeCadet?.cadetId, activeCadet?.callsign]);
+
+    const handleWalletUpdated = () => {
+      fetchCommanderData();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('jat-wallet-updated', handleWalletUpdated);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('jat-wallet-updated', handleWalletUpdated);
+    };
+  }, [fetchCommanderData, isLoaded, profile?.cadetId]);
 
   // Find specialty icon/title
   const specialtyMeta = SPECIALTY_METAS.find((s) => s.id === (activeCadet.specialty || 'commander'));
@@ -604,7 +618,10 @@ export default function MainMenu() {
 
       <ProfileModal
         isOpen={isProfileOpen}
-        onClose={() => setIsProfileOpen(false)}
+        onClose={() => {
+          setIsProfileOpen(false);
+          fetchCommanderData();
+        }}
       />
 
       <LeaderboardModal
@@ -643,7 +660,10 @@ export default function MainMenu() {
 
       <MarsMarketplace
         isOpen={isMarketplaceOpen}
-        onClose={() => setIsMarketplaceOpen(false)}
+        onClose={() => {
+          setIsMarketplaceOpen(false);
+          fetchCommanderData();
+        }}
       />
 
       <BattleRoyaleModal
@@ -665,7 +685,10 @@ export default function MainMenu() {
 
       <GuildModal
         isOpen={isGuildOpen}
-        onClose={() => setIsGuildOpen(false)}
+        onClose={() => {
+          setIsGuildOpen(false);
+          fetchCommanderData();
+        }}
       />
     </>
   );

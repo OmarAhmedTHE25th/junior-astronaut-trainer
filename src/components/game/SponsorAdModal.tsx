@@ -175,6 +175,10 @@ export default function SponsorAdModal({
           }),
         }).catch(() => {});
 
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('jat-wallet-updated'));
+        }
+
         if (onRewardClaimed) {
           onRewardClaimed(150);
         }

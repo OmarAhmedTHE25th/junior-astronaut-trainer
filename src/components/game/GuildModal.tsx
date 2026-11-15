@@ -72,6 +72,9 @@ export default function GuildModal({ isOpen, onClose }: GuildModalProps) {
       const credits = data.wallet?.creditsBalance ?? data.creditsBalance;
       if (data.success && typeof credits === 'number') {
         setWalletMC(credits);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('jat-wallet-updated'));
+        }
       }
     } catch {}
   };

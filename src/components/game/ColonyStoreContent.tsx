@@ -93,21 +93,37 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
 
   // Fetch player wallet and inventory
   const fetchWalletAndInventory = useCallback(async () => {
-    if (!activeCadet?.cadetId) return;
+    if (!isLoaded || !profile?.cadetId) return;
     try {
-      const res = await fetch(`/api/market/wallet?playerId=${encodeURIComponent(activeCadet.cadetId)}`);
+      const res = await fetch(`/api/market/wallet?playerId=${encodeURIComponent(profile.cadetId)}`);
       if (!res.ok) return;
       const data = await res.json();
-      if (data.success) {
+      if (data.success && data.wallet) {
         setWallet(data.wallet);
         setInventory(data.inventory || []);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('jat-wallet-updated'));
+        }
       }
     } catch {}
-  }, [activeCadet?.cadetId]);
+  }, [isLoaded, profile?.cadetId]);
 
   useEffect(() => {
-    setIsLoading(true);
-    fetchWalletAndInventory().finally(() => setIsLoading(false));
+    if (isLoaded && profile?.cadetId) {
+      setIsLoading(true);
+      fetchWalletAndInventory().finally(() => setIsLoading(false));
+    }
+  }, [fetchWalletAndInventory, isLoaded, profile?.cadetId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleFocus = () => {
+      fetchWalletAndInventory();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [fetchWalletAndInventory]);
 
   // URL Query Param Listener for Stripe Checkout Returns (?payment=success&bundleId=...&session_id=...)
@@ -1474,7 +1490,7 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
         isOpen={isSponsorAdOpen}
         onClose={() => setIsSponsorAdOpen(false)}
         rewardMode="credits"
-        cadetId={activeCadet?.cadetId}
+        cadetId={profile?.cadetId || activeCadet?.cadetId}
         onRewardClaimed={(credits) => {
           setStatusMsg({
             type: 'success',
