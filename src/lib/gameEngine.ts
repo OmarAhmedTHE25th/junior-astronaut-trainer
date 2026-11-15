@@ -83,24 +83,67 @@ export function createInitialState(
   battlePass?: {
     isFiveStarGeneral?: boolean;
     retriesRemaining?: number;
-  }
+  },
+  guild?: {
+    guildId?: string;
+    tag?: string;
+    buffLevel?: number;
+    name?: string;
+  } | null
 ): GameState {
   const isEndless = Boolean(tournament?.tournamentId);
+
+  let startPower: number = INITIAL_RESOURCES.power;
+  let startOxygen: number = INITIAL_RESOURCES.oxygen;
+  let startShielding: number = INITIAL_RESOURCES.shielding;
+  let startMorale: number = INITIAL_RESOURCES.morale;
+
+  const buffLevel = guild?.buffLevel || 0;
+  if (buffLevel === 1) {
+    startPower = Math.min(100, Math.round(startPower * 1.02));
+    startOxygen = Math.min(100, Math.round(startOxygen * 1.02));
+  } else if (buffLevel === 2) {
+    startPower = Math.min(100, Math.round(startPower * 1.05));
+    startOxygen = Math.min(100, Math.round(startOxygen * 1.05));
+    startShielding = Math.min(100, Math.round(startShielding * 1.05));
+    startMorale = Math.min(100, Math.round(startMorale * 1.05));
+  } else if (buffLevel === 3) {
+    startPower = Math.min(100, Math.round(startPower * 1.08));
+    startOxygen = Math.min(100, Math.round(startOxygen * 1.08));
+    startShielding = Math.min(100, Math.round(startShielding * 1.08));
+    startMorale = Math.min(100, Math.round(startMorale * 1.08));
+  } else if (buffLevel === 4) {
+    startPower = Math.min(100, Math.round(startPower * 1.12));
+    startOxygen = Math.min(100, Math.round(startOxygen * 1.12));
+    startShielding = Math.min(100, Math.round(startShielding * 1.12));
+    startMorale = Math.min(100, Math.round(startMorale * 1.12));
+  } else if (buffLevel >= 5) {
+    startPower = Math.min(100, Math.round(startPower * 1.15));
+    startOxygen = Math.min(100, Math.round(startOxygen * 1.15));
+    startShielding = Math.min(100, Math.round(startShielding * 1.15));
+    startMorale = Math.min(100, Math.round(startMorale * 1.15));
+  }
+
   const initialPoint: TelemetryPoint = {
     sol: 1,
-    power: INITIAL_RESOURCES.power,
-    oxygen: INITIAL_RESOURCES.oxygen,
-    shielding: INITIAL_RESOURCES.shielding,
-    morale: INITIAL_RESOURCES.morale,
+    power: startPower,
+    oxygen: startOxygen,
+    shielding: startShielding,
+    morale: startMorale,
   };
+
+  const formattedCallsign =
+    guild?.tag && cadet?.callsign && !cadet.callsign.startsWith(`[${guild.tag}]`)
+      ? `[${guild.tag}] ${cadet.callsign}`
+      : cadet?.callsign;
 
   return {
     sol: 1,
     maxSol: isEndless ? 999999 : MISSION_LENGTH,
-    power: INITIAL_RESOURCES.power,
-    oxygen: INITIAL_RESOURCES.oxygen,
-    shielding: INITIAL_RESOURCES.shielding,
-    morale: INITIAL_RESOURCES.morale,
+    power: startPower,
+    oxygen: startOxygen,
+    shielding: startShielding,
+    morale: startMorale,
     phase: 'action',
     log: [],
     activeEvent: null,
@@ -111,8 +154,14 @@ export function createInitialState(
     landingSite,
     telemetryHistory: [initialPoint],
     cadetId: cadet?.cadetId,
-    callsign: cadet?.callsign,
+    callsign: formattedCallsign,
     avatar: cadet?.avatar,
+    guild: guild?.guildId && guild?.tag ? {
+      guildId: guild.guildId,
+      tag: guild.tag,
+      buffLevel: guild.buffLevel || 1,
+      name: guild.name,
+    } : null,
     squadCode: squad?.squadCode,
     weatherSeed: squad?.weatherSeed,
     isTimedMode: Boolean(isTimedMode),
@@ -1223,7 +1272,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         {
           isFiveStarGeneral: state.isFiveStarGeneral,
           retriesRemaining: state.isFiveStarGeneral ? 3 : 0,
-        }
+        },
+        state.guild
       );
     }
 

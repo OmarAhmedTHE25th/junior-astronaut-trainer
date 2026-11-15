@@ -17,6 +17,8 @@ import {
 } from '@/lib/profile';
 import { SPECIALTY_METAS } from '@/lib/types';
 import type { BadgeId, SquadCadetState } from '@/lib/types';
+import { getStoredGuild } from '@/lib/guildClient';
+import { getGuildBuff } from '@/lib/guildTypes';
 
 function ConfettiPiece({ index }: { index: number }) {
   const colors = ['#E87040', '#3B82F6', '#22C55E', '#6B3FA0', '#EF4444', '#F8FAFC'];
@@ -66,8 +68,21 @@ export default function EndScreen() {
   const isFiveStar = Boolean(state.isFiveStarGeneral || bpState.isFiveStarGeneral);
   const isVictory = state.phase === 'victory';
   const finalScore = calculateScore(state);
+
+  const activeGuild = state.guild || (typeof window !== 'undefined' ? getStoredGuild() : null);
+  const guildTag = activeGuild?.tag;
+  const isGuildGoldTrim = activeGuild?.buffLevel === 5;
+  const guildBuff = getGuildBuff(activeGuild?.buffLevel || 0);
+  const guildCreditsMultiplier = 1 + (guildBuff.creditsBonusPercent / 100);
+
+  const rawCallsign = activeCadet.callsign || 'CADET';
+  const displayCallsign = guildTag && !rawCallsign.startsWith(`[${guildTag}]`)
+    ? `[${guildTag}] ${rawCallsign}`
+    : rawCallsign;
+
   const baseCredits = Math.max(25, Math.round(finalScore * 0.25) + (state.sol - 1) * 10);
-  const earnedCredits = isFiveStar ? Math.round(baseCredits * 1.25) : baseCredits;
+  const vipCredits = isFiveStar ? Math.round(baseCredits * 1.25) : baseCredits;
+  const earnedCredits = Math.round(vipCredits * guildCreditsMultiplier);
   const bpXpEarned = Math.max(100, Math.round(finalScore * 0.5) + state.sol * 15);
   const petXpToAward = (state.petXpEarned || 0) + (isVictory ? 100 : 0);
 
@@ -171,7 +186,7 @@ export default function EndScreen() {
       addBattlePassXP(bpXpEarned);
     } catch {}
 
-    // 4. Reward Mars Credits (with +25% VIP bonus for Five-Star Generals) and Companion Pet XP
+    // 4. Reward Mars Credits (with +25% VIP bonus for Five-Star Generals and Guild Buff) and Companion Pet XP
     fetch('/api/market/reward', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -182,7 +197,18 @@ export default function EndScreen() {
         petXp: petXpToAward,
       }),
     }).catch((err) => console.warn('Reward API notice:', err));
-  }, [isLoaded, state, activeCadet, bpXpEarned, earnedCredits, petXpToAward]);
+
+    // 5. Contribute mission completion score to active Orbital Guild
+    fetch('/api/guilds', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'contribute_score',
+        cadetId: updatedProfile.cadetId,
+        score: finalScore,
+      }),
+    }).catch(() => {});
+  }, [isLoaded, state, activeCadet, bpXpEarned, earnedCredits, petXpToAward, finalScore]);
 
   // If this mission was a Competitive Squad Race, fetch final squad standings
   useEffect(() => {
@@ -304,10 +330,10 @@ export default function EndScreen() {
 
           <p className="text-sm text-[#F8FAFC]/70 mb-4">
             {isVictory
-              ? `Commander ${activeCadet.callsign}, you successfully survived all ${state.maxSol} sols on Mars!`
+              ? `Commander ${displayCallsign}, you successfully survived all ${state.maxSol} sols on Mars!`
               : state.gameOverReason === 'timeout'
-              ? `Commander ${activeCadet.callsign}, life-support collapsed on Sol ${state.sol} after failing to commit countermeasures before the 15s timer expired.`
-              : `Your outpost sustained operations for ${state.sol} sols before mission abort.`}
+              ? `Commander ${displayCallsign}, life-support collapsed on Sol ${state.sol} after failing to commit countermeasures before the 15s timer expired.`
+              : `Commander ${displayCallsign}, your outpost sustained operations for ${state.sol} sols before mission abort.`}
           </p>
 
           {/* Stars & Score */}
@@ -354,6 +380,11 @@ export default function EndScreen() {
                     {isFiveStar && (
                       <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/50">
                         +25% VIP BONUS
+                      </span>
+                    )}
+                    {guildBuff.creditsBonusPercent > 0 && (
+                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-cyan-400/20 text-cyan-300 border border-cyan-400/50">
+                        +{guildBuff.creditsBonusPercent}% GUILD BUFF
                       </span>
                     )}
                   </div>
@@ -545,7 +576,16 @@ export default function EndScreen() {
                   )}
                   <div className="text-2xl sm:text-3xl font-extrabold font-mono text-white flex items-center justify-center gap-2">
                     <span>{activeCadet.avatar}</span>
-                    <span className="tracking-wide">{activeCadet.callsign}</span>
+                    {guildTag && (
+                      <span className={`text-base px-2 py-0.5 rounded ${
+                        isGuildGoldTrim
+                          ? 'text-amber-300 bg-amber-400/20 border border-amber-400/80 shadow-[0_0_8px_rgba(251,191,36,0.4)]'
+                          : 'text-cyan-300 bg-cyan-500/20 border border-cyan-400/50'
+                      }`}>
+                        [{guildTag}]
+                      </span>
+                    )}
+                    <span className="tracking-wide">{rawCallsign}</span>
                   </div>
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 text-xs font-medium mt-1">
                     <span>{activeSpecialty?.icon}</span>

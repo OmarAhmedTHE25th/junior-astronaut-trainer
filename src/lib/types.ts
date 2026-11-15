@@ -175,6 +175,13 @@ export interface GameState {
   isFiveStarGeneral?: boolean;
   /** Emergency Life-Support retries remaining for this mission (max 3 for Five-Star General) */
   retriesRemaining?: number;
+  /** Active Orbital Guild & Alliance information */
+  guild?: {
+    guildId: string;
+    tag: string;
+    buffLevel: number;
+    name?: string;
+  } | null;
 }
 
 export * from './tournamentTypes';

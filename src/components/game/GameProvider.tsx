@@ -16,6 +16,7 @@ import { gameReducer, createInitialState } from '@/lib/gameEngine';
 import { TIMED_CRISIS_SOL_SECONDS, TIMEOUT_FALLBACK_ACTION } from '@/lib/constants';
 import { getOrCreateCadetProfile } from '@/lib/profile';
 import { getBattlePassState } from '@/lib/battlePass';
+import { getStoredGuild } from '@/lib/guildClient';
 import nasaFacts from '@/data/nasa-facts.json';
 
 interface NASAFact {
@@ -101,7 +102,8 @@ export function GameProvider({
                 isFiveStarGeneral: getBattlePassState().isFiveStarGeneral,
                 retriesRemaining: getBattlePassState().isFiveStarGeneral ? 3 : 0,
               }
-            : undefined
+            : undefined,
+          typeof window !== 'undefined' ? getStoredGuild() : undefined
         )
   );
   const [factIndex, setFactIndex] = useState(0);

@@ -10,6 +10,7 @@ import { useGame } from './GameProvider';
 import { useSound } from '@/lib/sound';
 import { useProfile } from '@/lib/profile';
 import { useBattlePass } from '@/lib/battlePass';
+import { useGuild } from '@/lib/guildClient';
 import { SPECIALTY_METAS } from '@/lib/types';
 import type { SquadCadetState } from '@/lib/types';
 
@@ -32,6 +33,11 @@ export default function HUD({ onOpenMenu }: HUDProps) {
   const currentCallsign = state.callsign || profile.callsign || 'ASTRONAUT';
   const isFiveStarGeneral = Boolean(state.isFiveStarGeneral || bpState.isFiveStarGeneral);
   const retriesRemaining = state.retriesRemaining ?? (isFiveStarGeneral ? 3 : 0);
+
+  const { currentGuild } = useGuild(state.cadetId || profile.cadetId);
+  const activeGuild = state.guild || currentGuild;
+  const guildTag = activeGuild?.tag;
+  const isGuildGoldTrim = activeGuild?.buffLevel === 5;
 
   const isEmpJammed = Boolean(state.activeDebuffs && state.activeDebuffs.empJammedSols > 0);
   const isSolarBlinded = Boolean(state.activeDebuffs && state.activeDebuffs.solarBlindedSols > 0);
@@ -214,8 +220,17 @@ export default function HUD({ onOpenMenu }: HUDProps) {
                 <span>★★★★★</span> FIVE-STAR GENERAL
               </span>
             ) : null}
-            <span className="font-mono font-bold text-white text-xs leading-none">
-              {currentCallsign}
+            <span className="font-mono font-bold text-white text-xs leading-none flex items-center gap-1">
+              {guildTag && (
+                <span className={`text-[10px] font-extrabold px-1 py-0.2 rounded ${
+                  isGuildGoldTrim
+                    ? 'text-amber-300 bg-amber-400/20 border border-amber-400/70 shadow-[0_0_6px_rgba(251,191,36,0.4)]'
+                    : 'text-cyan-300 bg-cyan-500/20 border border-cyan-400/40'
+                }`}>
+                  [{guildTag}]
+                </span>
+              )}
+              <span>{currentCallsign.replace(/^\[[A-Z0-9]+\]\s*/, '')}</span>
             </span>
             <span className="text-[10px] text-[#E87040] font-medium flex items-center gap-0.5 mt-0.5">
               <span>{activeSpecialty?.icon || '🎖️'}</span> {activeSpecialty?.name || 'Mission Commander'}

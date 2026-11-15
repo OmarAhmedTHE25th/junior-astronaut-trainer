@@ -4,10 +4,10 @@ import { getPlayerWallet, getPlayerInventory } from '@/lib/marketplace';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const playerId = searchParams.get('playerId');
+    const playerId = searchParams.get('playerId') || searchParams.get('cadetId');
 
     if (!playerId) {
-      return NextResponse.json({ success: false, error: 'playerId is required' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'playerId or cadetId is required' }, { status: 400 });
     }
 
     const wallet = await getPlayerWallet(playerId);
@@ -16,6 +16,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       wallet,
+      creditsBalance: wallet.creditsBalance,
       inventory,
     });
   } catch (err) {

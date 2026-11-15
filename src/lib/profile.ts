@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { CadetProfile, CadetBadge, BadgeId, GameState, CadetSpecialty } from './types';
 import { SPECIALTY_METAS } from './types';
 import { resetBattlePassState } from './battlePass';
+import { clearStoredGuild } from './guildClient';
 
 export const CADET_BADGES: CadetBadge[] = [
   {
@@ -205,8 +206,9 @@ export async function purgeCadetCompletely(cadetId: string): Promise<{ success: 
   // 1. Purge from cloud storage
   await purgeCadetFromCloud(cadetId);
 
-  // 2. Reset Battle Pass state & pity counter
+  // 2. Reset Battle Pass state & pity counter, and clear stored guild
   resetBattlePassState();
+  clearStoredGuild();
 
   // 3. Clear active save, equipped pet, slotted boosts, local leaderboard, and crates
   if (typeof window !== 'undefined') {
@@ -218,6 +220,7 @@ export async function purgeCadetCompletely(cadetId: string): Promise<{ success: 
       localStorage.removeItem('jat_local_leaderboard_v1');
       localStorage.removeItem('jat_battlepass_v1');
       localStorage.removeItem('jat_crate_pity_v1');
+      localStorage.removeItem('jat_guild_v1');
     } catch {}
   }
 

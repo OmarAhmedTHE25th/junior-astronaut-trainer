@@ -14,9 +14,11 @@ import MarsMarketplace from './MarsMarketplace';
 import BattleRoyaleModal from './BattleRoyaleModal';
 import GameModesModal from './GameModesModal';
 import PetHangarModal from './PetHangarModal';
+import GuildModal from './GuildModal';
 import { useSound } from '@/lib/sound';
 import { useProfile, getOrCreateCadetProfile, DEFAULT_PROFILE } from '@/lib/profile';
 import { useBattlePass } from '@/lib/battlePass';
+import { useGuild } from '@/lib/guildClient';
 import { SPECIALTY_METAS } from '@/lib/types';
 import type { GameState } from '@/lib/types';
 
@@ -50,6 +52,7 @@ export default function MainMenu() {
   const [isBROpen, setIsBROpen] = useState(false);
   const [isGameModesOpen, setIsGameModesOpen] = useState(false);
   const [isHangarOpen, setIsHangarOpen] = useState(false);
+  const [isGuildOpen, setIsGuildOpen] = useState(false);
 
   // Private squad code passed from GameModesModal
   const [privateRoomCode, setPrivateRoomCode] = useState<string>('');
@@ -69,6 +72,10 @@ export default function MainMenu() {
   const [mounted, setMounted] = useState(false);
 
   const activeCadet = mounted && isLoaded ? profile : DEFAULT_PROFILE;
+
+  const { currentGuild } = useGuild(activeCadet?.cadetId);
+  const guildTag = currentGuild?.tag;
+  const isGuildGoldTrim = currentGuild?.buffLevel === 5;
 
   // Check for active mission save in localStorage
   useEffect(() => {
@@ -204,8 +211,17 @@ export default function MainMenu() {
                 </div>
               )}
               <div className="flex items-center gap-1.5 leading-none">
+                {guildTag && (
+                  <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded ${
+                    isGuildGoldTrim
+                      ? 'text-amber-300 bg-amber-400/20 border border-amber-400/70 shadow-[0_0_6px_rgba(251,191,36,0.4)]'
+                      : 'text-cyan-300 bg-cyan-500/20 border border-cyan-400/40'
+                  }`}>
+                    [{guildTag}]
+                  </span>
+                )}
                 <span className="font-mono font-bold text-xs text-white">
-                  {activeCadet.callsign || 'CADET'}
+                  {activeCadet.callsign?.replace(/^\[[A-Z0-9]+\]\s*/, '') || 'CADET'}
                 </span>
                 <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded ${
                   isFiveStar
@@ -263,6 +279,38 @@ export default function MainMenu() {
               Store &amp; Gear →
             </span>
           </Link>
+
+          {/* Orbital Guilds & Alliances Button */}
+          <button
+            type="button"
+            onClick={() => {
+              playClick();
+              setIsGuildOpen(true);
+            }}
+            className={`
+              flex items-center gap-1.5 px-3 py-1.5 rounded-xl
+              ${
+                currentGuild
+                  ? isGuildGoldTrim
+                    ? 'bg-amber-950/40 border border-amber-400/70 hover:border-amber-300 text-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.3)]'
+                    : 'bg-slate-900 border border-cyan-500/40 hover:border-cyan-300 text-cyan-300'
+                  : 'bg-slate-900 border border-slate-700 hover:border-cyan-400 text-white/80'
+              }
+              transition-all hover:scale-105 active:scale-95 cursor-pointer
+              shadow-sm min-h-[40px] text-xs font-mono
+            `}
+            title="Orbital Guilds & Outpost Alliances"
+          >
+            <span className="text-base select-none">{currentGuild?.emblem || '🛡️'}</span>
+            <div className="text-left leading-none">
+              <span className="font-bold block truncate max-w-[90px]">
+                {currentGuild ? `[${currentGuild.tag}]` : '🛡️ Guilds'}
+              </span>
+              <span className="text-[9px] text-starlight/70 font-mono">
+                {currentGuild ? `Lv.${currentGuild.buffLevel} Buff` : 'Alliances →'}
+              </span>
+            </div>
+          </button>
 
           {/* Sound Toggle Button */}
           <button
@@ -613,6 +661,11 @@ export default function MainMenu() {
           setIsHangarOpen(false);
           setIsBROpen(true);
         }}
+      />
+
+      <GuildModal
+        isOpen={isGuildOpen}
+        onClose={() => setIsGuildOpen(false)}
       />
     </>
   );

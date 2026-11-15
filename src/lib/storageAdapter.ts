@@ -3,6 +3,7 @@
 // in-memory server fallback and client localStorage mirroring.
 
 import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
+import { removeCadetFromGuilds } from './guildStorage';
 import type {
   CadetProfile,
   LeaderboardEntry,
@@ -562,6 +563,13 @@ export async function deleteCadetCloudData(cadetId: string): Promise<boolean> {
         await sql`DELETE FROM market_listings WHERE seller_id = ${cadetId};`;
       } catch {}
 
+      // 5. Purge cadet from orbital guilds (promote next officer/member or delete if empty)
+      try {
+        await removeCadetFromGuilds(cadetId);
+      } catch (guildErr) {
+        console.warn('Neon guild purge notice:', guildErr);
+      }
+
       return true;
     } catch (err) {
       console.error('Neon deleteCadetCloudData error:', err);
@@ -607,6 +615,11 @@ export async function deleteCadetCloudData(cadetId: string): Promise<boolean> {
         }
       }
     }
+  } catch {}
+
+  // 5. In-Memory Guild purge
+  try {
+    await removeCadetFromGuilds(cadetId);
   } catch {}
 
   return true;
