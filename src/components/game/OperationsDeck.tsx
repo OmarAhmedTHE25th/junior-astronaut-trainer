@@ -117,12 +117,7 @@ export default function OperationsDeck() {
   const slottedBoosts = (state.slottedBoosts && state.slottedBoosts.length > 0
     ? state.slottedBoosts
     : ['cryo-o2-stim', 'lead-lined-nanogel']) as BoostSlug[];
-  const combatInventory = state.combatInventory || {
-    'oxygen-canister': 3,
-    'fuel-cell': 2,
-    'rad-shielding': 1,
-    'hydroponic-rations': 2,
-  };
+  const combatInventory = state.combatInventory || {};
 
   // Resolve active 5-card hand from state or deterministic draw
   const activeCards: OperationCard[] = React.useMemo(() => {

@@ -201,13 +201,8 @@ export function GameProvider({
           }
         }
 
-        // 3. Fetch marketplace inventory for combat consumables
-        let inventoryMap: Record<string, number> = {
-          'oxygen-canister': 3,
-          'fuel-cell': 2,
-          'rad-shielding': 1,
-          'hydroponic-rations': 2,
-        };
+        // 3. Fetch marketplace inventory for combat consumables (empty by default)
+        let inventoryMap: Record<string, number> = {};
 
         const wRes = await fetch(`/api/market/wallet?playerId=${encodeURIComponent(cadetId)}`);
         if (wRes.ok) {
@@ -219,9 +214,7 @@ export function GameProvider({
                 freshMap[item.itemSlug] = item.quantity;
               }
             }
-            if (Object.keys(freshMap).length > 0) {
-              inventoryMap = freshMap;
-            }
+            inventoryMap = freshMap;
           }
         }
 

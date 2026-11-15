@@ -171,43 +171,14 @@ export async function getPlayerInventory(playerId: string): Promise<PlayerInvent
   const sql = await getSqlClient();
 
   if (sql) {
-    let rows = await sql`
+    const rows = await sql`
       SELECT id, player_id, item_slug, item_name, category, quantity, metadata_json
       FROM player_inventory
       WHERE player_id = ${playerId}
       ORDER BY category ASC, item_name ASC;
     `;
 
-    // Grant starter items if inventory is empty
-    if (!rows || rows.length === 0) {
-      const starters = [
-        { slug: 'oxygen-canister', qty: 25 },
-        { slug: 'fuel-cell', qty: 20 },
-        { slug: 'hydroponic-rations', qty: 30 },
-        { slug: 'hull-plating', qty: 10 },
-        { slug: 'rad-shielding', qty: 5 },
-      ];
-
-      for (const item of starters) {
-        const def = CATALOG_ITEMS[item.slug];
-        if (!def) continue;
-        const id = `inv-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-        await sql`
-          INSERT INTO player_inventory (id, player_id, item_slug, item_name, category, quantity)
-          VALUES (${id}, ${playerId}, ${def.slug}, ${def.name}, ${def.category}, ${item.qty})
-          ON CONFLICT (player_id, item_slug) DO NOTHING;
-        `;
-      }
-
-      rows = await sql`
-        SELECT id, player_id, item_slug, item_name, category, quantity, metadata_json
-        FROM player_inventory
-        WHERE player_id = ${playerId}
-        ORDER BY category ASC, item_name ASC;
-      `;
-    }
-
-    return rows.map((r) => ({
+    return (rows || []).map((r) => ({
       id: r.id,
       playerId: r.player_id,
       itemSlug: r.item_slug,
@@ -219,33 +190,11 @@ export async function getPlayerInventory(playerId: string): Promise<PlayerInvent
     }));
   }
 
-  // Memory fallback
+  // Memory fallback - users have an empty inventory by default
   const mem = getMemoryStore();
-  let playerItems = mem.inventory.get(playerId);
-  if (!playerItems || playerItems.size === 0) {
-    playerItems = new Map();
-    const starters = [
-      { slug: 'oxygen-canister', qty: 25 },
-      { slug: 'fuel-cell', qty: 20 },
-      { slug: 'hydroponic-rations', qty: 30 },
-      { slug: 'hull-plating', qty: 10 },
-      { slug: 'rad-shielding', qty: 5 },
-    ];
-    for (const item of starters) {
-      const def = CATALOG_ITEMS[item.slug];
-      if (def) {
-        playerItems.set(item.slug, {
-          id: `inv-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          playerId,
-          itemSlug: def.slug,
-          itemName: def.name,
-          category: def.category,
-          quantity: item.qty,
-          icon: def.icon,
-        });
-      }
-    }
-    mem.inventory.set(playerId, playerItems);
+  const playerItems = mem.inventory.get(playerId);
+  if (!playerItems) {
+    return [];
   }
 
   return Array.from(playerItems.values());
