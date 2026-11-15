@@ -116,7 +116,7 @@ export default function SquadMultiplayerHUD({
   return (
     <aside
       aria-label="Real-time squad tactical console"
-      className="w-full bg-gradient-to-r from-[#0d1226]/95 via-[#131838]/95 to-[#0d1226]/95 border-b border-cyan-500/40 shadow-xl backdrop-blur-md z-30"
+      className="w-full bg-[#0d1226]/95 border-b border-cyan-500/40 shadow-xl backdrop-blur-md z-30"
     >
       <div className="max-w-7xl mx-auto px-4 py-2.5 space-y-2.5">
         {/* Top Ribbon: Match Status, Code, & Shared Habitat Telemetry */}
@@ -238,7 +238,7 @@ export default function SquadMultiplayerHUD({
                   <button
                     type="button"
                     onClick={handlePerformRoleAction}
-                    className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-bold text-[10px] uppercase tracking-wider shadow cursor-pointer transition-all active:scale-95 flex items-center gap-1 flex-shrink-0"
+                    className="px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-[10px] uppercase tracking-wider border border-amber-300 shadow-sm cursor-pointer transition-all active:scale-95 flex items-center gap-1 flex-shrink-0"
                     title={roleMeta.tacticalActionDescription}
                   >
                     <span>⚡</span>

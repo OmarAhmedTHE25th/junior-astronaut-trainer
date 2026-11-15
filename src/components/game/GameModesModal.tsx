@@ -61,7 +61,7 @@ export default function GameModesModal({
         {/* ── 2x2 RESPONSIVE MODES GRID ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6 font-mono">
           {/* 1. SQUAD MULTIPLAYER */}
-          <div className="rounded-3xl bg-gradient-to-b from-[#141d40] to-[#0d122b] border-2 border-cyan-500/50 p-5 sm:p-6 shadow-xl flex flex-col justify-between gap-4 hover:border-cyan-400 transition-all">
+          <div className="rounded-3xl bg-[#111827] border-2 border-cyan-500/50 p-5 sm:p-6 shadow-xl flex flex-col justify-between gap-4 hover:border-cyan-400 transition-all">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-3xl p-2.5 rounded-2xl bg-cyan-500/20 border border-cyan-400/30">
@@ -118,8 +118,8 @@ export default function GameModesModal({
                 onOpenMatchmaking();
               }}
               className="
-                w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500
-                text-white font-heading font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/20
+                w-full py-3 rounded-xl bg-cyan-400 hover:bg-cyan-300
+                text-slate-950 font-heading font-extrabold text-xs uppercase tracking-wider shadow-sm border border-cyan-200
                 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2
               "
             >
@@ -129,7 +129,7 @@ export default function GameModesModal({
           </div>
 
           {/* 2. BATTLE ROYALE */}
-          <div className="rounded-3xl bg-gradient-to-b from-[#26142c] to-[#120b17] border-2 border-rose-500/50 p-5 sm:p-6 shadow-xl flex flex-col justify-between gap-4 hover:border-rose-400 transition-all">
+          <div className="rounded-3xl bg-[#111827] border-2 border-rose-500/50 p-5 sm:p-6 shadow-xl flex flex-col justify-between gap-4 hover:border-rose-400 transition-all">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-3xl p-2.5 rounded-2xl bg-rose-500/20 border border-rose-400/30">
@@ -164,8 +164,8 @@ export default function GameModesModal({
                 onOpenBattleRoyale();
               }}
               className="
-                w-full py-3 rounded-xl bg-gradient-to-r from-rose-600 via-orange-600 to-purple-600 hover:opacity-95
-                text-white font-heading font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-rose-500/20
+                w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-500
+                text-white font-heading font-extrabold text-xs uppercase tracking-wider shadow-sm border border-rose-400
                 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2
               "
             >
@@ -175,7 +175,7 @@ export default function GameModesModal({
           </div>
 
           {/* 3. ENDLESS TOURNAMENTS */}
-          <div className="rounded-3xl bg-gradient-to-b from-[#2a1e12] to-[#150e09] border-2 border-amber-500/50 p-5 sm:p-6 shadow-xl flex flex-col justify-between gap-4 hover:border-amber-400 transition-all">
+          <div className="rounded-3xl bg-[#111827] border-2 border-amber-500/50 p-5 sm:p-6 shadow-xl flex flex-col justify-between gap-4 hover:border-amber-400 transition-all">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-3xl p-2.5 rounded-2xl bg-amber-500/20 border border-amber-400/30">
@@ -208,8 +208,8 @@ export default function GameModesModal({
                 onOpenTournaments();
               }}
               className="
-                w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 via-orange-600 to-purple-600 hover:opacity-95
-                text-white font-heading font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20
+                w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400
+                text-slate-950 font-heading font-extrabold text-xs uppercase tracking-wider shadow-sm border border-amber-300
                 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2
               "
             >
@@ -219,13 +219,13 @@ export default function GameModesModal({
           </div>
 
           {/* 4. PET HANGAR & LOADOUT */}
-          <div className="rounded-3xl bg-gradient-to-b from-[#1e1533] to-[#0f0b1a] border-2 border-purple-500/50 p-5 sm:p-6 shadow-xl flex flex-col justify-between gap-4 hover:border-purple-400 transition-all">
+          <div className="rounded-3xl bg-[#111827] border-2 border-cyan-500/40 p-5 sm:p-6 shadow-xl flex flex-col justify-between gap-4 hover:border-cyan-400 transition-all">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-3xl p-2.5 rounded-2xl bg-purple-500/20 border border-purple-400/30">
+                <span className="text-3xl p-2.5 rounded-2xl bg-cyan-500/20 border border-cyan-400/30">
                   🐾
                 </span>
-                <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-purple-400/20 text-purple-200 border border-purple-400/40 uppercase tracking-wider">
+                <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-cyan-400/20 text-cyan-200 border border-cyan-400/40 uppercase tracking-wider">
                   Companion Bay
                 </span>
               </div>
@@ -237,7 +237,7 @@ export default function GameModesModal({
                   Equip cybernetic/bio-engineered pets (Rover-Cat, Tardigrade, Solar Falcon), configure 3-slot tactical consumable stims, and inspect your persistent competitive rank tier crest.
                 </p>
               </div>
-              <div className="flex items-center gap-2 text-[11px] text-purple-300 pt-2 border-t border-white/10">
+              <div className="flex items-center gap-2 text-[11px] text-cyan-300 pt-2 border-t border-white/10">
                 <span>🐱 Pet Perks &amp; Leveling</span>
                 <span>•</span>
                 <span>🧪 Pre-Drop Stims</span>
@@ -252,8 +252,8 @@ export default function GameModesModal({
                 onOpenHangar();
               }}
               className="
-                w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-600 hover:opacity-95
-                text-white font-heading font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-purple-500/20
+                w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700
+                text-cyan-300 font-heading font-extrabold text-xs uppercase tracking-wider shadow-sm border border-cyan-500/40
                 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2
               "
             >

@@ -15,7 +15,7 @@ import BattleRoyaleModal from './BattleRoyaleModal';
 import GameModesModal from './GameModesModal';
 import PetHangarModal from './PetHangarModal';
 import { useSound } from '@/lib/sound';
-import { useProfile, getOrCreateCadetProfile } from '@/lib/profile';
+import { useProfile, getOrCreateCadetProfile, DEFAULT_PROFILE } from '@/lib/profile';
 import { SPECIALTY_METAS } from '@/lib/types';
 import type { GameState } from '@/lib/types';
 
@@ -63,16 +63,13 @@ export default function MainMenu() {
     color: 'text-gray-400',
   });
   const [equippedPet, setEquippedPet] = useState<EquippedPetState | null>(null);
+  const [mounted, setMounted] = useState(false);
 
-  const activeCadet =
-    isLoaded && profile.cadetId !== 'cadet-nova-01'
-      ? profile
-      : typeof window !== 'undefined'
-      ? getOrCreateCadetProfile()
-      : profile;
+  const activeCadet = mounted && isLoaded ? profile : DEFAULT_PROFILE;
 
   // Check for active mission save in localStorage
   useEffect(() => {
+    setMounted(true);
     try {
       const raw = localStorage.getItem('jat_active_save_v1');
       if (raw) {
@@ -244,9 +241,9 @@ export default function MainMenu() {
             }}
             className="
               flex items-center gap-2 px-3 py-1.5 rounded-xl
-              bg-gradient-to-r from-emerald-950/80 to-[#141b3d] border border-emerald-500/40 hover:border-emerald-400
+              bg-slate-900 border border-emerald-500/40 hover:border-emerald-400
               transition-all hover:scale-105 active:scale-95 cursor-pointer
-              shadow-md min-h-[40px] text-xs font-mono
+              shadow-sm min-h-[40px] text-xs font-mono
             "
             title="Mars Exchange & Commodity Market"
           >
@@ -277,11 +274,11 @@ export default function MainMenu() {
       <main className="w-full max-w-5xl mx-auto px-4 pt-3 pb-8 space-y-6">
         {/* Active Mission Resume Banner (Prominent if active save exists) */}
         {activeSave && (
-          <div className="rounded-3xl border-2 border-[#E87040] bg-gradient-to-r from-[#E87040]/25 via-[#6B3FA0]/20 to-[#0B1026] p-6 shadow-2xl shadow-[#E87040]/20 flex flex-col sm:flex-row items-center justify-between gap-4 animate-slide-up">
+          <div className="rounded-3xl border border-cyan-400/50 bg-[#111827] p-6 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-slide-up">
             <div className="space-y-1 text-center sm:text-left">
               <div className="flex items-center justify-center sm:justify-start gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#E87040] animate-ping" />
-                <span className="text-xs font-mono font-extrabold uppercase tracking-widest text-[#E87040]">
+                <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
+                <span className="text-xs font-mono font-extrabold uppercase tracking-widest text-cyan-400">
                   Active Telemetry Feed Available
                 </span>
               </div>
@@ -300,9 +297,9 @@ export default function MainMenu() {
               href="/game?resume=true"
               onClick={playClick}
               className="
-                px-8 py-4 rounded-2xl bg-gradient-to-r from-[#E87040] to-[#6B3FA0]
-                text-white font-heading font-extrabold text-lg
-                hover:scale-105 active:scale-95 transition-all shadow-xl shadow-[#E87040]/30
+                px-8 py-4 rounded-2xl bg-cyan-400 hover:bg-cyan-300 border border-cyan-200
+                text-slate-950 font-heading font-extrabold text-lg
+                hover:scale-105 active:scale-95 transition-all shadow-sm
                 cursor-pointer flex-shrink-0 flex items-center gap-2 min-h-[48px]
               "
             >
@@ -313,13 +310,10 @@ export default function MainMenu() {
         )}
 
         {/* ── 1. PRIMARY HERO LAUNCH PANEL (Standard Solo Mission) ── */}
-        <section className="bg-gradient-to-b from-[#1a214d]/90 to-[#0e1430]/90 backdrop-blur-xl rounded-3xl border-2 border-[#E87040]/40 p-6 sm:p-8 md:p-10 shadow-2xl shadow-[#E87040]/10 relative overflow-hidden">
-          {/* Ambient blur orb */}
-          <div className="absolute top-0 right-0 w-80 h-80 bg-[#E87040]/5 rounded-full blur-3xl pointer-events-none" />
-
+        <section className="bg-[#111827] backdrop-blur-xl rounded-3xl border border-slate-700/80 p-6 sm:p-8 md:p-10 shadow-xl relative overflow-hidden">
           <div className="max-w-3xl mx-auto text-center space-y-6 relative z-10">
             {/* Category Pill */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#E87040]/15 border border-[#E87040]/40 text-[#E87040] text-xs font-mono uppercase tracking-widest font-bold">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-400/10 border border-cyan-400/40 text-cyan-300 text-xs font-mono uppercase tracking-widest font-bold">
               <span>🚀</span>
               <span>Primary Expedition Directive</span>
             </div>
@@ -384,10 +378,10 @@ export default function MainMenu() {
                 onClick={playClick}
                 className="
                   w-full sm:w-auto px-8 py-4 rounded-2xl
-                  bg-gradient-to-r from-[#E87040] via-[#ea580c] to-[#E87040]
-                  text-white font-heading font-extrabold text-base sm:text-lg tracking-wider
-                  hover:scale-[1.03] active:scale-95 transition-all shadow-xl shadow-[#E87040]/30
-                  flex items-center justify-center gap-3 cursor-pointer min-h-[56px] border border-orange-400/30
+                  bg-cyan-400 hover:bg-cyan-300 border border-cyan-200
+                  text-slate-950 font-heading font-extrabold text-base sm:text-lg tracking-wider
+                  hover:scale-[1.03] active:scale-95 transition-all shadow-sm
+                  flex items-center justify-center gap-3 cursor-pointer min-h-[56px]
                 "
               >
                 <span>🚀</span>
@@ -404,9 +398,9 @@ export default function MainMenu() {
                 }}
                 className="
                   w-full sm:w-auto px-6 py-4 rounded-2xl
-                  bg-[#141b3d] hover:bg-[#1f285a] border-2 border-cyan-500/40 hover:border-cyan-400
-                  text-cyan-200 font-heading font-extrabold text-base tracking-wider
-                  hover:scale-[1.03] active:scale-95 transition-all shadow-lg shadow-cyan-500/10
+                  bg-slate-800/90 hover:bg-slate-700 border border-slate-300/25 hover:border-slate-300/50
+                  text-slate-100 font-heading font-extrabold text-base tracking-wider
+                  hover:scale-[1.03] active:scale-95 transition-all shadow-sm
                   flex items-center justify-center gap-2.5 cursor-pointer min-h-[56px]
                 "
               >

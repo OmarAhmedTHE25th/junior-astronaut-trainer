@@ -313,7 +313,7 @@ export const SPECIALTY_METAS: SpecialtyMeta[] = [
     title: 'Systems & Power Specialist',
     perkDescription: '+20% power gain from Solar Panel Repair & Resource Conservation',
     badge: 'Power Tech',
-    color: 'from-amber-500/20 to-orange-500/20 border-amber-500/40 text-amber-300'
+    color: 'bg-slate-900 border-amber-500/40 text-amber-300'
   },
   {
     id: 'biologist',
@@ -322,7 +322,7 @@ export const SPECIALTY_METAS: SpecialtyMeta[] = [
     title: 'Life Support & Ecology Lead',
     perkDescription: '+25% oxygen and morale recovery from O₂ Generators & Hydroponics',
     badge: 'Bio Lead',
-    color: 'from-emerald-500/20 to-teal-500/20 border-emerald-500/40 text-emerald-300'
+    color: 'bg-slate-900 border-emerald-500/40 text-emerald-300'
   },
   {
     id: 'physicist',
@@ -331,7 +331,7 @@ export const SPECIALTY_METAS: SpecialtyMeta[] = [
     title: 'Magnetosphere & Defense Officer',
     perkDescription: '+20% shielding boost from Boost Shields & -25% shield damage from solar storms',
     badge: 'Shield Officer',
-    color: 'from-cyan-500/20 to-blue-500/20 border-cyan-500/40 text-cyan-300'
+    color: 'bg-slate-900 border-cyan-500/40 text-cyan-300'
   },
   {
     id: 'commander',
@@ -340,7 +340,7 @@ export const SPECIALTY_METAS: SpecialtyMeta[] = [
     title: 'Expedition Commander',
     perkDescription: '+15% science score bonus on Research Missions & +2 morale every 5 sols survived',
     badge: 'Commander',
-    color: 'from-purple-500/20 to-indigo-500/20 border-purple-500/40 text-purple-300'
+    color: 'bg-slate-900 border-cyan-400/50 text-cyan-200'
   }
 ];
 

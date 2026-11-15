@@ -283,7 +283,7 @@ export default function BattleRoyaleModal({ isOpen, onClose }: BattleRoyaleModal
                   setActiveMatch(null);
                   fetchProfile();
                 }}
-                className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-heading font-extrabold text-sm uppercase shadow-lg shadow-cyan-500/20 cursor-pointer"
+                className="px-6 py-3 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-heading font-extrabold text-sm uppercase shadow-sm border border-cyan-200 cursor-pointer transition-colors"
               >
                 Return to Hangar 🚀
               </button>

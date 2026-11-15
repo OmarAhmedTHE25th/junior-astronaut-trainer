@@ -15,13 +15,13 @@ interface ButtonProps {
 
 const variantStyles: Record<string, string> = {
   primary:
-    'bg-gradient-to-r from-[#3B82F6] to-[#6B3FA0] text-white shadow-lg shadow-[#6B3FA0]/30 hover:shadow-[#6B3FA0]/50',
+    'bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-extrabold border border-cyan-200 shadow-sm',
   secondary:
-    'bg-[#1a1f3d] text-[#F8FAFC] border-2 border-[#6B3FA0]/50 hover:border-[#6B3FA0]',
+    'bg-slate-800/90 hover:bg-slate-700 text-slate-100 border border-slate-300/25 hover:border-slate-300/50',
   danger:
-    'bg-gradient-to-r from-[#EF4444] to-[#dc2626] text-white shadow-lg shadow-[#EF4444]/30',
+    'bg-rose-600 hover:bg-rose-500 text-white font-bold border border-rose-400/50 shadow-sm',
   success:
-    'bg-gradient-to-r from-[#22C55E] to-[#16a34a] text-white shadow-lg shadow-[#22C55E]/30',
+    'bg-emerald-600 hover:bg-emerald-500 text-white font-bold border border-emerald-400/50 shadow-sm',
 };
 
 const sizeStyles: Record<string, string> = {
@@ -51,7 +51,7 @@ export default function Button({
         rounded-xl font-bold
         transition-all duration-200 ease-out
         hover:scale-105 active:scale-95
-        focus:outline-none focus:ring-2 focus:ring-[#6B3FA0] focus:ring-offset-2 focus:ring-offset-[#0B1026]
+        focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-[#090D16]
         disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
         cursor-pointer select-none
         ${variantStyles[variant]}

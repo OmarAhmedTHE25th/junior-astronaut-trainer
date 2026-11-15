@@ -203,7 +203,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           <div className="flex flex-col sm:flex-row items-center gap-5">
             {/* Active Patch Avatar */}
             <div className="relative group">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#E87040] via-[#6B3FA0] to-[#3B82F6] p-0.5 shadow-lg shadow-[#E87040]/20 flex items-center justify-center">
+              <div className="w-20 h-20 rounded-2xl bg-slate-800 border-2 border-cyan-400 p-0.5 shadow-md flex items-center justify-center">
                 <div className="w-full h-full bg-[#0B1026] rounded-2xl flex items-center justify-center text-4xl">
                   {profile.avatar}
                 </div>
@@ -301,8 +301,8 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                     p-3.5 rounded-2xl border transition-all cursor-pointer relative flex flex-col justify-between
                     ${
                       isSelected
-                        ? `bg-gradient-to-br ${spec.color} ring-2 ring-white/50 shadow-lg scale-[1.02]`
-                        : 'bg-[#0B1026]/70 border-white/10 hover:border-white/30 hover:bg-[#1a1f3d]/50'
+                        ? `${spec.color} ring-2 ring-cyan-400 shadow-md scale-[1.02]`
+                        : 'bg-[#0B1026]/70 border-slate-700/60 hover:border-slate-500 hover:bg-slate-800/50'
                     }
                   `}
                 >

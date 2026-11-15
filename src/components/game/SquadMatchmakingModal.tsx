@@ -310,7 +310,7 @@ export default function SquadMatchmakingModal({
         {matchedId && matchState ? (
           <div className="space-y-5 animate-slide-up">
             {/* Squad Header Banner */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-[#1e1b4b] to-[#0f172a] border-2 border-cyan-400 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="p-4 rounded-2xl bg-[#111827] border-2 border-cyan-400 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
@@ -510,10 +510,10 @@ export default function SquadMatchmakingModal({
               <button
                 type="button"
                 onClick={handleToggleReady}
-                className={`w-full sm:w-auto px-8 py-3.5 rounded-xl font-heading font-extrabold text-sm tracking-wider cursor-pointer shadow-lg transition-all ${
+                className={`w-full sm:w-auto px-8 py-3.5 rounded-xl font-heading font-extrabold text-sm tracking-wider cursor-pointer shadow-sm transition-all ${
                   currentMember?.isReady
-                    ? 'bg-emerald-600 text-white shadow-emerald-600/30 hover:bg-emerald-500'
-                    : 'bg-gradient-to-r from-mars-orange to-purple-600 text-white hover:scale-105 active:scale-95'
+                    ? 'bg-emerald-600 text-white shadow-emerald-600/30 hover:bg-emerald-500 border border-emerald-400'
+                    : 'bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-extrabold border border-cyan-200'
                 }`}
               >
                 {currentMember?.isReady ? '✓ YOU ARE LOCKED IN & READY' : '🔒 LOCK IN ROLE & CONFIRM READY'}
@@ -544,8 +544,8 @@ export default function SquadMatchmakingModal({
                 }}
                 className={`py-2.5 rounded-xl font-heading font-bold text-xs tracking-wider transition-all cursor-pointer ${
                   activeTab === 'matchmaking'
-                    ? 'bg-gradient-to-r from-[#E87040] to-[#6B3FA0] text-white shadow-md'
-                    : 'text-white/60 hover:text-white'
+                    ? 'bg-cyan-400/15 border border-cyan-400 text-cyan-300 font-bold shadow-md'
+                    : 'text-slate-400 hover:text-white'
                 }`}
               >
                 ⚡ Random Matchmaking
@@ -558,8 +558,8 @@ export default function SquadMatchmakingModal({
                 }}
                 className={`py-2.5 rounded-xl font-heading font-bold text-xs tracking-wider transition-all cursor-pointer ${
                   activeTab === 'private'
-                    ? 'bg-gradient-to-r from-[#E87040] to-[#6B3FA0] text-white shadow-md'
-                    : 'text-white/60 hover:text-white'
+                    ? 'bg-cyan-400/15 border border-cyan-400 text-cyan-300 font-bold shadow-md'
+                    : 'text-slate-400 hover:text-white'
                 }`}
               >
                 📡 Private Squad Code
@@ -571,7 +571,7 @@ export default function SquadMatchmakingModal({
               <div className="space-y-5">
                 {isQueuing ? (
                   /* Radar-Style Queue Animation Screen */
-                  <div className="p-8 rounded-3xl bg-gradient-to-b from-[#131838] to-[#0B1026] border-2 border-cyan-500/40 text-center space-y-6 relative overflow-hidden">
+                  <div className="p-8 rounded-3xl bg-[#111827] border-2 border-cyan-500/40 text-center space-y-6 relative overflow-hidden">
                     {/* Rotating Radar Scanner */}
                     <div className="relative w-44 h-44 mx-auto flex items-center justify-center">
                       {/* Concentric rings */}
@@ -582,7 +582,7 @@ export default function SquadMatchmakingModal({
 
                       {/* Rotating sweep line */}
                       <div className="absolute inset-0 rounded-full animate-spin [animation-duration:3s]">
-                        <div className="w-1/2 h-1/2 bg-gradient-to-br from-cyan-400/40 to-transparent rounded-tl-full origin-bottom-right" />
+                        <div className="w-1/2 h-1/2 bg-cyan-400/25 border-r border-b border-cyan-400/60 rounded-tl-full origin-bottom-right" />
                       </div>
 
                       {/* Center Blip */}

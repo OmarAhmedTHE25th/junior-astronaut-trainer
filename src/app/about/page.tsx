@@ -183,8 +183,8 @@ export default function AboutPage() {
               href="/game"
               className="
                 inline-flex items-center gap-2 px-6 py-3 rounded-xl
-                bg-gradient-to-r from-mars-orange to-cosmic-purple
-                text-white text-sm font-bold
+                bg-cyan-400 hover:bg-cyan-300 border border-cyan-200
+                text-slate-950 text-sm font-extrabold shadow-sm
                 hover:scale-105 transition-transform
               "
             >

@@ -79,8 +79,8 @@ export default function RoverGalleryModal({ isOpen, onClose }: RoverGalleryModal
                 className={`
                   px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer min-h-[44px]
                   ${isSelected
-                    ? 'bg-gradient-to-r from-[#E87040] to-[#6B3FA0] text-white shadow-md shadow-[#E87040]/30'
-                    : 'bg-[#1a1f3d] text-[#F8FAFC]/70 hover:text-white hover:bg-[#1a1f3d]/80 border border-white/10'
+                    ? 'bg-cyan-400/15 border border-cyan-400 text-cyan-300 font-bold shadow-md'
+                    : 'bg-slate-800/90 text-slate-400 hover:text-white border border-slate-700'
                   }
                 `}
               >

@@ -14,29 +14,29 @@ interface ProgressBarProps {
 
 const colorMap: Record<string, { bar: string; bg: string; glow: string }> = {
   blue: {
-    bar: 'bg-gradient-to-r from-[#3B82F6] to-[#60a5fa]',
-    bg: 'bg-[#3B82F6]/20',
-    glow: 'shadow-[#3B82F6]/50',
+    bar: 'bg-sky-400',
+    bg: 'bg-sky-950/60 border border-sky-500/30',
+    glow: '',
   },
   green: {
-    bar: 'bg-gradient-to-r from-[#22C55E] to-[#4ade80]',
-    bg: 'bg-[#22C55E]/20',
-    glow: 'shadow-[#22C55E]/50',
+    bar: 'bg-emerald-400',
+    bg: 'bg-emerald-950/60 border border-emerald-500/30',
+    glow: '',
   },
   orange: {
-    bar: 'bg-gradient-to-r from-[#E87040] to-[#fb923c]',
-    bg: 'bg-[#E87040]/20',
-    glow: 'shadow-[#E87040]/50',
+    bar: 'bg-amber-400',
+    bg: 'bg-amber-950/60 border border-amber-500/30',
+    glow: '',
   },
   red: {
-    bar: 'bg-gradient-to-r from-[#EF4444] to-[#f87171]',
-    bg: 'bg-[#EF4444]/20',
-    glow: 'shadow-[#EF4444]/50',
+    bar: 'bg-rose-500',
+    bg: 'bg-rose-950/60 border border-rose-500/30',
+    glow: '',
   },
   purple: {
-    bar: 'bg-gradient-to-r from-[#6B3FA0] to-[#a78bfa]',
-    bg: 'bg-[#6B3FA0]/20',
-    glow: 'shadow-[#6B3FA0]/50',
+    bar: 'bg-cyan-400',
+    bg: 'bg-cyan-950/60 border border-cyan-500/30',
+    glow: '',
   },
 };
 
@@ -83,12 +83,12 @@ export default function ProgressBar({
           </span>
         </div>
         <div
-          className={`h-3 rounded-full overflow-hidden ${isGlitching ? 'bg-purple-900/40 ring-1 ring-purple-500/50' : colors.bg}`}
+          className={`h-3 rounded-full overflow-hidden ${isGlitching ? 'bg-purple-950/60 ring-1 ring-purple-500/50' : colors.bg}`}
         >
           <div
-            className={`h-full rounded-full transition-all duration-700 ease-out shadow-lg ${
+            className={`h-full rounded-full transition-all duration-700 ease-out ${
               isGlitching
-                ? 'bg-gradient-to-r from-purple-500 via-rose-500 to-amber-400 animate-pulse'
+                ? 'bg-purple-500 animate-pulse'
                 : colors.bar
             } ${colors.glow} ${isLow ? 'animate-pulse' : ''}`}
             style={{ width: `${isGlitching ? 60 : clamped}%` }}

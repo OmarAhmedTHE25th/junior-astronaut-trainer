@@ -2,13 +2,17 @@
 
 /* ── Custom Theme ─────────────────────────────────────────────── */
 @theme {
-  --color-space-navy: #0B1026;
-  --color-mars-orange: #E87040;
-  --color-cosmic-purple: #6B3FA0;
-  --color-o2-blue: #3B82F6;
+  --color-space-navy: #090D16;
+  --color-telemetry-cyan: #22D3EE;
+  --color-cyan-deep: #0891B2;
+  --color-titanium-silver: #CBD5E1;
+  --color-panel-slate: #111827;
+  --color-panel-elevated: #1E293B;
+
+  --color-o2-blue: #38BDF8;
   --color-shield-green: #22C55E;
   --color-warning-red: #EF4444;
-  --color-starlight: #F8FAFC;
+  --color-starlight: #F1F5F9;
 
   --font-heading: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
   --font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
@@ -88,12 +92,12 @@
 @keyframes glow-pulse {
   0%,
   100% {
-    box-shadow: 0 0 20px rgba(232, 112, 64, 0.4),
-                0 0 60px rgba(232, 112, 64, 0.15);
+    box-shadow: 0 0 15px rgba(34, 211, 238, 0.35),
+                0 0 35px rgba(34, 211, 238, 0.15);
   }
   50% {
-    box-shadow: 0 0 30px rgba(232, 112, 64, 0.7),
-                0 0 90px rgba(232, 112, 64, 0.3);
+    box-shadow: 0 0 25px rgba(34, 211, 238, 0.6),
+                0 0 50px rgba(34, 211, 238, 0.25);
   }
 }
 
@@ -148,18 +152,19 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-cosmic-purple);
+  background: var(--color-cyan-deep);
   border-radius: 9999px;
+  border: 1px solid rgba(203, 213, 225, 0.2);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-mars-orange);
+  background: var(--color-telemetry-cyan);
 }
 
 /* Firefox scrollbar */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-cosmic-purple) var(--color-space-navy);
+  scrollbar-color: var(--color-cyan-deep) var(--color-space-navy);
 }
 
 /* ── Starfield background helper ──────────────────────────────── */

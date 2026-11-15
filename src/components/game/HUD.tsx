@@ -87,14 +87,14 @@ export default function HUD({ onOpenMenu }: HUDProps) {
 
       {/* Solar Flare Early-Warning Banner (Tardigrade Scout Perk) */}
       {state.solarFlareWarningActive && (
-        <div className="w-full bg-gradient-to-r from-red-600 via-orange-600 to-amber-600 text-white px-4 py-2 text-xs font-mono font-black flex items-center justify-between shadow-xl animate-pulse z-40">
+        <div className="w-full bg-rose-950 border-b border-rose-500/60 text-white px-4 py-2 text-xs font-mono font-black flex items-center justify-between shadow-lg animate-pulse z-40">
           <div className="flex items-center gap-2">
             <span className="text-base animate-bounce">🐛</span>
             <span>
               TARDIGRADE BIO-SENSOR WARNING: Incoming severe NASA DONKI solar storm / CME detected in next Sol! Reinforce radiation shielding.
             </span>
           </div>
-          <span className="px-2 py-0.5 rounded bg-black/40 text-[10px] uppercase border border-white/20">
+          <span className="px-2 py-0.5 rounded bg-black/50 text-[10px] uppercase border border-white/20">
             Impact Imminent
           </span>
         </div>
@@ -102,7 +102,7 @@ export default function HUD({ onOpenMenu }: HUDProps) {
 
       {/* Hostile EMP Jam Banner */}
       {isEmpJammed && (
-        <div className="w-full bg-gradient-to-r from-purple-950 via-rose-900 to-indigo-950 text-white px-4 py-2 text-xs font-mono font-black flex items-center justify-between shadow-xl animate-pulse z-40 border-b border-purple-500/50">
+        <div className="w-full bg-purple-950 border-b border-purple-500/60 text-white px-4 py-2 text-xs font-mono font-black flex items-center justify-between shadow-lg animate-pulse z-40">
           <div className="flex items-center gap-2">
             <span className="text-base animate-spin">⚡</span>
             <span className="text-amber-300">
@@ -117,7 +117,7 @@ export default function HUD({ onOpenMenu }: HUDProps) {
 
       {/* Solar Array Regolith Blind Banner */}
       {isSolarBlinded && (
-        <div className="w-full bg-gradient-to-r from-amber-950 via-orange-950 to-amber-900 text-amber-200 px-4 py-1.5 text-xs font-mono font-bold flex items-center justify-between border-b border-amber-500/40 z-40">
+        <div className="w-full bg-amber-950 border-b border-amber-500/60 text-amber-200 px-4 py-1.5 text-xs font-mono font-bold flex items-center justify-between shadow-lg z-40">
           <div className="flex items-center gap-2">
             <span className="text-base">🌪️</span>
             <span>
@@ -336,8 +336,8 @@ export default function HUD({ onOpenMenu }: HUDProps) {
             title="Open Outpost Command Menu (ESC)"
             aria-label="Open Outpost Command Menu"
             className="
-              px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#E87040] to-[#6B3FA0]
-              text-white font-bold text-sm shadow-md shadow-[#E87040]/20
+              px-3.5 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-700
+              text-slate-100 font-bold text-sm border border-slate-300/25 hover:border-slate-300/50 shadow-sm
               hover:scale-105 active:scale-95 transition-transform cursor-pointer
               min-h-[44px] flex items-center gap-2
             "

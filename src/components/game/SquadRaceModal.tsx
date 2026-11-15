@@ -254,8 +254,8 @@ export default function SquadRaceModal({ isOpen, onClose, initialJoinCode }: Squ
         {currentRoom ? (
           <div className="space-y-5 animate-slide-up">
             {/* Room Header & Code Banner */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-[#1a1f3d] to-[#0B1026] border-2 border-[#E87040] shadow-xl text-center space-y-2">
-              <span className="text-xs font-mono font-extrabold uppercase tracking-widest text-[#E87040] block">
+            <div className="p-4 rounded-2xl bg-[#111827] border-2 border-cyan-400 shadow-xl text-center space-y-2">
+              <span className="text-xs font-mono font-extrabold uppercase tracking-widest text-cyan-300 block">
                 🛰️ Squad Radio Frequency Code
               </span>
               <div className="flex items-center justify-center gap-3">
@@ -431,8 +431,8 @@ export default function SquadRaceModal({ isOpen, onClose, initialJoinCode }: Squ
                 className={`
                   py-2.5 rounded-xl font-heading font-bold text-xs tracking-wider transition-all cursor-pointer min-h-[44px]
                   ${tab === 'create'
-                    ? 'bg-gradient-to-r from-[#E87040] to-[#6B3FA0] text-white shadow-md'
-                    : 'text-white/60 hover:text-white'
+                    ? 'bg-cyan-400/15 border border-cyan-400 text-cyan-300 font-bold shadow-md'
+                    : 'text-slate-400 hover:text-white'
                   }
                 `}
               >
@@ -447,8 +447,8 @@ export default function SquadRaceModal({ isOpen, onClose, initialJoinCode }: Squ
                 className={`
                   py-2.5 rounded-xl font-heading font-bold text-xs tracking-wider transition-all cursor-pointer min-h-[44px]
                   ${tab === 'join'
-                    ? 'bg-gradient-to-r from-[#E87040] to-[#6B3FA0] text-white shadow-md'
-                    : 'text-white/60 hover:text-white'
+                    ? 'bg-cyan-400/15 border border-cyan-400 text-cyan-300 font-bold shadow-md'
+                    : 'text-slate-400 hover:text-white'
                   }
                 `}
               >

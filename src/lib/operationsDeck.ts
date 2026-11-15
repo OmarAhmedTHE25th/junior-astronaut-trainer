@@ -33,6 +33,8 @@ export interface OperationCard {
   riskChance: number;
   /** Hazard title rolled against */
   riskLabel?: string;
+  /** Detailed consequence/risk breakdown */
+  riskDescription?: string;
   /** Penalties applied if the risk roll fails */
   failurePenalty?: ResourceDelta;
   /** Failure outcome log description */

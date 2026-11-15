@@ -25,8 +25,8 @@ const CATEGORY_THEMES: Record<
   }
 > = {
   life_support: {
-    border: 'border-cyan-500/50 hover:border-cyan-400',
-    bg: 'from-cyan-950/40 via-[#0e1633] to-[#0B1026]',
+    border: 'border-cyan-500/40 hover:border-cyan-400',
+    bg: 'bg-[#111827]',
     badgeBg: 'bg-cyan-500/20',
     badgeText: 'text-cyan-200',
     badgeBorder: 'border-cyan-400/30',
@@ -34,8 +34,8 @@ const CATEGORY_THEMES: Record<
     tagLabel: '🫁 Life Support & Cryo',
   },
   power_thermal: {
-    border: 'border-amber-500/50 hover:border-amber-400',
-    bg: 'from-amber-950/40 via-[#17142b] to-[#0B1026]',
+    border: 'border-amber-500/40 hover:border-amber-400',
+    bg: 'bg-[#111827]',
     badgeBg: 'bg-amber-500/20',
     badgeText: 'text-amber-200',
     badgeBorder: 'border-amber-400/30',
@@ -43,8 +43,8 @@ const CATEGORY_THEMES: Record<
     tagLabel: '⚡ Power & Thermal',
   },
   structural_recon: {
-    border: 'border-emerald-500/50 hover:border-emerald-400',
-    bg: 'from-emerald-950/40 via-[#0e192c] to-[#0B1026]',
+    border: 'border-emerald-500/40 hover:border-emerald-400',
+    bg: 'bg-[#111827]',
     badgeBg: 'bg-emerald-500/20',
     badgeText: 'text-emerald-200',
     badgeBorder: 'border-emerald-400/30',
@@ -52,8 +52,8 @@ const CATEGORY_THEMES: Record<
     tagLabel: '🛡️ Structural & Recon',
   },
   high_risk_gambit: {
-    border: 'border-rose-500/60 hover:border-rose-400',
-    bg: 'from-rose-950/45 via-[#1a0f2b] to-[#0B1026]',
+    border: 'border-rose-500/50 hover:border-rose-400',
+    bg: 'bg-[#111827]',
     badgeBg: 'bg-rose-500/25',
     badgeText: 'text-rose-200',
     badgeBorder: 'border-rose-400/40',
@@ -109,6 +109,7 @@ export default function OperationsDeck() {
   const { playClick, playAction, playAlert, playSuccess } = useSound();
   const { profile } = useProfile();
   const [isSupplyDrawerOpen, setIsSupplyDrawerOpen] = useState(false);
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
 
   const isDisabled = state.phase !== 'action';
   const commandOverrides = state.commandOverrides ?? 1;
@@ -194,7 +195,7 @@ export default function OperationsDeck() {
   return (
     <section aria-label="Dynamic Tactical Operations Deck" className="w-full space-y-3 font-mono">
       {/* ── 1. ACTIVE COMPANION PET, TACTICAL STIMS & EMERGENCY SUPPLY BAY STRIP ── */}
-      <div className="p-3 rounded-2xl bg-gradient-to-r from-[#121633] via-[#1a1f3d] to-[#0e142e] border border-cyan-500/30 shadow-xl space-y-3">
+      <div className="p-3 rounded-2xl bg-[#0F172A] border border-slate-700/80 shadow-xl space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           {/* Active Companion Pet Badge */}
           <div className="flex items-center gap-2.5">
@@ -270,8 +271,8 @@ export default function OperationsDeck() {
                 setIsSupplyDrawerOpen(!isSupplyDrawerOpen);
               }}
               className="
-                px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-600/30 to-orange-600/30
-                border border-amber-400/50 hover:border-amber-300 text-amber-200 shadow-md
+                px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800/90 hover:bg-slate-700
+                border border-slate-300/25 hover:border-slate-300/50 text-slate-100 shadow-sm
                 hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5
               "
               title="Access emergency survival supplies bought on the Mars Marketplace"
@@ -362,10 +363,10 @@ export default function OperationsDeck() {
           onClick={handleCommandOverride}
           disabled={isDisabled || commandOverrides <= 0}
           className={`
-            px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer
+            px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer
             ${
               commandOverrides > 0 && !isDisabled
-                ? 'bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-600 text-white hover:scale-105 active:scale-95 border border-purple-400/50'
+                ? 'bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-extrabold hover:scale-105 active:scale-95 border border-cyan-200'
                 : 'bg-white/5 text-white/40 border border-white/10 cursor-not-allowed opacity-50'
             }
           `}
@@ -384,9 +385,10 @@ export default function OperationsDeck() {
       </div>
 
       {/* ── 3. 5-CARD TACTICAL HAND GRID ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3.5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3.5 items-start">
         {activeCards.map((card) => {
           const theme = CATEGORY_THEMES[card.category];
+          const isExpanded = Boolean(expandedCards[card.id]);
 
           // Format costs
           const costItems = Object.entries(card.resourceCosts)
@@ -428,9 +430,9 @@ export default function OperationsDeck() {
               disabled={isDisabled}
               className={`
                 group relative flex flex-col justify-between p-4 rounded-2xl
-                bg-gradient-to-b ${theme.bg} border-2 ${theme.border}
+                ${theme.bg} border ${theme.border}
                 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200
-                shadow-xl text-left cursor-pointer min-h-[290px]
+                shadow-xl text-left cursor-pointer h-auto min-h-[290px]
                 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100
               `}
             >
@@ -442,7 +444,7 @@ export default function OperationsDeck() {
                   >
                     {theme.tagLabel}
                   </span>
-                  <span className="text-[10px] text-white/50 font-mono">
+                  <span className="text-[10px] text-white/50 font-mono whitespace-nowrap shrink-0">
                     ⏳ {card.cooldownSols}s CD
                   </span>
                 </div>
@@ -460,9 +462,79 @@ export default function OperationsDeck() {
                 </div>
 
                 {/* Description */}
-                <p className="text-[11px] text-starlight/75 leading-relaxed pt-1 line-clamp-3">
+                <p
+                  className={`text-[11px] text-starlight/75 leading-relaxed pt-1 transition-all ${
+                    isExpanded ? '' : 'line-clamp-3'
+                  }`}
+                >
                   {card.description}
                 </p>
+
+                {/* Expand / Collapse Toggle Pill */}
+                <div className="pt-0.5">
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      playClick();
+                      setExpandedCards((prev) => ({
+                        ...prev,
+                        [card.id]: !prev[card.id],
+                      }));
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        playClick();
+                        setExpandedCards((prev) => ({
+                          ...prev,
+                          [card.id]: !prev[card.id],
+                        }));
+                      }
+                    }}
+                    className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer select-none"
+                  >
+                    {isExpanded ? 'Show less ▴' : 'Read more ▾'}
+                  </span>
+                </div>
+
+                {/* Expanded Details: Consequence Breakdown & Flavor */}
+                {isExpanded && (
+                  <div className="space-y-1.5 pt-1.5 animate-slide-up">
+                    {card.flavorQuote && (
+                      <p className="italic text-[10px] text-starlight/60 border-l-2 border-cyan-400/40 pl-2 leading-snug">
+                        &ldquo;{card.flavorQuote}&rdquo;
+                      </p>
+                    )}
+
+                    {(card.riskDescription || card.failureMessage) && (
+                      <div className="p-2 rounded-lg bg-rose-950/40 border border-rose-500/30 text-[10px] text-rose-200/90 leading-tight">
+                        <span className="font-bold text-rose-400 block mb-0.5">
+                          ⚠️ Consequence Breakdown:
+                        </span>
+                        <span>{card.riskDescription || card.failureMessage}</span>
+                        {card.failurePenalty && (
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[9px] text-rose-300 font-mono">
+                            <span className="opacity-75 uppercase">Risk Penalty:</span>
+                            {Object.entries(card.failurePenalty)
+                              .filter(([, v]) => typeof v === 'number' && v !== 0)
+                              .map(([k, v]) => (
+                                <span
+                                  key={k}
+                                  className="px-1 py-0.2 rounded bg-black/40 border border-rose-500/30"
+                                >
+                                  {v} {k}
+                                </span>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Bottom Meta: Cost, Yield, and Risk Roll */}

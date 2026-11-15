@@ -40,7 +40,7 @@ export default function TournamentBracket({
     <div className="space-y-8 w-full max-w-6xl mx-auto py-2">
       {/* ── CHAMPION PODIUM CARD (When Completed) ── */}
       {isCompleted && (
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-500/20 via-purple-600/25 to-amber-500/10 border-2 border-amber-400 p-6 md:p-8 shadow-2xl shadow-amber-500/20 text-center animate-slide-up">
+        <div className="relative overflow-hidden rounded-3xl bg-[#111827] border-2 border-amber-400 p-6 md:p-8 shadow-xl text-center animate-slide-up">
           <div className="absolute top-2 right-4 text-6xl opacity-15 pointer-events-none select-none">
             🏆
           </div>
@@ -71,7 +71,7 @@ export default function TournamentBracket({
 
       {/* ── ACTIVE MATCH HERO BANNER (If user has a playable match) ── */}
       {userPlayableMatch && (
-        <div className="p-4 sm:p-6 rounded-2xl bg-gradient-to-r from-cyan-600/25 via-[#1a1f3d] to-purple-600/20 border-2 border-cyan-400 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="p-4 sm:p-6 rounded-2xl bg-[#111827] border-2 border-cyan-400 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="space-y-1 text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
@@ -95,9 +95,9 @@ export default function TournamentBracket({
               if (onLaunchMatch) onLaunchMatch(userPlayableMatch);
             }}
             className="
-              px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600
-              hover:from-cyan-400 hover:to-blue-500 text-white font-heading font-extrabold text-sm
-              shadow-lg shadow-cyan-500/30 hover:scale-105 active:scale-95 transition-all
+              px-6 py-3 rounded-xl bg-cyan-400 hover:bg-cyan-300
+              text-slate-950 font-heading font-extrabold text-sm border border-cyan-200
+              shadow-sm active:scale-95 transition-all
               flex items-center gap-2 cursor-pointer whitespace-nowrap
             "
           >

@@ -41,7 +41,7 @@ export default function EventCard() {
     <div
       className={`
         w-full max-w-md mx-auto
-        bg-gradient-to-b from-[#1a1f3d] to-[#0f1329]
+        bg-[#111827]
         rounded-2xl border-2 ${severityBorder[event.severity] || severityBorder[1]}
         shadow-2xl ${severityGlow[event.severity] || severityGlow[1]}
         animate-[slide-up_0.4s_ease-out]

@@ -48,23 +48,23 @@ export default function NASAFactPopup({ onDismiss }: NASAFactPopupProps) {
       {/* Card */}
       <div
         className="relative z-10 w-full max-w-sm
-                   bg-gradient-to-br from-[#1a1f3d] to-[#0f1329]
-                   rounded-2xl border-2 border-[#6B3FA0]/40
-                   shadow-2xl shadow-[#6B3FA0]/20
+                   bg-[#111827]
+                   rounded-2xl border border-cyan-400/50
+                   shadow-2xl
                    animate-[slide-up_0.4s_ease-out]
                    overflow-hidden"
         role="dialog"
         aria-label={`NASA Fact: ${currentFact.title}`}
       >
         {/* Decorative top bar */}
-        <div className="h-1 bg-gradient-to-r from-[#3B82F6] via-[#6B3FA0] to-[#E87040]" />
+        <div className="h-1 bg-cyan-400" />
 
         <div className="p-5 space-y-4">
           {/* Category & icon */}
           <div className="flex items-center gap-2">
             <span className="text-3xl" aria-hidden="true">{icon}</span>
             <div>
-              <span className="text-xs text-[#6B3FA0] font-semibold uppercase tracking-widest">
+              <span className="text-xs text-cyan-400 font-semibold uppercase tracking-widest">
                 NASA Fact
               </span>
               <h3 className="text-lg font-bold text-[#F8FAFC] leading-snug">

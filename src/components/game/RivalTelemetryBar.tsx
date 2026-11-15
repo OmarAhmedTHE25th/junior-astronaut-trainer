@@ -241,7 +241,7 @@ export default function RivalTelemetryBar({
               playClick();
               setIsDrawerOpen((prev) => !prev);
             }}
-            className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-purple-900/60 to-rose-900/60 border border-purple-500/40 text-purple-200 font-bold hover:border-purple-400 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer shadow-md"
+            className="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-300/25 text-slate-100 font-bold hover:border-slate-300/50 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
           >
             <span className="text-amber-300">⚡</span>
             <span>Electronic Warfare</span>

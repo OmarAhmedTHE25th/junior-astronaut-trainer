@@ -54,7 +54,7 @@ function CommanderProfileContent({
       ) : profile ? (
         <>
           {/* ── COMMANDER PROFILE HEADER CARD ── */}
-          <div className="p-6 rounded-3xl bg-gradient-to-r from-[#121633] via-[#1a1f3d] to-[#0c0f24] border-2 border-amber-400/50 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="p-6 rounded-3xl bg-[#111827] border border-slate-700/80 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-4">
               <div
                 className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl shadow-xl border border-white/15"

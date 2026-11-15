@@ -265,8 +265,8 @@ export default function EndScreen() {
         <div
           className={`
             relative z-10 w-full max-w-xl text-center
-            bg-gradient-to-b from-[#1a1f3d] to-[#0B1026]
-            rounded-3xl border-2
+            bg-[#0F172A]
+            rounded-3xl border
             ${isVictory ? 'border-[#22C55E]/60 shadow-[#22C55E]/20' : 'border-[#EF4444]/60 shadow-[#EF4444]/20'}
             shadow-2xl p-6 sm:p-8
             animate-[slide-up_0.4s_ease-out] max-h-[90vh] overflow-y-auto
@@ -333,7 +333,7 @@ export default function EndScreen() {
             )}
 
             {/* Mars Colony Economy & Companion Pet Rewards Banner */}
-            <div className="mt-4 w-full p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/70 via-[#141b3d] to-purple-950/70 border border-emerald-500/40 flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-left">
+            <div className="mt-4 w-full p-3.5 rounded-2xl bg-[#111827] border border-emerald-500/40 flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-left">
               <div className="flex items-center gap-2.5">
                 <span className="text-2xl p-1 rounded-xl bg-emerald-500/20 border border-emerald-400/30">💰</span>
                 <div>
@@ -364,7 +364,7 @@ export default function EndScreen() {
 
           {/* Squad Race Mission Podium (if in Squad Mode) */}
           {state.squadCode && (
-            <div className="mb-6 text-left p-4 rounded-2xl bg-gradient-to-b from-[#1e1b4b]/80 to-[#0f172a]/90 border-2 border-purple-500/40 shadow-lg">
+            <div className="mb-6 text-left p-4 rounded-2xl bg-[#111827] border border-slate-700/80 shadow-lg">
               <div className="flex items-center justify-between mb-3 border-b border-purple-500/20 pb-2">
                 <span className="text-xs font-mono font-extrabold text-purple-300 uppercase tracking-wider flex items-center gap-1.5">
                   <span>🏁</span> Competitive Squad Mission Podium
@@ -477,7 +477,7 @@ export default function EndScreen() {
               <div
                 id="mars-certificate"
                 className={`
-                  p-6 rounded-2xl border-2 border-amber-400/40 bg-gradient-to-b from-[#1a1f3d] to-[#0d1226]
+                  p-6 rounded-2xl border border-amber-400/40 bg-[#111827]
                   text-white shadow-xl relative overflow-hidden
                   ${showCertificateView ? 'block' : 'hidden sm:block'}
                 `}

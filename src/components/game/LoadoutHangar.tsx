@@ -52,7 +52,7 @@ export default function LoadoutHangar({
   return (
     <div className="space-y-6 font-mono">
       {/* ── TOP RANK CREST & ELO BAR ── */}
-      <div className="p-4 rounded-2xl bg-gradient-to-r from-[#121633] via-[#1a1f3d] to-[#0d1127] border border-amber-400/40 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="p-4 rounded-2xl bg-[#111827] border border-cyan-500/40 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <div
             className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow-lg border border-white/10"
@@ -254,9 +254,9 @@ export default function LoadoutHangar({
               onSaveLoadout?.();
             }}
             className="
-              flex-1 w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600
-              hover:opacity-95 text-white font-heading font-extrabold text-base tracking-wider uppercase
-              shadow-xl shadow-emerald-500/25 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2
+              flex-1 w-full py-4 rounded-2xl bg-cyan-400 hover:bg-cyan-300
+              text-slate-950 font-heading font-extrabold text-base tracking-wider uppercase
+              shadow-sm border border-cyan-200 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2
             "
           >
             <span className="text-lg">✓</span>
@@ -271,10 +271,10 @@ export default function LoadoutHangar({
                 onOpenBattleRoyale();
               }}
               className="
-                w-full sm:w-auto px-6 py-4 rounded-2xl bg-[#141b3d] hover:bg-[#1f285a]
-                border border-red-500/40 hover:border-red-400 text-red-200
+                w-full sm:w-auto px-6 py-4 rounded-2xl bg-slate-800/90 hover:bg-slate-700
+                border border-slate-300/25 hover:border-slate-300/50 text-slate-100
                 font-heading font-extrabold text-sm tracking-wider uppercase
-                shadow-lg shadow-red-500/10 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2
+                shadow-sm active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2
               "
             >
               <span className="text-lg">🪂</span>
@@ -291,9 +291,9 @@ export default function LoadoutHangar({
             onQueueBattleRoyale?.();
           }}
           className="
-            w-full py-4 rounded-2xl bg-gradient-to-r from-red-600 via-orange-600 to-purple-600
-            hover:opacity-95 text-white font-heading font-extrabold text-base tracking-wider uppercase
-            shadow-xl shadow-red-500/25 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2
+            w-full py-4 rounded-2xl bg-rose-600 hover:bg-rose-500
+            text-white font-heading font-extrabold text-base tracking-wider uppercase
+            shadow-sm border border-rose-400 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2
           "
         >
           <span className="text-xl animate-bounce">🪂</span>

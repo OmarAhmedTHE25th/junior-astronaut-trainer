@@ -5,7 +5,7 @@ import { GameProvider } from "@/components/game/GameProvider";
 import GameBoard from "@/components/game/GameBoard";
 import type { Difficulty, GameState, LandingSiteId } from "@/lib/types";
 import { SPECIALTY_METAS } from "@/lib/types";
-import { useProfile, getOrCreateCadetProfile } from "@/lib/profile";
+import { useProfile, getOrCreateCadetProfile, DEFAULT_PROFILE } from "@/lib/profile";
 import { playClick, playAction } from "@/lib/sound";
 import MarsGlobeSelector from "@/components/game/MarsGlobeSelector";
 
@@ -47,17 +47,14 @@ export default function GamePage() {
     rivalCallsign?: string;
     rivalAvatar?: string;
   } | null>(null);
+  const [mounted, setMounted] = useState(false);
 
-  const activeCadet =
-    isLoaded && profile.cadetId !== 'cadet-nova-01'
-      ? profile
-      : typeof window !== 'undefined'
-      ? getOrCreateCadetProfile()
-      : profile;
+  const activeCadet = mounted && isLoaded ? profile : DEFAULT_PROFILE;
 
   const activeSpecialty = SPECIALTY_METAS.find((s) => s.id === (activeCadet.specialty || 'commander'));
 
   useEffect(() => {
+    setMounted(true);
     try {
       const search = window.location.search;
       const params = new URLSearchParams(search);
@@ -230,9 +227,9 @@ export default function GamePage() {
                     setLaunched(true);
                   }}
                   className="
-                    px-6 py-3 rounded-xl bg-gradient-to-r from-[#E87040] to-[#6B3FA0]
-                    text-white font-bold text-sm hover:scale-105 active:scale-95 transition-all
-                    cursor-pointer shadow-lg shadow-[#E87040]/20 flex-shrink-0 min-h-[44px]
+                    px-6 py-3 rounded-xl bg-cyan-400 hover:bg-cyan-300 border border-cyan-200
+                    text-slate-950 font-extrabold text-sm hover:scale-105 active:scale-95 transition-all
+                    cursor-pointer shadow-sm flex-shrink-0 min-h-[44px]
                   "
                 >
                   ▶️ Resume Mission
@@ -370,12 +367,12 @@ export default function GamePage() {
                 className="
                   inline-flex items-center gap-3
                   px-10 py-4 rounded-2xl
-                  bg-gradient-to-r from-mars-orange to-cosmic-purple
-                  text-white font-heading font-bold text-xl
+                  bg-cyan-400 hover:bg-cyan-300 border border-cyan-200
+                  text-slate-950 font-heading font-extrabold text-xl
                   animate-glow-pulse hover:scale-105
                   transition-transform duration-200
-                  focus:outline-none focus:ring-4 focus:ring-mars-orange/50
-                  cursor-pointer
+                  focus:outline-none focus:ring-4 focus:ring-cyan-400/50
+                  cursor-pointer shadow-md
                 "
               >
                 Launch New Mission

@@ -300,7 +300,7 @@ export default function MarsMarketplace({ isOpen, onClose }: MarsMarketplaceProp
           </div>
 
           {/* Player Credits Wallet Pill */}
-          <div className="flex items-center gap-3 bg-gradient-to-r from-amber-500/20 to-purple-600/20 border border-amber-400/50 px-4 py-2 rounded-xl flex-shrink-0">
+          <div className="flex items-center gap-3 bg-[#111827] border border-amber-400/50 px-4 py-2 rounded-xl flex-shrink-0">
             <div className="text-right">
               <span className="text-[10px] font-mono text-amber-300 block uppercase">
                 Cadet Credit Balance
@@ -501,7 +501,7 @@ export default function MarsMarketplace({ isOpen, onClose }: MarsMarketplaceProp
                               px-3.5 py-1.5 rounded-xl font-bold font-mono text-xs transition-all cursor-pointer whitespace-nowrap
                               ${
                                 canAfford
-                                  ? 'bg-gradient-to-r from-emerald-500 to-cyan-600 hover:from-emerald-400 hover:to-cyan-500 text-white shadow-md'
+                                  ? 'bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-extrabold border border-cyan-200 shadow-sm'
                                   : 'bg-white/10 text-white/30 cursor-not-allowed'
                               }
                             `}
@@ -676,7 +676,7 @@ export default function MarsMarketplace({ isOpen, onClose }: MarsMarketplaceProp
 
               <button
                 type="submit"
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-600 hover:opacity-95 text-white font-heading font-extrabold text-sm tracking-wider uppercase transition-all shadow-lg shadow-purple-500/20 cursor-pointer"
+                className="w-full py-3 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-heading font-extrabold text-sm tracking-wider uppercase transition-all shadow-sm border border-cyan-200 cursor-pointer"
               >
                 🔒 Lock in Escrow &amp; Publish Listing
               </button>

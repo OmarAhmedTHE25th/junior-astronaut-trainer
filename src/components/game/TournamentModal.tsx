@@ -403,7 +403,7 @@ export default function TournamentModal({ isOpen, onClose }: TournamentModalProp
                         <button
                           type="button"
                           onClick={() => handleJoin(t.id)}
-                          className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-mono font-bold text-xs hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                          className="px-3.5 py-2 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-mono font-bold text-xs border border-cyan-200 active:scale-95 transition-all cursor-pointer shadow-sm"
                         >
                           Register ✍️
                         </button>
@@ -499,9 +499,9 @@ export default function TournamentModal({ isOpen, onClose }: TournamentModalProp
               type="submit"
               disabled={isLoading}
               className="
-                w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 via-purple-600 to-cyan-500
-                hover:opacity-95 text-white font-heading font-extrabold text-sm uppercase tracking-wider
-                shadow-xl shadow-purple-500/20 active:scale-95 transition-all cursor-pointer
+                w-full py-3.5 rounded-xl bg-cyan-400 hover:bg-cyan-300
+                text-slate-950 font-heading font-extrabold text-sm uppercase tracking-wider
+                shadow-sm border border-cyan-200 active:scale-95 transition-all cursor-pointer
               "
             >
               {isLoading ? 'Creating Bracket...' : '🏆 Create & Open Registration'}

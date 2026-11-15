@@ -12,9 +12,9 @@ interface ModalProps {
 }
 
 const borderColors: Record<string, string> = {
-  default: 'border-[#6B3FA0]/50',
-  danger: 'border-[#EF4444]/50',
-  success: 'border-[#22C55E]/50',
+  default: 'border-slate-300/25',
+  danger: 'border-rose-500/50',
+  success: 'border-emerald-500/50',
 };
 
 export default function Modal({
@@ -58,7 +58,7 @@ export default function Modal({
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-[#0B1026]/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-[#090D16]/85 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -67,20 +67,20 @@ export default function Modal({
       <div
         className={`
           relative z-10 w-full ${maxWidth} max-h-[88vh] overflow-y-auto
-          bg-gradient-to-b from-[#1a1f3d] to-[#0B1026]
-          rounded-2xl border-2 ${borderColors[variant]}
+          bg-[#0F172A]
+          rounded-2xl border ${borderColors[variant]}
           shadow-2xl
           animate-[slide-up_0.3s_ease-out]
         `}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
-          <h2 className="text-xl font-bold text-[#F8FAFC]">{title}</h2>
+        <div className="flex items-center justify-between p-4 border-b border-slate-700/60">
+          <h2 className="text-xl font-bold text-white tracking-wide">{title}</h2>
           <button
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center rounded-lg
-                       text-[#F8FAFC]/60 hover:text-[#F8FAFC] hover:bg-white/10
-                       transition-colors focus:outline-none focus:ring-2 focus:ring-[#6B3FA0]"
+                       text-slate-400 hover:text-white hover:bg-slate-800
+                       transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-400 cursor-pointer"
             aria-label="Close dialog"
           >
             ✕

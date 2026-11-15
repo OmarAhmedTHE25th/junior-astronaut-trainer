@@ -105,8 +105,8 @@ export default function LeaderboardModal({
                   px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer min-h-[44px]
                   ${
                     isSelected
-                      ? 'bg-gradient-to-r from-[#E87040] to-[#6B3FA0] text-white shadow-md'
-                      : 'bg-[#1a1f3d] text-[#F8FAFC]/60 hover:text-white'
+                      ? 'bg-cyan-400/15 border border-cyan-400 text-cyan-300 font-bold shadow-md'
+                      : 'bg-slate-800/90 border border-slate-700 text-slate-400 hover:text-white'
                   }
                 `}
               >
