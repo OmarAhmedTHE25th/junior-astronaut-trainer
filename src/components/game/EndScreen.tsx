@@ -195,7 +195,7 @@ export default function EndScreen() {
     return () => clearInterval(interval);
   }, [state.squadCode]);
 
-  const handlePlayAgain = async () => {
+  const handlePlayAgain = () => {
     try {
       localStorage.removeItem('jat_active_save_v1');
     } catch {}
@@ -206,15 +206,10 @@ export default function EndScreen() {
       (typeof window !== 'undefined' ? getOrCreateCadetProfile().cadetId : undefined);
 
     if (activeCadetId) {
-      try {
-        await Promise.race([
-          fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
-            method: 'DELETE',
-            keepalive: true,
-          }),
-          new Promise((resolve) => setTimeout(resolve, 800)),
-        ]);
-      } catch {}
+      fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
+        method: 'DELETE',
+        keepalive: true,
+      }).catch(() => {});
     }
 
     try {
@@ -224,7 +219,7 @@ export default function EndScreen() {
     dispatch({ type: 'RESTART' });
   };
 
-  const handleReturnToCommandCenter = async () => {
+  const handleReturnToCommandCenter = () => {
     try {
       localStorage.removeItem('jat_active_save_v1');
     } catch {}
@@ -235,23 +230,17 @@ export default function EndScreen() {
       (typeof window !== 'undefined' ? getOrCreateCadetProfile().cadetId : undefined);
 
     if (activeCadetId) {
-      try {
-        await Promise.race([
-          fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
-            method: 'DELETE',
-            keepalive: true,
-          }),
-          new Promise((resolve) => setTimeout(resolve, 800)),
-        ]);
-      } catch {}
+      fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
+        method: 'DELETE',
+        keepalive: true,
+      }).catch(() => {});
     }
 
     try {
       localStorage.removeItem('jat_active_save_v1');
     } catch {}
 
-    dispatch({ type: 'RESET' });
-    router.push('/');
+    window.location.assign('/');
   };
 
   const handlePrint = () => {

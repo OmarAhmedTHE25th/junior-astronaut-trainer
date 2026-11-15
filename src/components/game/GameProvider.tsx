@@ -306,6 +306,10 @@ export function GameProvider({
 
     if (!activeCadetId) return;
 
+    // Guard: Never write to jat_active_save_v1 on Sol 1 before the player has actually taken an action
+    const hasMissionStarted = state.sol > 1 || (state.log && state.log.length > 0);
+    if (!hasMissionStarted) return;
+
     if (
       (state.phase === 'action' || state.phase === 'event') &&
       state.power > 0 &&

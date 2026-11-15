@@ -20,7 +20,8 @@ export default function PauseMenu({ isOpen, onClose, onChangeDifficulty }: Pause
   const { isMuted, toggleSound, playClick } = useSound();
   const [activeTab, setActiveTab] = useState<'menu' | 'rules' | 'science'>('menu');
 
-  const purgeActiveSave = async () => {
+  const handleRestart = () => {
+    playClick();
     try {
       localStorage.removeItem('jat_active_save_v1');
     } catch {}
@@ -28,32 +29,29 @@ export default function PauseMenu({ isOpen, onClose, onChangeDifficulty }: Pause
       state.cadetId ||
       (typeof window !== 'undefined' ? getOrCreateCadetProfile().cadetId : undefined);
     if (activeCadetId) {
-      try {
-        await Promise.race([
-          fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
-            method: 'DELETE',
-            keepalive: true,
-          }),
-          new Promise((resolve) => setTimeout(resolve, 800)),
-        ]);
-      } catch {}
+      fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
+        method: 'DELETE',
+        keepalive: true,
+      }).catch(() => {});
     }
-    try {
-      localStorage.removeItem('jat_active_save_v1');
-    } catch {}
-  };
-
-  const handleRestart = async () => {
-    playClick();
-    await purgeActiveSave();
     dispatch({ type: 'RESTART' });
     onClose();
   };
 
-  const handleChangeDifficulty = async () => {
+  const handleChangeDifficulty = () => {
     playClick();
-    dispatch({ type: 'ABORT_MISSION' });
-    await purgeActiveSave();
+    try {
+      localStorage.removeItem('jat_active_save_v1');
+    } catch {}
+    const activeCadetId =
+      state.cadetId ||
+      (typeof window !== 'undefined' ? getOrCreateCadetProfile().cadetId : undefined);
+    if (activeCadetId) {
+      fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
+        method: 'DELETE',
+        keepalive: true,
+      }).catch(() => {});
+    }
     onClose();
     if (onChangeDifficulty) {
       onChangeDifficulty();
@@ -62,12 +60,22 @@ export default function PauseMenu({ isOpen, onClose, onChangeDifficulty }: Pause
     }
   };
 
-  const handleExitToMainMenu = async (e: React.MouseEvent) => {
+  const handleExitToMainMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     playClick();
-    dispatch({ type: 'ABORT_MISSION' });
-    await purgeActiveSave();
-    router.push('/');
+    try {
+      localStorage.removeItem('jat_active_save_v1');
+    } catch {}
+    const activeCadetId =
+      state.cadetId ||
+      (typeof window !== 'undefined' ? getOrCreateCadetProfile().cadetId : undefined);
+    if (activeCadetId) {
+      fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
+        method: 'DELETE',
+        keepalive: true,
+      }).catch(() => {});
+    }
+    window.location.href = '/';
   };
 
   return (
