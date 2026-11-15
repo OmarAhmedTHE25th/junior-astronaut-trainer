@@ -8,6 +8,7 @@ interface ModalProps {
   title: string;
   children: React.ReactNode;
   variant?: 'default' | 'danger' | 'success';
+  maxWidth?: string;
 }
 
 const borderColors: Record<string, string> = {
@@ -22,6 +23,7 @@ export default function Modal({
   title,
   children,
   variant = 'default',
+  maxWidth = 'max-w-lg',
 }: ModalProps) {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -64,7 +66,7 @@ export default function Modal({
       {/* Panel */}
       <div
         className={`
-          relative z-10 w-full max-w-lg max-h-[85vh] overflow-y-auto
+          relative z-10 w-full ${maxWidth} max-h-[88vh] overflow-y-auto
           bg-gradient-to-b from-[#1a1f3d] to-[#0B1026]
           rounded-2xl border-2 ${borderColors[variant]}
           shadow-2xl

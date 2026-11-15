@@ -13,9 +13,10 @@ import type { LandingSiteId, SquadRoom } from '@/lib/types';
 interface SquadRaceModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialJoinCode?: string;
 }
 
-export default function SquadRaceModal({ isOpen, onClose }: SquadRaceModalProps) {
+export default function SquadRaceModal({ isOpen, onClose, initialJoinCode }: SquadRaceModalProps) {
   const router = useRouter();
   const { playClick, playAction, playSuccess, playAlert } = useSound();
   const { profile, isLoaded } = useProfile();
@@ -45,6 +46,14 @@ export default function SquadRaceModal({ isOpen, onClose }: SquadRaceModalProps)
       setCallsign(activeCadet.callsign);
     }
   }, [activeCadet.callsign]);
+
+  // Pre-fill private room code if provided
+  useEffect(() => {
+    if (initialJoinCode) {
+      setTab('join');
+      setJoinCode(initialJoinCode.toUpperCase());
+    }
+  }, [initialJoinCode]);
 
   // Clean up poll timer on unmount or modal close
   useEffect(() => {
