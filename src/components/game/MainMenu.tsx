@@ -245,11 +245,11 @@ export default function MainMenu() {
               transition-all hover:scale-105 active:scale-95 cursor-pointer
               shadow-sm min-h-[40px] text-xs font-mono
             "
-            title="Mars Exchange & Commodity Market"
+            title="Colony Supply Store & Outpost Inventory"
           >
             <span className="text-emerald-400 font-extrabold">💰 {walletCredits.toLocaleString()} MC</span>
             <span className="text-[10px] uppercase font-bold text-emerald-300/80 bg-emerald-500/20 px-1.5 py-0.5 rounded border border-emerald-500/30">
-              Exchange →
+              Store &amp; Gear →
             </span>
           </button>
 

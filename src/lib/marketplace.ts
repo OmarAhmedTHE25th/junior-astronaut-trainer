@@ -940,3 +940,194 @@ export async function deductPlayerCredits(
   wallet.updatedAt = new Date().toISOString();
   return { success: true, remainingCredits: wallet.creditsBalance };
 }
+
+/**
+ * 11. Execute Direct Supply Store Purchase (Colony Store Direct Stock)
+ * Atomically deducts basePrice * quantity from player wallet and upserts into inventory.
+ */
+export async function executeStorePurchase(options: {
+  playerId: string;
+  itemSlug: string;
+  quantity: number;
+}): Promise<{
+  success: boolean;
+  remainingCredits: number;
+  newInventoryQuantity: number;
+  totalCost: number;
+  itemSlug: string;
+}> {
+  const { playerId, itemSlug, quantity } = options;
+
+  if (quantity <= 0 || !Number.isInteger(quantity)) {
+    throw new Error('Purchase quantity must be a positive integer');
+  }
+
+  const itemDef = CATALOG_ITEMS[itemSlug];
+  if (!itemDef) {
+    throw new Error(`Item ${itemSlug} not found in colony catalog`);
+  }
+
+  const totalCost = itemDef.basePrice * quantity;
+  const sql = await getSqlClient();
+
+  if (sql) {
+    // 1. Ensure wallet exists and check balance
+    await getPlayerWallet(playerId);
+
+    const updatedWallets = await sql`
+      UPDATE player_wallets
+      SET credits_balance = credits_balance - ${totalCost}, updated_at = NOW()
+      WHERE player_id = ${playerId} AND credits_balance >= ${totalCost}
+      RETURNING credits_balance;
+    `;
+
+    if (!updatedWallets || updatedWallets.length === 0) {
+      const currentWallet = await getPlayerWallet(playerId);
+      throw new Error(
+        `Insufficient Mars Credits: required ${totalCost} MC, available ${currentWallet.creditsBalance} MC`
+      );
+    }
+
+    // 2. Upsert bought quantity into inventory
+    const invId = `inv-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const updatedInv = await sql`
+      INSERT INTO player_inventory (id, player_id, item_slug, item_name, category, quantity)
+      VALUES (${invId}, ${playerId}, ${itemDef.slug}, ${itemDef.name}, ${itemDef.category}, ${quantity})
+      ON CONFLICT (player_id, item_slug)
+      DO UPDATE SET quantity = player_inventory.quantity + EXCLUDED.quantity
+      RETURNING quantity;
+    `;
+
+    return {
+      success: true,
+      remainingCredits: updatedWallets[0].credits_balance,
+      newInventoryQuantity: updatedInv[0].quantity,
+      totalCost,
+      itemSlug,
+    };
+  }
+
+  // Memory fallback
+  const mem = getMemoryStore();
+  const wallet = await getPlayerWallet(playerId);
+
+  if (wallet.creditsBalance < totalCost) {
+    throw new Error(
+      `Insufficient Mars Credits: required ${totalCost} MC, available ${wallet.creditsBalance} MC`
+    );
+  }
+
+  wallet.creditsBalance -= totalCost;
+  wallet.updatedAt = new Date().toISOString();
+
+  let playerItems = mem.inventory.get(playerId);
+  if (!playerItems) {
+    playerItems = new Map();
+    mem.inventory.set(playerId, playerItems);
+  }
+
+  const existing = playerItems.get(itemSlug);
+  const newQty = (existing ? existing.quantity : 0) + quantity;
+
+  playerItems.set(itemSlug, {
+    id: existing ? existing.id : `inv-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    playerId,
+    itemSlug: itemDef.slug,
+    itemName: itemDef.name,
+    category: itemDef.category,
+    quantity: newQty,
+    icon: itemDef.icon,
+  });
+
+  return {
+    success: true,
+    remainingCredits: wallet.creditsBalance,
+    newInventoryQuantity: newQty,
+    totalCost,
+    itemSlug,
+  };
+}
+
+/**
+ * 12. Execute Recycle Item for Credits (60% instant refund)
+ * Atomically deducts quantity from player inventory and refunds credits.
+ */
+export async function executeRecycleItem(options: {
+  playerId: string;
+  itemSlug: string;
+  quantity: number;
+}): Promise<{
+  success: boolean;
+  refundCredits: number;
+  remainingCredits: number;
+  remainingInventoryQuantity: number;
+  itemSlug: string;
+}> {
+  const { playerId, itemSlug, quantity } = options;
+
+  if (quantity <= 0 || !Number.isInteger(quantity)) {
+    throw new Error('Recycle quantity must be a positive integer');
+  }
+
+  const itemDef = CATALOG_ITEMS[itemSlug];
+  if (!itemDef) {
+    throw new Error(`Item ${itemSlug} not found in colony catalog`);
+  }
+
+  const refundPerUnit = Math.max(1, Math.floor(itemDef.basePrice * 0.6));
+  const totalRefund = refundPerUnit * quantity;
+  const sql = await getSqlClient();
+
+  if (sql) {
+    // 1. Check & deduct inventory
+    const updatedInv = await sql`
+      UPDATE player_inventory
+      SET quantity = quantity - ${quantity}
+      WHERE player_id = ${playerId} AND item_slug = ${itemSlug} AND quantity >= ${quantity}
+      RETURNING quantity;
+    `;
+
+    if (!updatedInv || updatedInv.length === 0) {
+      throw new Error(`Insufficient inventory to recycle (requested ${quantity}x)`);
+    }
+
+    // 2. Refund credits to wallet
+    const updatedWallets = await sql`
+      INSERT INTO player_wallets (player_id, credits_balance, updated_at)
+      VALUES (${playerId}, ${totalRefund}, NOW())
+      ON CONFLICT (player_id)
+      DO UPDATE SET credits_balance = player_wallets.credits_balance + ${totalRefund}, updated_at = NOW()
+      RETURNING credits_balance;
+    `;
+
+    return {
+      success: true,
+      refundCredits: totalRefund,
+      remainingCredits: updatedWallets[0].credits_balance,
+      remainingInventoryQuantity: updatedInv[0].quantity,
+      itemSlug,
+    };
+  }
+
+  // Memory fallback
+  const mem = getMemoryStore();
+  const playerItems = mem.inventory.get(playerId);
+  const existing = playerItems ? playerItems.get(itemSlug) : null;
+
+  if (!existing || existing.quantity < quantity) {
+    throw new Error(`Insufficient inventory to recycle (requested ${quantity}x)`);
+  }
+
+  existing.quantity -= quantity;
+  const wallet = await getPlayerWallet(playerId);
+  wallet.creditsBalance += totalRefund;
+  wallet.updatedAt = new Date().toISOString();
+
+  return {
+    success: true,
+    refundCredits: totalRefund,
+    remainingCredits: wallet.creditsBalance,
+    remainingInventoryQuantity: existing.quantity,
+    itemSlug,
+  };
+}
