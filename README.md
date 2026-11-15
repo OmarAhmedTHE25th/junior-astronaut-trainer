@@ -5,9 +5,10 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.3.3-38bdf8?logo=tailwindcss)](https://tailwindcss.com/)
 [![Neon Postgres](https://img.shields.io/badge/Neon-Serverless_Postgres-00E599?logo=postgresql)](https://neon.tech/)
+[![Stripe](https://img.shields.io/badge/Stripe-Hosted_Checkout-635BFF?logo=stripe)](https://stripe.com/)
 [![NASA Space Apps 2026](https://img.shields.io/badge/NASA_Space_Apps-2026-E87040)](https://www.spaceappschallenge.org/2026/challenges/junior-astronaut-mission-trainer/)
 
-A deterministic, turn-based Mars outpost survival simulator built for the **NASA International Space Apps Challenge 2026: Junior Astronaut Mission Trainer** (in collaboration with NASA and the Canadian Space Agency).
+A deterministic, turn-based Mars outpost survival simulator, live-service economy, and competitive tactical platform built for the **NASA International Space Apps Challenge 2026: Junior Astronaut Mission Trainer** (in collaboration with NASA and the Canadian Space Agency).
 
 Players command a four-person Martian habitat across **30 sols**, balancing critical life-support telemetry (**Power**, **Oxygen**, **Radiation Shielding**, and **Crew Morale**) against real historical space weather events, radiation dose profiles, and space biology hazards derived from official NASA Open Data repositories.
 
@@ -17,13 +18,21 @@ Players command a four-person Martian habitat across **30 sols**, balancing crit
 
 - [Architectural Overview](#-architectural-overview)
 - [New Major Features & Engineering Upgrades](#-new-major-features--engineering-upgrades)
+- [Colony Supply Store & Outpost Logistics](#-colony-supply-store--outpost-logistics)
+- [Galactic Battle Pass & Five-Star General VIP System](#-galactic-battle-pass--five-star-general-vip-system)
+- [Orbital Supply Drops & Anti-Gambling Pity Protocol](#-orbital-supply-drops--anti-gambling-pity-protocol)
+- [Real Hosted Stripe Checkout Portal](#-real-hosted-stripe-checkout-portal)
+- [Tactical Operations Deck & Command Overrides](#-tactical-operations-deck--command-overrides)
+- [Companion Pet Hangar & Tactical Stim Boosts](#-companion-pet-hangar--tactical-stim-boosts)
+- [Electronic Warfare & PvP Sabotages](#-electronic-warfare--pvp-sabotages)
+- [Endless Survival Tournament & 16-Cadet Bracket](#-endless-survival-tournament--16-cadet-bracket)
+- [Single Cadet Dossier & GDPR Deep Account Erasure](#-single-cadet-dossier--gdpr-deep-account-erasure)
 - [Core Game Engine & State Machine](#-core-game-engine--state-machine)
-- [NASA & CSA Data Grounding](#-nasa--csa-data-grounding)
-- [Multi-Cadet Profiles & Astronaut Specialties](#-multi-cadet-profiles--astronaut-specialties)
 - [Dual-Tier Cloud & Local Storage Architecture](#-dual-tier-cloud--local-storage-architecture)
 - [Procedural Web Audio Sound Engine](#-procedural-web-audio-sound-engine)
+- [NASA & CSA Data Grounding](#-nasa--csa-data-grounding)
 - [Directory Structure](#-directory-structure)
-- [Getting Started](#-getting-started)
+- [Getting Started & Environment Configuration](#-getting-started--environment-configuration)
 - [Accessibility & UX Engineering](#-accessibility--ux-engineering)
 - [License & Attribution](#-license--attribution)
 
@@ -33,10 +42,10 @@ Players command a four-person Martian habitat across **30 sols**, balancing crit
 
 The codebase enforces a strict separation between **framework-agnostic domain logic** (`src/lib/`), **strongly typed empirical datasets** (`src/data/`), and the **reactive UI presentation layer** (`src/app/` & `src/components/`).
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                       Presentation Layer (src/components/)                  │
-│  MainMenu • HUD • ActionPanel • EventCard • MarsGlobeSelector • EndScreen   │
+│  MainMenu • HUD • ActionPanel • OperationsDeck • ColonyStore • EndScreen   │
 └──────────────────────────────────────┬──────────────────────────────────────┘
                                        │ Dispatches GameAction / Reads State
 ┌──────────────────────────────────────▼──────────────────────────────────────┐
@@ -46,12 +55,12 @@ The codebase enforces a strict separation between **framework-agnostic domain lo
                                        │ Pure Mathematical State Transitions
 ┌──────────────────────────────────────▼──────────────────────────────────────┐
 │                      Pure Domain Engine (src/lib/)                          │
-│     gameEngine.ts (FSM Reducer) • events.ts • constants.ts • types.ts       │
+│   gameEngine.ts • battlePass.ts • operationsDeck.ts • tournamentEngine.ts   │
 └──────────────────────────────────────┬──────────────────────────────────────┘
                                        │ Typed Synchronous Queries & APIs
 ┌──────────────────────────────────────▼──────────────────────────────────────┐
 │                     Data & Telemetry Layer (src/data/ & APIs)               │
-│  /api/nasa-live • /api/rover-photos • /api/image-proxy • Neon Postgres DB   │
+│  /api/nasa-live • /api/stripe/* • /api/market/* • Neon Serverless Postgres │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -84,22 +93,142 @@ The codebase enforces a strict separation between **framework-agnostic domain lo
 ### 5. 📜 Official Printable Mars Outpost Completion Certificate
 * **Post-Mission Certification (`EndScreen.tsx`):** Victorious commanders receive an official Mars Outpost Expedition Certificate displaying their callsign, avatar, specialty title, Sol 30 verification, career score, and the official Seal of Mars Base Alpha.
 * **Print & PDF Ready:** Features a print-optimized stylesheet for classroom diplomas and science fair presentations.
-* **Return to Command Center Button:** Enables one-click navigation back to the main menu without page reloads.
 
 ### 6. 🏁 Competitive Squad Mode (4-Cadet Synchronized Mars Race)
 * **Deterministic Synchronized Simulation:** Up to 4 cadets compete simultaneously on the same Mars landing zone and identical NASA DONKI solar weather seed.
 * **Mulberry32 Seeded PRNG:** Events, dust storms, and solar particle strikes are deterministically generated via `Mulberry32(seed + sol * 1337 + usedEvents * 31)`, ensuring all players encounter the exact same operational challenges without requiring heavy peer-to-peer state streaming.
 * **Resilient Offline/Flaky Wi-Fi Mesh:** Game simulation runs purely in local client memory. Telemetry syncs (`POST /api/squad` action `SYNC`) fire non-blockingly in the background with a 3.5-second timeout and silent catch, guaranteeing network lags never freeze the turn-based loop.
-* **Lobby & Room System (`SquadRaceModal.tsx`):** Create or join 6-character room codes (e.g., `UFWTHM`) with landing site selection, host controls, and automatic 1.5s lobby polling.
+* **Lobby & Room System (`SquadRaceModal.tsx`):** Create or join 6-character room codes with landing site selection, host controls, and automatic 1.5s lobby polling.
 * **Live In-Flight Standings Ribbon (`HUD.tsx`):** Live telemetry ribbon displays real-time ranking (`#1` to `#4`), cadet callsign, Sol progression, vital averages, and active survival badges.
-* **Squad Mission Podium (`EndScreen.tsx`):** Debrief screen displays the final Squad Race Podium ranking all 4 cadets by survival status, final scores, and outpost health.
 
 ### 7. ⏱️ Timed Crisis Mode (15s Decision Window & Rapid Response Bonuses)
 * **High-Stakes Decision Clock:** Optional mode available across both Solo Mission and Squad Race. Gives cadets a strict 15.0-second countdown on every Sol to evaluate telemetry and commit countermeasures.
 * **Dynamic Visual & Audio Warnings:** The HUD countdown clock transitions to warning amber below `6s`, pulsing emergency red below `3s`, with an audible countdown blip on critical seconds.
-* **Instant Loss on Timeout:** If the clock strikes `0.0s` before committing an action, life-support protocols suffer catastrophic failure, immediately ending the mission with a "Mission Failure: Decision Timeout" debrief.
+* **Instant Loss on Timeout:** If the clock strikes `0.0s` before committing an action, life-support protocols suffer catastrophic failure, immediately ending the mission.
 * **Rapid Response Speed Bonuses:** Fast decision-makers receive composite score bonuses (`Math.round(timeRemaining * 10)` pts) per Sol, logged into career credentials and synced to the Squad Leaderboard.
-* **Debrief & Certificate Integration:** Displays total mission duration (`MM:SS`) and accumulated Rapid Response Points on the post-mission summary screen.
+
+---
+
+## 🛒 Colony Supply Store & Outpost Logistics
+
+A dedicated full-screen tactical exchange accessible from the Command Center at `/store` (`src/components/game/ColonyStoreContent.tsx`):
+
+* **4 Unified Department Tabs:**
+  1. 📦 **Outpost Supply Store:** Tactical consumables, survival tech modules, radiation medicines, and companion drones with fixed Mars Credit (`MC`) pricing.
+  2. 🎖️ **Battle Pass & VIP:** Dual-track season progression, Tier level-up claims, and Five-Star General VIP upgrade portal.
+  3. 🎰 **Supply Drop Crates:** Standard, Elite, and Sovereign Vault orbital drops with real-time pity counter visualization.
+  4. 💳 **Economy & Recharges:** Real hosted Stripe checkout packs ($0.99–$4.99) for instant Mars Credit top-ups.
+* **Stat Boost Telemetry Previews:** Displays immediate life-support deltas (`+25 ⚡ Power`, `+30 🫁 Oxygen`, `+35 🛡️ Shielding`, `+20 💪 Morale`) for every consumable before purchase.
+* **Inventory Viewer & 60% Recycling Protocol (`/api/market/recycle`):** Inspect active items in your cargo bay, consume items directly for tactical preparation, or recycle surplus inventory to reclaim 60% of the item's baseline credit value.
+
+---
+
+## 🎖️ Galactic Battle Pass & Five-Star General VIP System
+
+Persistent seasonal progression system managed by `src/lib/battlePass.ts` with local storage (`jat_battlepass_v1`) and cloud synchronization:
+
+* **Dual-Track 10-Tier Seasonal Progression:**
+  * **Free Cadet Track:** Mars Credit payouts (100–300 MC), basic emergency consumables (`oxygen-canister`, `fuel-cell`, `hydroponic-rations`), and standard tech modules.
+  * **Five-Star General VIP Track:** Premium credit payouts (500–2,000 MC), rare technology modules (`rad-shielding`, `hull-plating`, `nanogel-infuser`), and exclusive military cosmetics.
+* **Automatic Mission XP Conversion:** Automatically awards Battle Pass XP on mission completion (`Math.max(100, Math.round(score * 0.25))` XP) with a guaranteed `+500 XP` Sol-30 survival completion bonus.
+* **Five-Star General VIP Entitlements:**
+  * ⭐ **VIP Commander Badge:** Golden badge with dynamic particle glow mounted on the Main Menu, HUD, and Leaderboards.
+  * 💰 **+25% Permanent Credit Boost:** Applies a +25% bonus to all mission debrief payouts and leaderboard rewards.
+  * 🛸 **Daily Free Sovereign Vault:** One complimentary Sovereign Vault orbital drop every 24 hours.
+  * 🔄 **3 Emergency Life-Support Retries:** When a vital hits 0% during critical mission phases, Five-Star Generals can trigger up to 3 emergency restarts (`retriesRemaining`) per mission to recover critical systems.
+
+---
+
+## 🎰 Orbital Supply Drops & Anti-Gambling Pity Protocol
+
+An ethical, transparent orbital supply drop system (`/api/market/open-crate/route.ts`) designed for educational and fair gameplay:
+
+* **3 Crate Tiers:**
+  * 📦 **Standard Drop (150 MC):** Balanced drop yielding common-to-rare life-support supplies and credits.
+  * 🔷 **Elite Pod (350 MC):** High-tier drop with enhanced rare/epic probabilities and a **100 MC automatic rebate** deposited directly to player wallet.
+  * 👑 **Sovereign Vault (750 MC):** Maximum drop tier with **2x loot yields**, highest Legendary probabilities, and 1 daily free drop for Five-Star General VIPs.
+* **Anti-Gambling Guaranteed Pity Counter (`jat_crate_pity_v1`):**
+  * Tracks opens since last Legendary item.
+  * **Hard Pity Guarantee:** Guarantees a top-tier **Legendary** item on every 5th open, completely preventing unfair streak losses.
+  * Clear visual progress meter in the UI showing `X/5 opens until guaranteed Legendary`.
+
+---
+
+## 💳 Real Hosted Stripe Checkout Portal
+
+Direct integration with Stripe Checkout (`src/app/api/stripe/checkout/route.ts`):
+
+* **Real Hosted Checkout (`checkout.stripe.com`):** Direct server-side redirect to Stripe's hosted payment portal. No simulated client-side sandbox bypasses.
+* **Curated Supply Packages:**
+  * **Cadet Rations:** 500 MC ($0.99)
+  * **Commander Supply Drop:** 1,200 MC ($1.99)
+  * **Outpost Mega Bundle:** 3,500 MC ($4.99)
+  * **Five-Star General Pass:** Lifetime VIP status + 1,000 MC ($4.99)
+* **Secure Fulfillments & Verification:** Returns customers back to `/store?payment=success&session_id={CHECKOUT_SESSION_ID}` with automatic credit crediting and toast notifications.
+* **Configured via `.env.local`:** Requires valid `STRIPE_SECRET_KEY` on the server; surfaces detailed diagnostic errors if misconfigured.
+
+---
+
+## 🃏 Tactical Operations Deck & Command Overrides
+
+Replaces static button actions with a dynamic 5-card operations deck (`src/components/game/OperationsDeck.tsx` & `src/lib/operationsDeck.ts`):
+
+* **Dynamic 5-Card Draw:** Hand draws 5 tactical operations from a 12-card balanced outpost operations deck each Sol.
+* **Emergency Tactical Re-Roll:** Once per sol, commanders can re-shuffle their hand to fish for critical life-support actions.
+* **Action Cooldowns:** High-impact operations (e.g., `Emergency Reactor Overcharge`, `Deep Core Oxygen Purge`) enforce cooldown turns to encourage strategic resource rotation.
+* **Command Overrides & Crisis Emergency Cards:** Automatically draws specialized countermeasure cards into the hand during high-priority space weather hazards.
+
+---
+
+## 🐾 Companion Pet Hangar & Tactical Stim Boosts
+
+Autonomous companions and synthetic stim boosters that enhance survival parameters (`src/components/game/PetHangarModal.tsx` & `src/components/game/LoadoutHangar.tsx`):
+
+* **4 Companion Pet Archetypes:**
+  * 🤖 **Rover-Bot Alpha:** Autonomous scout providing passive daily energy recovery and dust clearing.
+  * 🦎 **Martian Tardigrade:** Bio-engineered organism offering passive radiation resistance and bio-dome boosts.
+  * 🛰️ **Aero-Drone Echo:** Aerial scout providing early atmospheric hazard warnings and scouting bonuses.
+  * 🐕 **Robo-Canine Buster:** Morale-stabilizing robotic companion that mitigates isolation stress.
+* **Tactical Stim Loadouts:** Slot up to 2 active stims into your flight suit before launch (`Nanogel Infusion`, `Adrenaline Shot`, `Shield Booster`, `Oxygen Hyper-Filter`) to trigger passive shields and emergency health recovery.
+
+---
+
+## 📡 Electronic Warfare & PvP Sabotages
+
+Competitive disruption mechanics for multiplayer and squad race engagements (`src/lib/sabotageEngine.ts` & `/api/sabotage/*`):
+
+* **Tactical Electronic Countermeasures:**
+  * ⚡ **EMP Jam:** Temporarily scrambles a rival cadet's solar relays, reducing power generation for 2 sols.
+  * 📦 **Supply Intercept:** Redirects orbital supply drop telemetry to harvest bonus credits from rival sectors.
+  * 📡 **Comms Spoof:** Generates phantom hazard alarms on the target's radar, taxing their crew morale.
+  * ☀️ **Solar Blind:** Overloads external camera sensors during solar maximums.
+* **Anti-Cheat Validation:** Sabotage triggers and cooldowns are validated server-side to prevent client spoofing.
+
+---
+
+## 🏆 Endless Survival Tournament & 16-Cadet Bracket
+
+An automated 16-cadet single-elimination tournament engine (`src/lib/tournamentEngine.ts` & `src/components/game/TournamentModal.tsx`):
+
+* **16-Cadet Seeded Bracket:** Simulates a full competitive bracket with automated round progression across Round of 16, Quarterfinals, Semifinals, and Grand Championship.
+* **Dynamic AI Rival Simulation:** Simulates rival commanders based on their tactical specialty, survival stats, and risk-taking profiles.
+* **Endless Survival Scaling:** Sols scale past Sol 30 with exponentially escalating environmental decay for hardcore survivalists.
+
+---
+
+## 👨‍🚀 Single Cadet Dossier & GDPR Deep Account Erasure
+
+Streamlined, privacy-first astronaut identity management (`src/lib/profile.ts`, `src/lib/storageAdapter.ts`, `src/components/game/ProfileModal.tsx`):
+
+* **Zero-Friction Single Dossier:** No passwords, accounts, or emails required. Every player operates an active local cadet dossier with editable callsign (`e.g., CDR-NOVA-01`), avatar patch, and chosen astronaut specialty:
+  * 🔧 **Systems Engineer:** +20% power gained from solar panel operations.
+  * 🌱 **Astrobiologist:** +20% oxygen gained from greenhouse farming.
+  * 🛡️ **Shielding Physicist:** +25% shielding restored during shield boost protocols.
+  * 🎖️ **Mission Commander:** +5 crew morale preserved every sol.
+* **Complete GDPR & Classroom Privacy Deep Purge:**
+  * One-click **Delete Cadet Profile** button inside `ProfileModal.tsx`.
+  * **Full-Stack Deep Purge:** Calls `DELETE /api/profile?cadetId=...` which purges all server-side tables in Neon Postgres (`cadet_profiles`, `active_saves`, `leaderboard_entries`, `squad_rooms`, `player_wallets`, `player_inventory`).
+  * **Client Local Reset:** Calls `resetBattlePassState()`, purging `jat_profile_v1`, `jat_battlepass_v1`, `jat_crate_pity_v1`, `jat_active_save_v1`, `jat_equipped_pet_v1`, and all cached credentials, instantly refreshing the game into a pristine state.
 
 ---
 
@@ -107,7 +236,7 @@ The codebase enforces a strict separation between **framework-agnostic domain lo
 
 Each Martian day (**Sol**) executes a deterministic finite state machine managed by `gameReducer` in `src/lib/gameEngine.ts`:
 
-```
+```text
   [briefing] ──(START_MISSION)──▶ [action] ◀───────────────────────────┐
                                      │                                 │
                              (PERFORM_ACTION)                          │
@@ -122,12 +251,12 @@ Each Martian day (**Sol**) executes a deterministic finite state machine managed
                                      ▼                                 │
                           [applySolDepletion]                          │
                                      │                                 │
-                           [generateEvent roll]                        │
-                            ├──(hit)───▶ [event] ──(RESOLVE_EVENT)─────┤
-                            └──(miss)──▶ [ADVANCE_SOL] ────────────────┤
-                                              │                        │
-                                       (sol > 30) ──▶ [victory]        │
-                                              └────────────────────────┘
+                            [generateEvent roll]                        │
+                             ├──(hit)───▶ [event] ──(RESOLVE_EVENT)─────┤
+                             └──(miss)──▶ [ADVANCE_SOL] ────────────────┤
+                                               │                        │
+                                        (sol > 30) ──▶ [victory]        │
+                                               └────────────────────────┘
 ```
 
 ### Economy & Difficulty Scaling (`src/lib/constants.ts`)
@@ -139,23 +268,7 @@ Each Martian day (**Sol**) executes a deterministic finite state machine managed
 | **Mars Pioneer** | `1.4x` | `54%` (`0.45 * 1.2`) | `81%` (`1.5x`) | `2.0x` |
 
 * **Base Per-Sol Depletion:** `-8⚡ Power`, `-6🫁 Oxygen`, `-3🛡️ Shielding`, `-1💪 Morale` (modulated inversely by crew morale).
-* **Tactical Outpost Operations:** Players select 1 of 8 balanced actions per sol (`Run O₂ Generators`, `Boost Shields`, `Solar Panel Repair`, `Conserve Resources`, `Research Mission`, `Grow Food`, `Antenna Maintenance`, `Emergency Drill`).
-
----
-
-## 👨‍🚀 Multi-Cadet Profiles & Astronaut Specialties
-
-Built specifically for shared classroom laptops, Chromebooks, and science fair judging stations:
-
-* **Zero-Friction Authentication:** No passwords, emails, or accounts required. Generates an instant UUID with customizable callsigns (e.g. `CDR-NOVA-01`) and patch avatars (`🚀`, `🛸`, `🪐`, `🛰️`, `👨‍🚀`, `👩‍🚀`).
-* **Multi-Cadet Device Switcher:** Switch between active student profiles in one click or add new classmates on the same device.
-* **4 Astronaut Disciplines:**
-  * 🔧 **Systems Engineer:** +20% power gained from Solar Panel Cleaning.
-  * 🌱 **Astrobiologist:** +20% oxygen gained from Hydroponic Greenhouse farming.
-  * 🛡️ **Shielding Physicist:** +25% shielding restored during Shield Boost operations.
-  * 🎖️ **Mission Commander:** +5 crew morale preserved every sol.
-* **Career Honors & Badges:** Unlockable achievements including *Solar Storm Survivor*, *30-Sol Veteran*, *Master of Mars*, *Resource Conserver*, and *High Morale Officer*.
-* **Data Erasure & Privacy:** Instant one-click wipe of all local and cloud data to ensure GDPR and classroom privacy compliance.
+* **Tactical Outpost Operations:** 8 life-support operations (`Run O₂ Generators`, `Boost Shields`, `Solar Panel Repair`, `Conserve Resources`, `Research Mission`, `Grow Food`, `Antenna Maintenance`, `Emergency Drill`).
 
 ---
 
@@ -165,10 +278,10 @@ The storage adapter (`src/lib/storageAdapter.ts`) automatically detects its runt
 
 1. **Cloud Tier (Neon Serverless Postgres):**
    * Connects via `@neondatabase/serverless` using `DATABASE_URL` or `POSTGRES_URL`.
-   * Automatically provisions tables on cold start: `cadet_profiles`, `active_saves`, and indexed `leaderboard_entries`.
+   * Provisions tables automatically: `cadet_profiles`, `active_saves`, `leaderboard_entries`, `player_wallets`, `player_inventory`, and `squad_rooms`.
    * **Anti-Cheat Validation:** High scores submitted to the leaderboard are independently recalculated server-side from raw game vitals.
 2. **Local Fallback Tier (`localStorage`):**
-   * If database environment variables are not configured or the network drops, the application falls back seamlessly to browser storage (`jat_profile_v1`, `jat_active_save_v1`, `jat_cadet_roster_v1`).
+   * If database environment variables are not configured or network drops, the application falls back seamlessly to browser storage (`jat_profile_v1`, `jat_active_save_v1`, `jat_battlepass_v1`, `jat_crate_pity_v1`).
    * Guarantees 100% offline functionality with zero UI errors or setup friction.
 
 ---
@@ -202,49 +315,63 @@ junior-astronaut-trainer/
 ├── src/
 │   ├── app/
 │   │   ├── api/
-│   │   │   ├── image-proxy/route.ts    # Secure IPv4 image streaming proxy
-│   │   │   ├── leaderboard/route.ts    # Anti-cheat score verification & Neon ranking
-│   │   │   ├── nasa-live/route.ts      # 15-min ISR live DONKI solar flare ingestion
-│   │   │   ├── profile/route.ts        # Cloud cadet profile upsert & sync
-│   │   │   ├── rover-photos/route.ts   # Mars Rover photography API
-│   │   │   ├── save/route.ts           # Debounced cloud mission auto-save
-│   │   │   ├── squad/route.ts          # Squad race room creation, joining & live telemetry sync
-│   │   │   └── squad/[code]/route.ts   # Squad room state & sorted leaderboard query
-│   │   ├── game/page.tsx               # Briefing, 3D Mars globe & GameProvider mount
-│   │   ├── globals.css                 # Tailwind v4 theme tokens & animations
-│   │   ├── layout.tsx                  # Root layout with typography & metadata
-│   │   └── page.tsx                    # Command Center Main Menu & status ticker
+│   │   │   ├── image-proxy/route.ts       # Secure IPv4 image streaming proxy
+│   │   │   ├── leaderboard/route.ts       # Anti-cheat score verification & Neon ranking
+│   │   │   ├── market/                    # Store purchases, crates, wallet, recycling
+│   │   │   │   ├── open-crate/route.ts    # Orbital drop opening with pity counter
+│   │   │   │   ├── recycle/route.ts       # 60% credit recycling protocol
+│   │   │   │   └── wallet/route.ts        # Player Mars Credit balance sync
+│   │   │   ├── nasa-live/route.ts         # 15-min ISR live DONKI solar flare ingestion
+│   │   │   ├── pets/route.ts              # Companion drone & pet equipment sync
+│   │   │   ├── profile/route.ts           # Cloud cadet dossier sync & deep purge
+│   │   │   ├── rover-photos/route.ts      # Mars Rover photography API
+│   │   │   ├── sabotage/route.ts          # PvP electronic warfare triggers
+│   │   │   ├── save/route.ts              # Cloud mission auto-save & purge
+│   │   │   ├── squad/route.ts             # 4-cadet race lobby & telemetry sync
+│   │   │   ├── stripe/                    # Hosted Stripe checkout & webhooks
+│   │   │   │   ├── checkout/route.ts      # Real hosted checkout portal redirect
+│   │   │   │   └── webhook/route.ts       # Stripe webhook payment fulfillment
+│   │   │   └── tournaments/route.ts       # 16-cadet bracket match coordinator
+│   │   ├── game/page.tsx                  # Mission runner, 3D Mars globe & GameProvider
+│   │   ├── store/page.tsx                 # Full-screen Colony Supply Store & Outpost Logistics
+│   │   ├── globals.css                    # Tailwind v4 theme tokens & animations
+│   │   ├── layout.tsx                     # Root layout with typography & metadata
+│   │   └── page.tsx                       # Command Center Main Menu & status ticker
 │   ├── components/
 │   │   ├── game/
-│   │   │   ├── ActionPanel.tsx         # 8-action tactical life-support controls
-│   │   │   ├── EndScreen.tsx           # Mission debrief, telemetry curve & printable certificate
-│   │   │   ├── EventCard.tsx           # Space weather alert dialog & countermeasures
-│   │   │   ├── GameBoard.tsx           # Outpost layout & phase coordinator
-│   │   │   ├── GameProvider.tsx        # React Context + useReducer state bridge
-│   │   │   ├── HUD.tsx                 # Vital gauges, Sol counter & Telemetry button
-│   │   │   ├── LeaderboardModal.tsx    # Top 25 verified global cadet rankings
-│   │   │   ├── LiveTelemetryTicker.tsx # Marquee NASA solar weather bar & dossier modal
-│   │   │   ├── MainMenu.tsx            # Command Center portal & station navigation
-│   │   │   ├── MarsGlobeSelector.tsx   # Interactive HTML5 3D Martian landing globe
-│   │   │   ├── ProfileModal.tsx        # Multi-cadet switcher, callsigns & badges
-│   │   │   ├── RoverGalleryModal.tsx   # NASA Mars rover photo gallery & photo inspector
-│   │   │   ├── SquadRaceModal.tsx      # Competitive 4-cadet lobby, codes & launch coordination
-│   │   │   ├── TelemetryChart.tsx      # Pure SVG multi-series vital analytics curves
-│   │   │   └── NASAFactPopup.tsx       # Educational inter-sol micro-learning dialog
+│   │   │   ├── ActionPanel.tsx            # Outpost life-support operation controls
+│   │   │   ├── ColonyStoreContent.tsx     # 4-tab Colony Store, VIP & Crates UI
+│   │   │   ├── EndScreen.tsx              # Mission debrief, telemetry curve & certificate
+│   │   │   ├── EventCard.tsx              # Space weather alert dialog & countermeasures
+│   │   │   ├── GameBoard.tsx              # Outpost layout & phase coordinator
+│   │   │   ├── GameProvider.tsx           # React Context + state machine bridge
+│   │   │   ├── HUD.tsx                    # Vital gauges, Sol clock, VIP badge & Retries
+│   │   │   ├── LeaderboardModal.tsx       # Top 25 verified global cadet rankings
+│   │   │   ├── LiveTelemetryTicker.tsx    # Marquee NASA solar weather bar & dossier modal
+│   │   │   ├── MainMenu.tsx               # Command Center portal & station navigation
+│   │   │   ├── MarsGlobeSelector.tsx      # Interactive HTML5 3D Martian landing globe
+│   │   │   ├── OperationsDeck.tsx         # 5-card dynamic operations deck & re-rolls
+│   │   │   ├── PauseMenu.tsx              # Clean mission exit & pause dialog
+│   │   │   ├── PetHangarModal.tsx         # Companion pets & perk equipment
+│   │   │   ├── ProfileModal.tsx           # Single-cadet dossier & deep purge button
+│   │   │   ├── RoverGalleryModal.tsx      # NASA Mars rover photo gallery
+│   │   │   ├── SquadRaceModal.tsx         # Competitive 4-cadet lobby & race codes
+│   │   │   ├── TelemetryChart.tsx         # Pure SVG multi-series vital analytics curves
+│   │   │   └── TournamentModal.tsx        # 16-cadet bracket visualization
 │   │   └── ui/
-│   │       ├── Button.tsx              # Accessible multi-variant button primitive
-│   │       ├── Modal.tsx               # Focus-safe dialog with Escape key trap
-│   │       └── ProgressBar.tsx         # ARIA meter with low-resource warning pulses
-│   ├── data/                           # Verified empirical NASA JSON datasets
-│   └── lib/                            # Game engine, sound, profile, storage & types
-├── PROJECT_GUIDE.md                    # In-depth non-technical educator & student guide
+│   │       ├── Button.tsx                 # Accessible multi-variant button primitive
+│   │       ├── Modal.tsx                  # Focus-safe dialog with Escape key trap
+│   │       └── ProgressBar.tsx            # ARIA meter with low-resource warning pulses
+│   ├── data/                              # Verified empirical NASA JSON datasets
+│   └── lib/                               # Domain engine, battlePass, sound & storage
+├── PROJECT_GUIDE.md                       # In-depth non-technical educator & student guide
 ├── package.json
 └── tsconfig.json
 ```
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Getting Started & Environment Configuration
 
 ### Prerequisites
 * **Node.js** `>= 20.9.0`
@@ -263,13 +390,16 @@ junior-astronaut-trainer/
    npm install
    ```
 
-3. **(Optional) Configure Database & NASA API Keys in `.env.local`:**
+3. **Configure Environment Variables in `.env.local`:**
    ```env
    # Neon Serverless Postgres (optional: falls back to localStorage automatically)
    DATABASE_URL=postgresql://user:password@ep-sample.neon.tech/neondb?sslmode=require
 
    # NASA API Key (optional: defaults to NASA DEMO_KEY)
    NASA_API_KEY=DEMO_KEY
+
+   # Stripe Secret Key (enables hosted checkout portal for credit packs & VIP)
+   STRIPE_SECRET_KEY=sk_test_...
    ```
 
 4. **Run the development server:**
