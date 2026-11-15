@@ -118,7 +118,19 @@ export interface GameState {
   rapidResponseBonus?: number;
   /** Reason for game over if defeated */
   gameOverReason?: 'timeout' | 'depletion';
+  /** Whether Endless Survival Tournament Mode is active (no 30-sol cap) */
+  isEndlessTournament?: boolean;
+  /** Active tournament bracket and match identifiers */
+  tournamentId?: string;
+  tournamentMatchId?: string;
+  tournamentRngSeed?: number;
+  rivalCallsign?: string;
+  rivalAvatar?: string;
 }
+
+export * from './tournamentTypes';
+export * from './marketplaceTypes';
+export * from './battleRoyaleTypes';
 
 // ── Reducer Actions ─────────────────────────────────────────
 
@@ -317,5 +329,7 @@ export interface SquadRoom {
   createdAt: string;
   isTimedMode?: boolean;
 }
+
+export * from './matchmakingTypes';
 
 

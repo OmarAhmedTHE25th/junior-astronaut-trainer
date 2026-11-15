@@ -26,6 +26,11 @@ import {
   LANDING_SITES,
 } from './constants';
 import { generateEvent } from './events';
+import {
+  getEndlessDepletionMultiplier,
+  getCompoundingWearMultiplier,
+  calculateTournamentScore,
+} from './survivalEngine';
 
 // ── Helpers ─────────────────────────────────────────────────
 
@@ -62,8 +67,16 @@ export function createInitialState(
   landingSite: LandingSiteId = 'jezero',
   cadet?: { cadetId?: string; callsign?: string; avatar?: string },
   squad?: { squadCode?: string; weatherSeed?: number },
-  isTimedMode?: boolean
+  isTimedMode?: boolean,
+  tournament?: {
+    tournamentId?: string;
+    matchId?: string;
+    rngSeed?: number;
+    rivalCallsign?: string;
+    rivalAvatar?: string;
+  }
 ): GameState {
+  const isEndless = Boolean(tournament?.tournamentId);
   const initialPoint: TelemetryPoint = {
     sol: 1,
     power: INITIAL_RESOURCES.power,
@@ -74,7 +87,7 @@ export function createInitialState(
 
   return {
     sol: 1,
-    maxSol: MISSION_LENGTH,
+    maxSol: isEndless ? 999999 : MISSION_LENGTH,
     power: INITIAL_RESOURCES.power,
     oxygen: INITIAL_RESOURCES.oxygen,
     shielding: INITIAL_RESOURCES.shielding,
@@ -96,6 +109,12 @@ export function createInitialState(
     isTimedMode: Boolean(isTimedMode),
     missionTimeSeconds: 0,
     rapidResponseBonus: 0,
+    isEndlessTournament: isEndless,
+    tournamentId: tournament?.tournamentId,
+    tournamentMatchId: tournament?.matchId,
+    tournamentRngSeed: tournament?.rngSeed,
+    rivalCallsign: tournament?.rivalCallsign,
+    rivalAvatar: tournament?.rivalAvatar,
   };
 }
 
@@ -129,6 +148,16 @@ export function checkVictory(state: GameState): boolean {
  * Calculate the final score at mission end.
  */
 export function calculateScore(state: GameState): number {
+  if (state.isEndlessTournament) {
+    const hours = Math.floor((state.missionTimeSeconds || 0) / 3600) || Math.min(23, state.sol % 24);
+    return calculateTournamentScore(state.sol, hours, {
+      power: state.power,
+      oxygen: state.oxygen,
+      shielding: state.shielding,
+      morale: state.morale,
+    });
+  }
+
   const diff = DIFFICULTY_SETTINGS[state.difficulty];
   let score = state.score;
 
@@ -168,8 +197,13 @@ function applySolDepletion(state: GameState): GameState {
   const siteId = state.landingSite || 'jezero';
   const site = LANDING_SITES[siteId] || LANDING_SITES.jezero;
 
+  // Endless compounding decay multiplier beyond Sol 30
+  const endlessMultiplier = state.isEndlessTournament
+    ? getEndlessDepletionMultiplier(state.sol)
+    : 1.0;
+
   // Higher morale slightly reduces depletion; lower morale worsens it
-  const effectiveMult = mult / moraleModifier;
+  const effectiveMult = (mult * endlessMultiplier) / moraleModifier;
 
   const depletionEffects: Record<ResourceType, number> = {
     power: Math.round(SOL_DEPLETION.power * effectiveMult * site.powerDepletionMod),
@@ -182,8 +216,10 @@ function applySolDepletion(state: GameState): GameState {
   const logEntry: LogEntry = {
     sol: state.sol,
     type: 'depletion',
-    title: 'Sol Depletion',
-    description: `Mars atmospheric conditions at ${site.name} take their toll.`,
+    title: state.isEndlessTournament && state.sol > 30 ? '⚠️ Escalating Endless Decay' : 'Sol Depletion',
+    description: state.isEndlessTournament && state.sol > 30
+      ? `Compounding environmental degradation (${endlessMultiplier.toFixed(2)}x rate) stresses outpost life support.`
+      : `Mars atmospheric conditions at ${site.name} take their toll.`,
     resourceChanges: depletionEffects,
     moraleChange: -1,
   };
@@ -483,8 +519,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case 'ADVANCE_SOL': {
       const nextSol = state.sol + 1;
 
-      // Check victory (survived past maxSol)
-      if (nextSol > state.maxSol) {
+      // Check victory (survived past maxSol in standard mission; endless tournament runs until failure)
+      if (!state.isEndlessTournament && nextSol > state.maxSol) {
         const finalScore = calculateScore({ ...state, sol: nextSol });
         return {
           ...state,

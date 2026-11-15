@@ -55,6 +55,13 @@ interface GameProviderProps {
   weatherSeed?: number;
   initialState?: GameState;
   isTimedMode?: boolean;
+  tournament?: {
+    tournamentId?: string;
+    matchId?: string;
+    rngSeed?: number;
+    rivalCallsign?: string;
+    rivalAvatar?: string;
+  };
 }
 
 export function GameProvider({
@@ -67,6 +74,7 @@ export function GameProvider({
   weatherSeed,
   initialState,
   isTimedMode,
+  tournament,
 }: GameProviderProps) {
   const [state, rawDispatch] = useReducer(
     gameReducer,
@@ -77,7 +85,8 @@ export function GameProvider({
         landingSite,
         cadet,
         squadCode ? { squadCode, weatherSeed } : undefined,
-        isTimedMode
+        isTimedMode,
+        tournament
       )
   );
   const [factIndex, setFactIndex] = useState(0);

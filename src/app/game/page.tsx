@@ -36,9 +36,17 @@ export default function GamePage() {
   const [difficulty, setDifficulty] = useState<Difficulty>("commander");
   const [landingSite, setLandingSite] = useState<LandingSiteId>("jezero");
   const [squadCode, setSquadCode] = useState<string | null>(null);
+  const [matchId, setMatchId] = useState<string | null>(null);
   const [weatherSeed, setWeatherSeed] = useState<number | null>(null);
   const [savedRun, setSavedRun] = useState<GameState | null>(null);
   const [isTimedMode, setIsTimedMode] = useState<boolean>(false);
+  const [tournamentMeta, setTournamentMeta] = useState<{
+    tournamentId?: string;
+    matchId?: string;
+    rngSeed?: number;
+    rivalCallsign?: string;
+    rivalAvatar?: string;
+  } | null>(null);
 
   const activeCadet =
     isLoaded && profile.cadetId !== 'cadet-nova-01'
@@ -54,10 +62,51 @@ export default function GamePage() {
       const search = window.location.search;
       const params = new URLSearchParams(search);
       const squadParam = params.get("squad");
+      const matchParam = params.get("matchId");
       const timedParam = params.get("timed");
+      const tournamentIdParam = params.get("tournamentId");
 
       if (timedParam === "true" || timedParam === "1") {
         setIsTimedMode(true);
+      }
+
+      if (tournamentIdParam) {
+        const tMatchId = params.get("matchId") || "match-1";
+        const tSeed = Number(params.get("seed")) || 777777;
+        const rivalName = params.get("rival") || "Rival Cadet";
+        const rivalAvatar = params.get("rivalAvatar") || "🤖";
+
+        setTournamentMeta({
+          tournamentId: tournamentIdParam,
+          matchId: tMatchId,
+          rngSeed: tSeed,
+          rivalCallsign: rivalName,
+          rivalAvatar: rivalAvatar,
+        });
+        setDifficulty("commander");
+        setWeatherSeed(tSeed);
+        setLaunched(true);
+        return;
+      }
+
+      if (matchParam) {
+        const cleanMatch = matchParam.trim();
+        setMatchId(cleanMatch);
+        setDifficulty("commander");
+
+        fetch(`/api/match/${cleanMatch}/stream?poll=true`)
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.success && data.match) {
+              setLandingSite(data.match.landingZone || "jezero");
+              setWeatherSeed(data.match.weatherSeed || 424242);
+            }
+          })
+          .catch(() => {})
+          .finally(() => {
+            setLaunched(true);
+          });
+        return;
       }
 
       if (squadParam) {
@@ -353,8 +402,12 @@ export default function GamePage() {
       weatherSeed={weatherSeed || undefined}
       initialState={savedRun || undefined}
       isTimedMode={isTimedMode}
+      tournament={tournamentMeta || undefined}
     >
       <GameBoard
+        matchId={matchId}
+        cadetId={activeCadet.cadetId}
+        cadetName={activeCadet.callsign}
         onChangeDifficulty={() => {
           setSavedRun(null);
           setLaunched(false);

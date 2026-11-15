@@ -139,6 +139,26 @@ export default function EndScreen() {
         }
       })
       .catch(() => {});
+
+    // 3. If in an Endless Tournament Bracket match, submit match score & advance bracket
+    if (state.isEndlessTournament && state.tournamentId && state.tournamentMatchId) {
+      fetch(`/api/tournaments/${state.tournamentId}/advance`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          matchId: state.tournamentMatchId,
+          entrantId: updatedProfile.cadetId,
+          solsSurvived: state.sol,
+          hoursSurvived: Math.floor((state.missionTimeSeconds || 0) / 3600) || Math.min(23, state.sol % 24),
+          resources: {
+            power: state.power,
+            oxygen: state.oxygen,
+            shielding: state.shielding,
+            morale: state.morale,
+          },
+        }),
+      }).catch(() => {});
+    }
   }, [isLoaded, state, activeCadet]);
 
   // If this mission was a Competitive Squad Race, fetch final squad standings

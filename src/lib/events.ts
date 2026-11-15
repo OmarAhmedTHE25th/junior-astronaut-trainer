@@ -3,6 +3,7 @@
 
 import type { GameState, GameEvent, EventChoice } from './types';
 import { EVENT_CHANCE, DIFFICULTY_SETTINGS, CRITICAL_THRESHOLD } from './constants';
+import { getEndlessEventChance } from './survivalEngine';
 
 // ── NASA Data Imports ───────────────────────────────────────
 // These come from the data-curator's JSON files under src/data/.
@@ -289,9 +290,10 @@ const EVENT_BUILDERS: EventBuilder[] = [
  *   timestamp-based IDs mean repeat types can still surface.
  */
 export function generateEvent(state: GameState): GameEvent | null {
-  if (state.weatherSeed !== undefined) {
-    // Deterministic Mulberry32 seeded PRNG for identical squad weather sequence
-    let s = ((state.weatherSeed + state.sol * 1337 + state.usedEventIds.length * 31) >>> 0) || 12345;
+  const activeSeed = state.tournamentRngSeed ?? state.weatherSeed;
+  if (activeSeed !== undefined) {
+    // Deterministic Mulberry32 seeded PRNG for identical tournament/squad disaster sequence
+    let s = ((activeSeed + state.sol * 1337 + state.usedEventIds.length * 31) >>> 0) || 12345;
     currentRng = function () {
       s = (s + 0x6D2B79F5) >>> 0;
       let t = Math.imul(s ^ (s >>> 15), 1 | s);
@@ -303,7 +305,9 @@ export function generateEvent(state: GameState): GameEvent | null {
   }
 
   const diff = DIFFICULTY_SETTINGS[state.difficulty];
-  let chance = EVENT_CHANCE * diff.eventChanceMultiplier;
+  let chance = state.isEndlessTournament
+    ? getEndlessEventChance(state.sol)
+    : EVENT_CHANCE * diff.eventChanceMultiplier;
 
   // Raise the stakes when a resource is critical
   const anyCritical =

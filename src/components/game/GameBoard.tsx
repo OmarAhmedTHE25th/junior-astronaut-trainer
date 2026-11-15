@@ -10,13 +10,23 @@ import EndScreen from './EndScreen';
 import NASAFactPopup from './NASAFactPopup';
 import MarsView from './MarsView';
 import PauseMenu from './PauseMenu';
+import SquadMultiplayerHUD from './SquadMultiplayerHUD';
+import RivalTelemetryBar from './RivalTelemetryBar';
 import { startAmbientHum, stopAmbientHum } from '@/lib/sound';
 
 interface GameBoardProps {
   onChangeDifficulty?: () => void;
+  matchId?: string | null;
+  cadetId?: string;
+  cadetName?: string;
 }
 
-export default function GameBoard({ onChangeDifficulty }: GameBoardProps) {
+export default function GameBoard({
+  onChangeDifficulty,
+  matchId,
+  cadetId,
+  cadetName,
+}: GameBoardProps) {
   const { state, dispatch, rotateFact, setIsPaused } = useGame();
   const [showFact, setShowFact] = useState(false);
   const [lastFactSol, setLastFactSol] = useState(0);
@@ -82,6 +92,23 @@ export default function GameBoard({ onChangeDifficulty }: GameBoardProps) {
 
       {/* HUD overlay */}
       <div className="relative z-10 flex flex-col min-h-screen">
+        {state.isEndlessTournament && state.tournamentId && state.tournamentMatchId && (
+          <RivalTelemetryBar
+            tournamentId={state.tournamentId}
+            matchId={state.tournamentMatchId}
+            entrantId={cadetId || 'cadet-nova-01'}
+            currentSol={state.sol}
+            rivalName={state.rivalCallsign}
+            rivalAvatar={state.rivalAvatar}
+          />
+        )}
+        {matchId && (
+          <SquadMultiplayerHUD
+            matchId={matchId}
+            playerId={cadetId || 'cadet-anon'}
+            playerName={cadetName || 'Astronaut'}
+          />
+        )}
         <HUD onOpenMenu={() => setIsPauseMenuOpen(true)} />
 
         {/* Main content area */}

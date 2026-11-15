@@ -8,6 +8,10 @@ import ProfileModal from './ProfileModal';
 import LeaderboardModal from './LeaderboardModal';
 import LiveTelemetryTicker from './LiveTelemetryTicker';
 import SquadRaceModal from './SquadRaceModal';
+import SquadMatchmakingModal from './SquadMatchmakingModal';
+import TournamentModal from './TournamentModal';
+import MarsMarketplace from './MarsMarketplace';
+import BattleRoyaleModal from './BattleRoyaleModal';
 import { useSound } from '@/lib/sound';
 import { useProfile, getOrCreateCadetProfile } from '@/lib/profile';
 import { SPECIALTY_METAS } from '@/lib/types';
@@ -21,6 +25,10 @@ export default function MainMenu() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [isSquadOpen, setIsSquadOpen] = useState(false);
+  const [isMatchmakingOpen, setIsMatchmakingOpen] = useState(false);
+  const [isTournamentOpen, setIsTournamentOpen] = useState(false);
+  const [isMarketplaceOpen, setIsMarketplaceOpen] = useState(false);
+  const [isBROpen, setIsBROpen] = useState(false);
   const [isCrisisTimed, setIsCrisisTimed] = useState(false);
   const [activeSave, setActiveSave] = useState<GameState | null>(null);
 
@@ -172,7 +180,7 @@ export default function MainMenu() {
             </h2>
           </div>
 
-          {/* Additive Mode Selector: Solo Mission vs Squad Race */}
+          {/* Additive Mode Selector: Solo Mission vs Live Squad Matchmaking */}
           <div className="mb-6 space-y-2.5">
             <div className="p-1.5 rounded-2xl bg-[#0B1026]/90 border border-white/10 flex flex-col sm:flex-row gap-2">
               <Link
@@ -195,20 +203,98 @@ export default function MainMenu() {
                 type="button"
                 onClick={() => {
                   playClick();
-                  setIsSquadOpen(true);
+                  setIsMatchmakingOpen(true);
                 }}
                 className="
                   flex-1 py-3 px-4 rounded-xl text-center font-heading font-extrabold text-sm tracking-wider
-                  bg-gradient-to-r from-cyan-600 to-[#6B3FA0] text-white shadow-lg shadow-cyan-500/20
+                  bg-gradient-to-r from-cyan-500 via-blue-600 to-[#6B3FA0] text-white shadow-lg shadow-cyan-500/25
                   hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer
-                  border border-cyan-400/40 relative overflow-hidden group
+                  border border-cyan-400/50 relative overflow-hidden group
                 "
               >
-                <span className="animate-bounce">🏁</span>
-                <span>SQUAD RACE</span>
+                <span className="animate-pulse">⚡</span>
+                <span>FIND RANDOM SQUAD</span>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-400/20 text-cyan-200 border border-cyan-400/30 uppercase font-bold">
-                  4-Cadet Co-op
+                  Live Matchmaking
                 </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  playClick();
+                  setIsBROpen(true);
+                }}
+                className="
+                  flex-1 py-3 px-4 rounded-xl text-center font-heading font-extrabold text-sm tracking-wider
+                  bg-gradient-to-r from-red-600 via-orange-600 to-rose-600 text-white shadow-lg shadow-red-500/25
+                  hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer
+                  border border-red-400/50 relative overflow-hidden group
+                "
+              >
+                <span className="animate-bounce">🪂</span>
+                <span>BATTLE ROYALE</span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-red-400/20 text-red-200 border border-red-400/30 uppercase font-bold">
+                  Drop Zone
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  playClick();
+                  setIsTournamentOpen(true);
+                }}
+                className="
+                  flex-1 py-3 px-4 rounded-xl text-center font-heading font-extrabold text-sm tracking-wider
+                  bg-gradient-to-r from-amber-500 via-orange-600 to-purple-600 text-white shadow-lg shadow-amber-500/25
+                  hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer
+                  border border-amber-400/50 relative overflow-hidden group
+                "
+              >
+                <span className="animate-bounce">🏆</span>
+                <span>TOURNAMENTS</span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-400/20 text-amber-200 border border-amber-400/30 uppercase font-bold">
+                  Endless Survival
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  playClick();
+                  setIsMarketplaceOpen(true);
+                }}
+                className="
+                  flex-1 py-3 px-4 rounded-xl text-center font-heading font-extrabold text-sm tracking-wider
+                  bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white shadow-lg shadow-emerald-500/25
+                  hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer
+                  border border-emerald-400/50 relative overflow-hidden group
+                "
+              >
+                <span className="animate-pulse">🪐</span>
+                <span>MARS EXCHANGE</span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-400/20 text-emerald-200 border border-emerald-400/30 uppercase font-bold">
+                  Supply Depot
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  playClick();
+                  setIsSquadOpen(true);
+                }}
+                className="
+                  py-3 px-4 rounded-xl text-center font-heading font-extrabold text-sm tracking-wider
+                  bg-[#1a1f3d] hover:bg-[#252b52] text-starlight shadow-md
+                  hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer
+                  border border-white/10
+                "
+                title="Join or host using a 6-character private invite code"
+              >
+                <span>🏁</span>
+                <span>PRIVATE CODE</span>
               </button>
             </div>
 
@@ -277,12 +363,12 @@ export default function MainMenu() {
               </span>
             </Link>
 
-            {/* 2. Squad Race */}
+            {/* 2. Squad Multiplayer & Matchmaking */}
             <button
               type="button"
               onClick={() => {
                 playClick();
-                setIsSquadOpen(true);
+                setIsMatchmakingOpen(true);
               }}
               className="
                 group relative flex flex-col items-center justify-between p-4.5 rounded-2xl
@@ -293,18 +379,18 @@ export default function MainMenu() {
               "
             >
               <div className="w-11 h-11 rounded-xl bg-cyan-500/20 flex items-center justify-center text-2xl mb-1 group-hover:scale-110 transition-transform">
-                🏁
+                ⚡
               </div>
               <div>
                 <h3 className="font-heading font-extrabold text-sm sm:text-base text-white group-hover:text-cyan-300 transition-colors">
-                  Squad Race
+                  Squad Multiplayer
                 </h3>
                 <p className="text-[11px] text-[#F8FAFC]/70 mt-1 leading-snug">
-                  Compete with up to 4 cadets on shared terrain &amp; solar seeds.
+                  Random Matchmaking, 4 roles, bot fill, and shared telemetry.
                 </p>
               </div>
               <span className="mt-2 text-xs font-bold text-cyan-300 flex items-center gap-1">
-                Lobby &amp; Codes 🛰️
+                Find Squad 🛰️
               </span>
             </button>
 
@@ -428,6 +514,26 @@ export default function MainMenu() {
       <SquadRaceModal
         isOpen={isSquadOpen}
         onClose={() => setIsSquadOpen(false)}
+      />
+
+      <SquadMatchmakingModal
+        isOpen={isMatchmakingOpen}
+        onClose={() => setIsMatchmakingOpen(false)}
+      />
+
+      <TournamentModal
+        isOpen={isTournamentOpen}
+        onClose={() => setIsTournamentOpen(false)}
+      />
+
+      <MarsMarketplace
+        isOpen={isMarketplaceOpen}
+        onClose={() => setIsMarketplaceOpen(false)}
+      />
+
+      <BattleRoyaleModal
+        isOpen={isBROpen}
+        onClose={() => setIsBROpen(false)}
       />
     </>
   );
