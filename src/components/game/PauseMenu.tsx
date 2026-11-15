@@ -20,7 +20,7 @@ export default function PauseMenu({ isOpen, onClose, onChangeDifficulty }: Pause
   const { isMuted, toggleSound, playClick } = useSound();
   const [activeTab, setActiveTab] = useState<'menu' | 'rules' | 'science'>('menu');
 
-  const purgeActiveSave = () => {
+  const purgeActiveSave = async () => {
     try {
       localStorage.removeItem('jat_active_save_v1');
     } catch {}
@@ -28,23 +28,32 @@ export default function PauseMenu({ isOpen, onClose, onChangeDifficulty }: Pause
       state.cadetId ||
       (typeof window !== 'undefined' ? getOrCreateCadetProfile().cadetId : undefined);
     if (activeCadetId) {
-      fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
-        method: 'DELETE',
-      }).catch(() => {});
+      try {
+        await Promise.race([
+          fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
+            method: 'DELETE',
+            keepalive: true,
+          }),
+          new Promise((resolve) => setTimeout(resolve, 800)),
+        ]);
+      } catch {}
     }
+    try {
+      localStorage.removeItem('jat_active_save_v1');
+    } catch {}
   };
 
-  const handleRestart = () => {
+  const handleRestart = async () => {
     playClick();
-    purgeActiveSave();
+    await purgeActiveSave();
     dispatch({ type: 'RESTART' });
     onClose();
   };
 
-  const handleChangeDifficulty = () => {
+  const handleChangeDifficulty = async () => {
     playClick();
-    purgeActiveSave();
     dispatch({ type: 'ABORT_MISSION' });
+    await purgeActiveSave();
     onClose();
     if (onChangeDifficulty) {
       onChangeDifficulty();
@@ -53,11 +62,11 @@ export default function PauseMenu({ isOpen, onClose, onChangeDifficulty }: Pause
     }
   };
 
-  const handleExitToMainMenu = (e: React.MouseEvent) => {
+  const handleExitToMainMenu = async (e: React.MouseEvent) => {
     e.preventDefault();
     playClick();
-    purgeActiveSave();
     dispatch({ type: 'ABORT_MISSION' });
+    await purgeActiveSave();
     router.push('/');
   };
 

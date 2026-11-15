@@ -196,12 +196,63 @@ export default function EndScreen() {
     return () => clearInterval(interval);
   }, [state.squadCode]);
 
-  const handlePlayAgain = () => {
+  const handlePlayAgain = async () => {
     try {
       localStorage.removeItem('jat_active_save_v1');
     } catch {}
     playClick();
+
+    const activeCadetId =
+      state.cadetId ||
+      (typeof window !== 'undefined' ? getOrCreateCadetProfile().cadetId : undefined);
+
+    if (activeCadetId) {
+      try {
+        await Promise.race([
+          fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
+            method: 'DELETE',
+            keepalive: true,
+          }),
+          new Promise((resolve) => setTimeout(resolve, 800)),
+        ]);
+      } catch {}
+    }
+
+    try {
+      localStorage.removeItem('jat_active_save_v1');
+    } catch {}
+
     dispatch({ type: 'RESTART' });
+  };
+
+  const handleReturnToCommandCenter = async () => {
+    try {
+      localStorage.removeItem('jat_active_save_v1');
+    } catch {}
+    playClick();
+
+    const activeCadetId =
+      state.cadetId ||
+      (typeof window !== 'undefined' ? getOrCreateCadetProfile().cadetId : undefined);
+
+    if (activeCadetId) {
+      try {
+        await Promise.race([
+          fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
+            method: 'DELETE',
+            keepalive: true,
+          }),
+          new Promise((resolve) => setTimeout(resolve, 800)),
+        ]);
+      } catch {}
+    }
+
+    try {
+      localStorage.removeItem('jat_active_save_v1');
+    } catch {}
+
+    dispatch({ type: 'RESET' });
+    router.push('/');
   };
 
   const handlePrint = () => {
@@ -632,13 +683,7 @@ export default function EndScreen() {
             <Button
               variant="secondary"
               size="md"
-              onClick={() => {
-                try {
-                  localStorage.removeItem('jat_active_save_v1');
-                } catch {}
-                playClick();
-                router.push('/');
-              }}
+              onClick={handleReturnToCommandCenter}
               className="w-full justify-center text-xs flex items-center gap-1.5"
             >
               <span>🏠</span> Return to Command Center

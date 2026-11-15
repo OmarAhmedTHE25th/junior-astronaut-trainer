@@ -39,6 +39,7 @@ export default function GamePage() {
   const [matchId, setMatchId] = useState<string | null>(null);
   const [weatherSeed, setWeatherSeed] = useState<number | null>(null);
   const [savedRun, setSavedRun] = useState<GameState | null>(null);
+  const [isResuming, setIsResuming] = useState<boolean>(false);
   const [isTimedMode, setIsTimedMode] = useState<boolean>(false);
   const [tournamentMeta, setTournamentMeta] = useState<{
     tournamentId?: string;
@@ -133,26 +134,45 @@ export default function GamePage() {
       if (raw) {
         const parsed = JSON.parse(raw) as GameState;
         if (
-          parsed &&
-          parsed.sol &&
-          parsed.phase !== "victory" &&
-          parsed.phase !== "gameover" &&
-          parsed.power > 0 &&
-          parsed.oxygen > 0 &&
-          parsed.shielding > 0
+          !parsed ||
+          !parsed.sol ||
+          parsed.phase === "victory" ||
+          parsed.phase === "gameover" ||
+          parsed.power <= 0 ||
+          parsed.oxygen <= 0 ||
+          parsed.shielding <= 0
         ) {
+          // Mission ended or flatlined: purge save immediately
+          try {
+            localStorage.removeItem("jat_active_save_v1");
+          } catch {}
+          const activeCadetId =
+            parsed?.cadetId ||
+            (typeof window !== "undefined" ? getOrCreateCadetProfile().cadetId : undefined);
+          if (activeCadetId) {
+            fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
+              method: "DELETE",
+              keepalive: true,
+            }).catch(() => {});
+          }
+          setSavedRun(null);
+          setIsResuming(false);
+        } else {
+          // Active, surviving mission
           setSavedRun(parsed);
           if (parsed.isTimedMode !== undefined) {
             setIsTimedMode(parsed.isTimedMode);
           }
           if (search.includes("resume=true")) {
+            setIsResuming(true);
             setLaunched(true);
+          } else {
+            setIsResuming(false);
           }
-        } else {
-          // Mission ended or flatlined: purge save immediately
-          localStorage.removeItem("jat_active_save_v1");
-          setSavedRun(null);
         }
+      } else {
+        setSavedRun(null);
+        setIsResuming(false);
       }
     } catch {}
   }, []);
@@ -224,6 +244,7 @@ export default function GamePage() {
                   type="button"
                   onClick={() => {
                     playAction();
+                    setIsResuming(true);
                     setLaunched(true);
                   }}
                   className="
@@ -363,8 +384,9 @@ export default function GamePage() {
                   try {
                     localStorage.removeItem('jat_active_save_v1');
                   } catch {}
-                  playAction();
+                  setIsResuming(false);
                   setSavedRun(null); // Launch new mission
+                  playAction();
                   setLaunched(true);
                 }}
                 className="
@@ -400,7 +422,17 @@ export default function GamePage() {
       }}
       squadCode={squadCode || undefined}
       weatherSeed={weatherSeed || undefined}
-      initialState={savedRun || undefined}
+      initialState={
+        isResuming &&
+        savedRun &&
+        savedRun.phase !== "victory" &&
+        savedRun.phase !== "gameover" &&
+        savedRun.power > 0 &&
+        savedRun.oxygen > 0 &&
+        savedRun.shielding > 0
+          ? savedRun
+          : undefined
+      }
       isTimedMode={isTimedMode}
       tournament={tournamentMeta || undefined}
     >
@@ -412,6 +444,7 @@ export default function GamePage() {
           try {
             localStorage.removeItem('jat_active_save_v1');
           } catch {}
+          setIsResuming(false);
           setSavedRun(null);
           setLaunched(false);
         }}

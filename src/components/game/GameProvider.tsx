@@ -79,16 +79,22 @@ export function GameProvider({
 }: GameProviderProps) {
   const [state, rawDispatch] = useReducer(
     gameReducer,
-    initialState ||
-      createInitialState(
-        difficulty,
-        specialty,
-        landingSite,
-        cadet,
-        squadCode ? { squadCode, weatherSeed } : undefined,
-        isTimedMode,
-        tournament
-      )
+    initialState &&
+      initialState.phase !== 'victory' &&
+      initialState.phase !== 'gameover' &&
+      initialState.power > 0 &&
+      initialState.oxygen > 0 &&
+      initialState.shielding > 0
+      ? initialState
+      : createInitialState(
+          difficulty,
+          specialty,
+          landingSite,
+          cadet,
+          squadCode ? { squadCode, weatherSeed } : undefined,
+          isTimedMode,
+          tournament
+        )
   );
   const [factIndex, setFactIndex] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(TIMED_CRISIS_SOL_SECONDS);
@@ -263,8 +269,14 @@ export function GameProvider({
 
   // ── Debounced Auto-Save & Cleanup ─────────────────────────
   useEffect(() => {
-    // 1. Mission concluded: WIPE save slot unconditionally and abort any pending save
-    if (state.phase === 'victory' || state.phase === 'gameover') {
+    // 1. Mission concluded or vital depletion: WIPE save slot unconditionally and abort any pending save
+    if (
+      state.phase === 'victory' ||
+      state.phase === 'gameover' ||
+      state.power <= 0 ||
+      state.oxygen <= 0 ||
+      state.shielding <= 0
+    ) {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = null;
@@ -281,6 +293,7 @@ export function GameProvider({
       if (activeCadetId) {
         fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
           method: 'DELETE',
+          keepalive: true,
         }).catch(() => {});
       }
       return;
@@ -307,9 +320,20 @@ export function GameProvider({
       // Debounced 500ms cloud sync
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
       }
 
       saveTimeoutRef.current = setTimeout(() => {
+        // Prevent auto-save once game is over or concluded
+        if (
+          state.phase === 'gameover' ||
+          state.phase === 'victory' ||
+          state.power <= 0 ||
+          state.oxygen <= 0 ||
+          state.shielding <= 0
+        ) {
+          return;
+        }
         fetch('/api/save', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -321,6 +345,7 @@ export function GameProvider({
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
       }
     };
   }, [state, cadet]);
