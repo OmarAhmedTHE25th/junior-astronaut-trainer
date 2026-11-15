@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import { useGame } from './GameProvider';
 import { useSound } from '@/lib/sound';
+import { getOrCreateCadetProfile } from '@/lib/profile';
 
 interface PauseMenuProps {
   isOpen: boolean;
@@ -14,24 +15,50 @@ interface PauseMenuProps {
 }
 
 export default function PauseMenu({ isOpen, onClose, onChangeDifficulty }: PauseMenuProps) {
+  const router = useRouter();
   const { state, dispatch } = useGame();
   const { isMuted, toggleSound, playClick } = useSound();
   const [activeTab, setActiveTab] = useState<'menu' | 'rules' | 'science'>('menu');
 
+  const purgeActiveSave = () => {
+    try {
+      localStorage.removeItem('jat_active_save_v1');
+    } catch {}
+    const activeCadetId =
+      state.cadetId ||
+      (typeof window !== 'undefined' ? getOrCreateCadetProfile().cadetId : undefined);
+    if (activeCadetId) {
+      fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
+        method: 'DELETE',
+      }).catch(() => {});
+    }
+  };
+
   const handleRestart = () => {
     playClick();
+    purgeActiveSave();
     dispatch({ type: 'RESTART' });
     onClose();
   };
 
   const handleChangeDifficulty = () => {
     playClick();
+    purgeActiveSave();
+    dispatch({ type: 'ABORT_MISSION' });
     onClose();
     if (onChangeDifficulty) {
       onChangeDifficulty();
     } else {
       window.location.reload();
     }
+  };
+
+  const handleExitToMainMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    playClick();
+    purgeActiveSave();
+    dispatch({ type: 'ABORT_MISSION' });
+    router.push('/');
   };
 
   return (
@@ -143,13 +170,13 @@ export default function PauseMenu({ isOpen, onClose, onChangeDifficulty }: Pause
                 🎖️ Change Difficulty / Re-briefing
               </Button>
 
-              <Link
-                href="/"
-                onClick={playClick}
-                className="w-full inline-flex items-center justify-center gap-2 p-3 rounded-xl bg-red-950/40 border border-red-500/40 hover:bg-red-900/50 text-red-300 font-bold text-sm transition-colors min-h-[44px]"
+              <button
+                type="button"
+                onClick={handleExitToMainMenu}
+                className="w-full inline-flex items-center justify-center gap-2 p-3 rounded-xl bg-red-950/40 border border-red-500/40 hover:bg-red-900/50 text-red-300 font-bold text-sm transition-colors min-h-[44px] cursor-pointer"
               >
                 🚪 Exit to Main Menu
-              </Link>
+              </button>
             </div>
           </div>
         )}

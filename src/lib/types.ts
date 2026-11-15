@@ -118,7 +118,7 @@ export interface GameState {
   /** Accumulated Rapid Response Bonus points from fast decisions */
   rapidResponseBonus?: number;
   /** Reason for game over if defeated */
-  gameOverReason?: 'timeout' | 'depletion';
+  gameOverReason?: 'timeout' | 'depletion' | 'aborted' | string;
   /** Whether Endless Survival Tournament Mode is active (no 30-sol cap) */
   isEndlessTournament?: boolean;
   /** Active tournament bracket and match identifiers */
@@ -241,7 +241,8 @@ export type GameAction =
   | { type: 'END_TURN' }
   | { type: 'NEXT_SOL' }
   | { type: 'RESET' }
-  | { type: 'RESTART' };
+  | { type: 'RESTART' }
+  | { type: 'ABORT_MISSION' };
 
 // ── Martian Landing Sites ───────────────────────────────────
 

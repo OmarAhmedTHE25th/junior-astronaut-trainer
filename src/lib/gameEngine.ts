@@ -1149,6 +1149,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    // ── Mission voluntarily aborted from Pause Menu ──────────
+    case 'ABORT_MISSION': {
+      return {
+        ...state,
+        phase: 'gameover',
+        gameOverReason: 'aborted',
+      };
+    }
+
     // ── Full reset ────────────────────────────────────────
     case 'RESTART':
     case 'RESET': {

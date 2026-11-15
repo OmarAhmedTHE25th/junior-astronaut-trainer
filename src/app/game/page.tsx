@@ -360,6 +360,9 @@ export default function GamePage() {
               <button
                 type="button"
                 onClick={() => {
+                  try {
+                    localStorage.removeItem('jat_active_save_v1');
+                  } catch {}
                   playAction();
                   setSavedRun(null); // Launch new mission
                   setLaunched(true);
@@ -406,6 +409,9 @@ export default function GamePage() {
         cadetId={activeCadet.cadetId}
         cadetName={activeCadet.callsign}
         onChangeDifficulty={() => {
+          try {
+            localStorage.removeItem('jat_active_save_v1');
+          } catch {}
           setSavedRun(null);
           setLaunched(false);
         }}
