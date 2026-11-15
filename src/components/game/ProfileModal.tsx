@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import { useProfile, AVATAR_OPTIONS, validateCallsign } from '@/lib/profile';
+import { resetBattlePassState } from '@/lib/battlePass';
 import { playClick, playSuccess, playAlert } from '@/lib/sound';
 import type { CadetSpecialty } from '@/lib/types';
 
@@ -72,6 +73,15 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const handleExecutePurge = async () => {
     playAlert();
     setDeleteStatusMsg(null);
+    resetBattlePassState();
+    try {
+      localStorage.removeItem('jat_active_save_v1');
+      localStorage.removeItem('jat_equipped_pet_v1');
+      localStorage.removeItem('jat_slotted_boosts_v1');
+      localStorage.removeItem('jat_local_leaderboard_v1');
+      localStorage.removeItem('jat_crate_pity_v1');
+      localStorage.removeItem('jat_battlepass_v1');
+    } catch {}
     const res = await purgeCadetData(profile.cadetId);
     if (res.success) {
       playSuccess();

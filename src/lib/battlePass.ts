@@ -194,6 +194,18 @@ export function unlockFiveStarGeneral(): BattlePassState {
   return nextState;
 }
 
+/** Reset Battle Pass state and pity counter, removing them from localStorage and notifying listeners */
+export function resetBattlePassState(): BattlePassState {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem(BATTLEPASS_STORAGE_KEY);
+      localStorage.removeItem('jat_crate_pity_v1');
+    } catch {}
+  }
+  bpListeners.forEach((fn) => fn(DEFAULT_BATTLEPASS_STATE));
+  return DEFAULT_BATTLEPASS_STATE;
+}
+
 /** Reset 3 emergency retries when starting a fresh mission */
 export function resetRetriesForMission(): number {
   const current = getBattlePassState();
@@ -353,6 +365,7 @@ export function useBattlePass() {
     tiers: BATTLEPASS_TIERS,
     claimTier,
     activateGeneral,
+    resetBattlePass: resetBattlePassState,
     isFiveStarGeneral: bpState.isFiveStarGeneral,
     retriesRemaining: bpState.retriesRemaining,
     isDailyVaultReady: isDailyVaultAvailable(),

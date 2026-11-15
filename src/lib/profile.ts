@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { CadetProfile, CadetBadge, BadgeId, GameState, CadetSpecialty } from './types';
 import { SPECIALTY_METAS } from './types';
+import { resetBattlePassState } from './battlePass';
 
 export const CADET_BADGES: CadetBadge[] = [
   {
@@ -204,30 +205,28 @@ export async function purgeCadetCompletely(cadetId: string): Promise<{ success: 
   // 1. Purge from cloud storage
   await purgeCadetFromCloud(cadetId);
 
-  // 2. Clear active save
-  try {
-    localStorage.removeItem('jat_active_save_v1');
-    localStorage.removeItem('jat_cadet_roster_v1');
-  } catch {}
+  // 2. Reset Battle Pass state & pity counter
+  resetBattlePassState();
 
-  // 3. Create fresh single default profile
+  // 3. Clear active save, equipped pet, slotted boosts, local leaderboard, and crates
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem('jat_active_save_v1');
+      localStorage.removeItem('jat_cadet_roster_v1');
+      localStorage.removeItem('jat_equipped_pet_v1');
+      localStorage.removeItem('jat_slotted_boosts_v1');
+      localStorage.removeItem('jat_local_leaderboard_v1');
+      localStorage.removeItem('jat_battlepass_v1');
+      localStorage.removeItem('jat_crate_pity_v1');
+    } catch {}
+  }
+
+  // 4. Create fresh single default profile
   const nextActive = createDefaultProfile();
   try {
     localStorage.setItem(PROFILE_KEY, JSON.stringify(nextActive));
   } catch {}
   profileListeners.forEach((fn) => fn(nextActive));
-
-  // 4. Clean local leaderboard entries
-  try {
-    const rawLb = localStorage.getItem('jat_local_leaderboard_v1');
-    if (rawLb) {
-      const parsedLb = JSON.parse(rawLb);
-      if (Array.isArray(parsedLb)) {
-        const filteredLb = parsedLb.filter((e: { cadetId?: string }) => e.cadetId !== cadetId);
-        localStorage.setItem('jat_local_leaderboard_v1', JSON.stringify(filteredLb));
-      }
-    }
-  } catch {}
 
   return { success: true, newActiveProfile: nextActive };
 }

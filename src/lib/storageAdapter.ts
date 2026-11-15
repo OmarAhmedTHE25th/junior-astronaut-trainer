@@ -515,25 +515,100 @@ export async function getCloudProfile(cadetId: string): Promise<CadetProfile | n
   return store.profiles.get(cadetId) || null;
 }
 
-/** Permanently purge cadet profile, active saves, and leaderboard records from cloud & fallback */
+/** Permanently purge cadet profile, active saves, leaderboard records, squad rooms, and wallet/inventory from cloud & fallback */
 export async function deleteCadetCloudData(cadetId: string): Promise<boolean> {
   const sql = await getSqlClient();
 
   if (sql) {
     try {
+      // 1. Delete profile and active mission save
       await sql`DELETE FROM cadet_profiles WHERE cadet_id = ${cadetId};`;
       await sql`DELETE FROM active_saves WHERE cadet_id = ${cadetId};`;
+
+      // 2. Delete global leaderboard entries
       await sql`DELETE FROM leaderboard_entries WHERE cadet_id = ${cadetId};`;
+
+      // 3. Purge cadet from squad rooms
+      try {
+        type SquadRow = { room_code: string; cadets: unknown };
+        const rooms = (await sql`SELECT room_code, cadets FROM squad_rooms;`) as unknown as SquadRow[];
+        for (const r of rooms || []) {
+          const cadetsRaw = typeof r.cadets === 'string' ? JSON.parse(r.cadets) : r.cadets;
+          if (Array.isArray(cadetsRaw)) {
+            const remainingCadets = cadetsRaw.filter((c: { cadetId?: string }) => c.cadetId !== cadetId);
+            if (remainingCadets.length === 0) {
+              await sql`DELETE FROM squad_rooms WHERE room_code = ${r.room_code};`;
+            } else if (remainingCadets.length !== cadetsRaw.length) {
+              await sql`
+                UPDATE squad_rooms
+                SET cadets = ${JSON.stringify(remainingCadets)}::jsonb
+                WHERE room_code = ${r.room_code};
+              `;
+            }
+          }
+        }
+      } catch (squadErr) {
+        console.warn('Neon squad rooms purge notice:', squadErr);
+      }
+
+      // 4. Delete player wallet, inventory, and market listings
+      try {
+        await sql`DELETE FROM player_wallets WHERE player_id = ${cadetId};`;
+      } catch {}
+      try {
+        await sql`DELETE FROM player_inventory WHERE player_id = ${cadetId};`;
+      } catch {}
+      try {
+        await sql`DELETE FROM market_listings WHERE seller_id = ${cadetId};`;
+      } catch {}
+
       return true;
     } catch (err) {
       console.error('Neon deleteCadetCloudData error:', err);
     }
   }
 
+  // In-Memory Fallback Store Purge
   const store = getMemoryStore();
+
+  // 1. Delete profile and active save
   store.profiles.delete(cadetId);
   store.saves.delete(cadetId);
+
+  // 2. Delete leaderboard entries
   store.leaderboard = store.leaderboard.filter((entry) => entry.cadetId !== cadetId);
+
+  // 3. Filter or delete squad rooms
+  for (const [code, room] of store.squadRooms.entries()) {
+    if (room.cadets && Array.isArray(room.cadets)) {
+      const remainingCadets = room.cadets.filter((c) => c.cadetId !== cadetId);
+      if (remainingCadets.length === 0) {
+        store.squadRooms.delete(code);
+      } else if (remainingCadets.length !== room.cadets.length) {
+        store.squadRooms.set(code, {
+          ...room,
+          cadets: sortSquadCadets(remainingCadets),
+        });
+      }
+    }
+  }
+
+  // 4. In-Memory Marketplace wipe
+  try {
+    const memMarket = (globalThis as any).__jat_market_store__;
+    if (memMarket) {
+      memMarket.wallets?.delete(cadetId);
+      memMarket.inventory?.delete(cadetId);
+      if (memMarket.listings) {
+        for (const [id, listing] of memMarket.listings.entries()) {
+          if (listing.sellerId === cadetId) {
+            memMarket.listings.delete(id);
+          }
+        }
+      }
+    }
+  } catch {}
+
   return true;
 }
 
