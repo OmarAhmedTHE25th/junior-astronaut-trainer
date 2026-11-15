@@ -8,10 +8,11 @@ import { rewardPlayerCredits } from '@/lib/marketplace';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { bundleId, playerId, isSandbox = false } = body as {
+    const { bundleId, playerId, isSandbox = false, returnUrl } = body as {
       bundleId?: string;
       playerId?: string;
       isSandbox?: boolean;
+      returnUrl?: string;
     };
 
     if (!bundleId || !playerId) {
@@ -57,17 +58,21 @@ export async function POST(request: Request) {
             mcAmount: bundle.mcAmount.toString(),
             isBattlePass: bundle.isBattlePass ? 'true' : 'false',
           },
-          success_url: `${origin}/store?payment=success&bundleId=${bundle.id}&session_id={CHECKOUT_SESSION_ID}`,
+          success_url: returnUrl || `${origin}/store?payment=success&bundleId=${bundle.id}&session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${origin}/store?payment=cancelled`,
         });
 
         return NextResponse.json({
           success: true,
           url: session.url,
+          checkoutUrl: session.url,
           isSandbox: false,
+          sandbox: false,
         });
       } catch (stripeErr) {
-        console.warn('Stripe checkout error, falling back to sandbox fulfillment:', stripeErr);
+        console.error('Stripe checkout error:', stripeErr);
+        const errorMsg = stripeErr instanceof Error ? stripeErr.message : 'Stripe checkout failed';
+        return NextResponse.json({ success: false, error: errorMsg }, { status: 400 });
       }
     }
 
@@ -78,12 +83,16 @@ export async function POST(request: Request) {
       newBalance = res.newBalance;
     }
 
-    const sandboxRedirectUrl = `${origin}/store?payment=success&bundleId=${bundle.id}&sandbox=true`;
+    const sandboxRedirectUrl = returnUrl
+      ? `${returnUrl}&sandbox=true`
+      : `${origin}/store?payment=success&bundleId=${bundle.id}&sandbox=true`;
 
     return NextResponse.json({
       success: true,
       url: sandboxRedirectUrl,
+      checkoutUrl: sandboxRedirectUrl,
       isSandbox: true,
+      sandbox: true,
       bundle,
       newBalance,
       message: `Sandbox Test Mode: ${bundle.name} fulfilled successfully!`,

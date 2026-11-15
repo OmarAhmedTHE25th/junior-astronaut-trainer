@@ -273,9 +273,10 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
       });
 
       const data = await res.json();
+      const redirectUrl = data.checkoutUrl || data.url;
 
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
         return;
       }
 
