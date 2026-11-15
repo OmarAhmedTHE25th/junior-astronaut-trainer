@@ -1,8 +1,17 @@
 'use client';
 
 import React from 'react';
+import dynamic from 'next/dynamic';
 import Modal from '@/components/ui/Modal';
-import ColonyStoreContent from './ColonyStoreContent';
+
+const ColonyStoreContent = dynamic(() => import('./ColonyStoreContent'), {
+  loading: () => (
+    <div className="flex items-center justify-center p-12 text-cyan-400 font-mono text-sm animate-pulse">
+      Loading Colony Store &amp; Outpost Logistics...
+    </div>
+  ),
+  ssr: false,
+});
 
 interface MarsMarketplaceProps {
   isOpen: boolean;

@@ -2,25 +2,28 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import RoverGalleryModal from './RoverGalleryModal';
-import FieldManualModal from './FieldManualModal';
-import ProfileModal from './ProfileModal';
-import LeaderboardModal from './LeaderboardModal';
+import dynamic from 'next/dynamic';
 import LiveTelemetryTicker from './LiveTelemetryTicker';
-import SquadRaceModal from './SquadRaceModal';
-import SquadMatchmakingModal from './SquadMatchmakingModal';
-import TournamentModal from './TournamentModal';
-import MarsMarketplace from './MarsMarketplace';
-import BattleRoyaleModal from './BattleRoyaleModal';
-import GameModesModal from './GameModesModal';
-import PetHangarModal from './PetHangarModal';
-import GuildModal from './GuildModal';
 import { useSound } from '@/lib/sound';
 import { useProfile, getOrCreateCadetProfile, DEFAULT_PROFILE } from '@/lib/profile';
 import { useBattlePass } from '@/lib/battlePass';
 import { useGuild } from '@/lib/guildClient';
 import { SPECIALTY_METAS } from '@/lib/types';
 import type { GameState } from '@/lib/types';
+
+// Lazy-loaded heavy modal dialogs to minimize initial bundle size
+const ProfileModal = dynamic(() => import('./ProfileModal'), { ssr: false });
+const LeaderboardModal = dynamic(() => import('./LeaderboardModal'), { ssr: false });
+const RoverGalleryModal = dynamic(() => import('./RoverGalleryModal'), { ssr: false });
+const FieldManualModal = dynamic(() => import('./FieldManualModal'), { ssr: false });
+const SquadRaceModal = dynamic(() => import('./SquadRaceModal'), { ssr: false });
+const SquadMatchmakingModal = dynamic(() => import('./SquadMatchmakingModal'), { ssr: false });
+const TournamentModal = dynamic(() => import('./TournamentModal'), { ssr: false });
+const MarsMarketplace = dynamic(() => import('./MarsMarketplace'), { ssr: false });
+const BattleRoyaleModal = dynamic(() => import('./BattleRoyaleModal'), { ssr: false });
+const GameModesModal = dynamic(() => import('./GameModesModal'), { ssr: false });
+const PetHangarModal = dynamic(() => import('./PetHangarModal'), { ssr: false });
+const GuildModal = dynamic(() => import('./GuildModal'), { ssr: false });
 
 interface RankMetaState {
   badge: string;
@@ -383,7 +386,7 @@ export default function MainMenu() {
         )}
 
         {/* ── 1. PRIMARY HERO LAUNCH PANEL (Standard Solo Mission) ── */}
-        <section className="bg-[#111827] backdrop-blur-xl rounded-3xl border border-slate-700/80 p-6 sm:p-8 md:p-10 shadow-xl relative overflow-hidden">
+        <section className="bg-[#111827] rounded-3xl border border-slate-700/80 p-6 sm:p-8 md:p-10 shadow-xl relative overflow-hidden">
           <div className="max-w-3xl mx-auto text-center space-y-6 relative z-10">
             {/* Category Pill */}
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-400/10 border border-cyan-400/40 text-cyan-300 text-xs font-mono uppercase tracking-widest font-bold">

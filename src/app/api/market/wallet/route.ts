@@ -10,8 +10,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: 'playerId or cadetId is required' }, { status: 400 });
     }
 
-    const wallet = await getPlayerWallet(playerId);
-    const inventory = await getPlayerInventory(playerId);
+    const [wallet, inventory] = await Promise.all([
+      getPlayerWallet(playerId),
+      getPlayerInventory(playerId),
+    ]);
 
     return NextResponse.json({
       success: true,

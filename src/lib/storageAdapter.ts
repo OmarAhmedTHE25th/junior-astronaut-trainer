@@ -147,83 +147,68 @@ export function isNeonConfigured(): boolean {
   return isCloudStorageConfigured();
 }
 
+let schemaPromise: Promise<void> | null = null;
+
 /** Idempotent schema initialization for Neon Serverless Postgres */
 async function ensureSchema(sql: NeonQueryFunction<false, false>): Promise<void> {
   if (globalThis.__jat_neon_schema_ready__) return;
 
-  try {
-    await sql`
-      CREATE TABLE IF NOT EXISTS cadet_profiles (
-        cadet_id TEXT PRIMARY KEY,
-        callsign TEXT NOT NULL,
-        avatar TEXT NOT NULL,
-        specialty TEXT DEFAULT 'commander',
-        missions_played INT DEFAULT 0,
-        missions_won INT DEFAULT 0,
-        total_sols INT DEFAULT 0,
-        highest_score INT DEFAULT 0,
-        badges JSONB DEFAULT '[]'::jsonb,
-        updated_at TIMESTAMPTZ DEFAULT NOW()
-      );
-    `;
-
-    await sql`
-      ALTER TABLE cadet_profiles ADD COLUMN IF NOT EXISTS specialty TEXT DEFAULT 'commander';
-    `;
-
-    await sql`
-      CREATE TABLE IF NOT EXISTS active_saves (
-        cadet_id TEXT PRIMARY KEY,
-        game_state JSONB NOT NULL,
-        updated_at TIMESTAMPTZ DEFAULT NOW()
-      );
-    `;
-
-    await sql`
-      CREATE TABLE IF NOT EXISTS leaderboard_entries (
-        id SERIAL PRIMARY KEY,
-        cadet_id TEXT NOT NULL,
-        callsign TEXT NOT NULL,
-        avatar TEXT NOT NULL,
-        difficulty TEXT NOT NULL,
-        sols_survived INT NOT NULL,
-        score INT NOT NULL,
-        is_victory BOOLEAN NOT NULL,
-        badges_count INT DEFAULT 0,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      );
-    `;
-
-    await sql`
-      CREATE INDEX IF NOT EXISTS idx_leaderboard_score_created
-      ON leaderboard_entries (score DESC, created_at ASC);
-    `;
-
-    await sql`
-      CREATE TABLE IF NOT EXISTS squad_rooms (
-        room_code VARCHAR(6) PRIMARY KEY,
-        landing_zone VARCHAR(32) NOT NULL,
-        weather_seed INTEGER NOT NULL,
-        status VARCHAR(16) NOT NULL DEFAULT 'LOBBY',
-        cadets JSONB NOT NULL DEFAULT '[]'::jsonb,
-        is_timed_mode BOOLEAN DEFAULT FALSE,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-    `;
-
-    await sql`
-      ALTER TABLE squad_rooms ADD COLUMN IF NOT EXISTS is_timed_mode BOOLEAN DEFAULT FALSE;
-    `;
-
-    await sql`
-      CREATE INDEX IF NOT EXISTS idx_squad_rooms_status
-      ON squad_rooms (status, created_at DESC);
-    `;
-
-    globalThis.__jat_neon_schema_ready__ = true;
-  } catch (err) {
-    console.error('Failed to run ensureSchema on Neon Postgres:', err);
+  if (!schemaPromise) {
+    schemaPromise = (async () => {
+      try {
+        await sql`
+          CREATE TABLE IF NOT EXISTS cadet_profiles (
+            cadet_id TEXT PRIMARY KEY,
+            callsign TEXT NOT NULL,
+            avatar TEXT NOT NULL,
+            specialty TEXT DEFAULT 'commander',
+            missions_played INT DEFAULT 0,
+            missions_won INT DEFAULT 0,
+            total_sols INT DEFAULT 0,
+            highest_score INT DEFAULT 0,
+            badges JSONB DEFAULT '[]'::jsonb,
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+          );
+          ALTER TABLE cadet_profiles ADD COLUMN IF NOT EXISTS specialty TEXT DEFAULT 'commander';
+          CREATE TABLE IF NOT EXISTS active_saves (
+            cadet_id TEXT PRIMARY KEY,
+            game_state JSONB NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+          );
+          CREATE TABLE IF NOT EXISTS leaderboard_entries (
+            id SERIAL PRIMARY KEY,
+            cadet_id TEXT NOT NULL,
+            callsign TEXT NOT NULL,
+            avatar TEXT NOT NULL,
+            difficulty TEXT NOT NULL,
+            sols_survived INT NOT NULL,
+            score INT NOT NULL,
+            is_victory BOOLEAN NOT NULL,
+            badges_count INT DEFAULT 0,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+          );
+          CREATE INDEX IF NOT EXISTS idx_leaderboard_score_created ON leaderboard_entries (score DESC, created_at ASC);
+          CREATE TABLE IF NOT EXISTS squad_rooms (
+            room_code VARCHAR(6) PRIMARY KEY,
+            landing_zone VARCHAR(32) NOT NULL,
+            weather_seed INTEGER NOT NULL,
+            status VARCHAR(16) NOT NULL DEFAULT 'LOBBY',
+            cadets JSONB NOT NULL DEFAULT '[]'::jsonb,
+            is_timed_mode BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          );
+          ALTER TABLE squad_rooms ADD COLUMN IF NOT EXISTS is_timed_mode BOOLEAN DEFAULT FALSE;
+          CREATE INDEX IF NOT EXISTS idx_squad_rooms_status ON squad_rooms (status, created_at DESC);
+        `;
+        globalThis.__jat_neon_schema_ready__ = true;
+      } catch (err) {
+        schemaPromise = null;
+        console.error('Failed to run ensureSchema on Neon Postgres:', err);
+      }
+    })();
   }
+
+  await schemaPromise;
 }
 
 /** Lazily get authenticated Neon SQL client with schema verification */

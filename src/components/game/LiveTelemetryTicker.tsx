@@ -50,7 +50,7 @@ export default function LiveTelemetryTicker() {
   return (
     <>
       <div
-        className="w-full bg-[#070b1a]/95 backdrop-blur-md border-b border-white/10 px-3 py-1.5 flex items-center justify-between gap-3 text-xs font-mono relative z-40 overflow-hidden"
+        className="w-full bg-[#070b1a]/98 border-b border-white/10 px-3 py-1.5 flex items-center justify-between gap-3 text-xs font-mono relative z-40 overflow-hidden"
         role="region"
         aria-label="NASA Space Weather Live Telemetry"
       >

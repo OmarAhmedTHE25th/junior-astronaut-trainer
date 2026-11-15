@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useGame } from './GameProvider';
 import { useSound } from '@/lib/sound';
 import { useProfile } from '@/lib/profile';
@@ -130,57 +130,66 @@ export default function OperationsDeck() {
     return drawSolOperations(state).hand;
   }, [state]);
 
-  const handleExecuteOperation = (card: OperationCard) => {
-    if (isDisabled) return;
-    playAction();
-    const liveBoosts = Object.keys(state.activeBoostTimers || {}).filter(
-      (b) => (state.activeBoostTimers?.[b] || 0) > 0
-    );
-    dispatch({
-      type: 'PERFORM_OPERATION',
-      operationId: card.id,
-      activePetId: pet?.petSlug || pet?.id || undefined,
-      activeBoosts: liveBoosts,
-    });
-  };
+  const handleExecuteOperation = useCallback(
+    (card: OperationCard) => {
+      if (isDisabled) return;
+      playAction();
+      const liveBoosts = Object.keys(state.activeBoostTimers || {}).filter(
+        (b) => (state.activeBoostTimers?.[b] || 0) > 0
+      );
+      dispatch({
+        type: 'PERFORM_OPERATION',
+        operationId: card.id,
+        activePetId: pet?.petSlug || pet?.id || undefined,
+        activeBoosts: liveBoosts,
+      });
+    },
+    [isDisabled, playAction, state.activeBoostTimers, dispatch, pet]
+  );
 
-  const handleCommandOverride = () => {
+  const handleCommandOverride = useCallback(() => {
     if (isDisabled || commandOverrides <= 0) {
       playAlert();
       return;
     }
     playClick();
     dispatch({ type: 'COMMAND_OVERRIDE' });
-  };
+  }, [isDisabled, commandOverrides, playAlert, playClick, dispatch]);
 
-  const handleActivateBoost = (boostSlug: BoostSlug) => {
-    if (isDisabled) return;
-    const currentTimer = state.activeBoostTimers?.[boostSlug] || 0;
-    if (currentTimer > 0) return; // already active
+  const handleActivateBoost = useCallback(
+    (boostSlug: BoostSlug) => {
+      if (isDisabled) return;
+      const currentTimer = state.activeBoostTimers?.[boostSlug] || 0;
+      if (currentTimer > 0) return; // already active
 
-    playSuccess();
-    dispatch({ type: 'ACTIVATE_BOOST', boostSlug });
-  };
+      playSuccess();
+      dispatch({ type: 'ACTIVATE_BOOST', boostSlug });
+    },
+    [isDisabled, state.activeBoostTimers, playSuccess, dispatch]
+  );
 
-  const handleDeploySupply = (itemSlug: string) => {
-    if (isDisabled) return;
-    const qty = combatInventory[itemSlug] || 0;
-    if (qty <= 0) {
-      playAlert();
-      return;
-    }
+  const handleDeploySupply = useCallback(
+    (itemSlug: string) => {
+      if (isDisabled) return;
+      const qty = combatInventory[itemSlug] || 0;
+      if (qty <= 0) {
+        playAlert();
+        return;
+      }
 
-    playAction();
-    dispatch({ type: 'DEPLOY_SUPPLY', itemSlug });
+      playAction();
+      dispatch({ type: 'DEPLOY_SUPPLY', itemSlug });
 
-    // Non-blocking server persistence
-    const cadetId = state.cadetId || profile.cadetId || 'cadet-nova-01';
-    fetch('/api/market/consume', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ playerId: cadetId, itemSlug, count: 1 }),
-    }).catch((err) => console.warn('Non-blocking supply consumption warning:', err));
-  };
+      // Non-blocking server persistence
+      const cadetId = state.cadetId || profile.cadetId || 'cadet-nova-01';
+      fetch('/api/market/consume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerId: cadetId, itemSlug, count: 1 }),
+      }).catch((err) => console.warn('Non-blocking supply consumption warning:', err));
+    },
+    [isDisabled, combatInventory, playAlert, playAction, dispatch, state.cadetId, profile.cadetId]
+  );
 
   const totalSuppliesCount = Object.values(combatInventory).reduce(
     (sum, q) => sum + (typeof q === 'number' && q > 0 ? q : 0),

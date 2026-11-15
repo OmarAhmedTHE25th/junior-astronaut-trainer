@@ -203,7 +203,7 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
   }, [inventory]);
 
   // Handle Direct Store Buy
-  const handleStoreBuy = async (item: MarketplaceItemDef) => {
+  const handleStoreBuy = useCallback(async (item: MarketplaceItemDef) => {
     const qty = storeQuantities[item.slug] || 1;
     const totalCost = qty * item.basePrice;
     const currentCredits = wallet ? wallet.creditsBalance : 0;
@@ -248,10 +248,10 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
     } finally {
       setIsProcessing(false);
     }
-  };
+  }, [storeQuantities, wallet, playAlert, playClick, activeCadet.cadetId, playSuccess, fetchWalletAndInventory]);
 
   // Handle Instant 60% Recycle for Credits
-  const handleRecycle = async (itemSlug: string, maxQty: number) => {
+  const handleRecycle = useCallback(async (itemSlug: string, maxQty: number) => {
     const qty = Math.min(maxQty, Math.max(1, recycleQuantities[itemSlug] || 1));
     const itemDef = CATALOG_ITEMS[itemSlug];
     const refundPerUnit = itemDef ? Math.max(1, Math.floor(itemDef.basePrice * 0.6)) : 20;
@@ -289,10 +289,10 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
     } finally {
       setIsProcessing(false);
     }
-  };
+  }, [recycleQuantities, playClick, activeCadet.cadetId, playSuccess, fetchWalletAndInventory, playAlert]);
 
   // Handle Hosted Stripe Checkout Portal
-  const handleStripeCheckout = async (bundle: StoreStripeBundle) => {
+  const handleStripeCheckout = useCallback(async (bundle: StoreStripeBundle) => {
     if (isProcessing) return;
     playClick();
     setIsProcessing(true);
@@ -333,10 +333,10 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
     } finally {
       setIsProcessing(false);
     }
-  };
+  }, [activeCadet.cadetId, playAlert, playClick]);
 
   // Handle Battle Pass Tier Claim
-  const handleClaimBattlePass = async (tierNumber: number, isPremium: boolean) => {
+  const handleClaimBattlePass = useCallback(async (tierNumber: number, isPremium: boolean) => {
     if (isProcessing) return;
     playClick();
     setIsProcessing(true);
@@ -360,10 +360,10 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
     } finally {
       setIsProcessing(false);
     }
-  };
+  }, [isProcessing, playClick, activeCadet.cadetId, playSuccess, fetchWalletAndInventory, playAlert]);
 
   // Handle Opening an Orbital Supply Drop Crate
-  const handleOpenCrate = async (crateSlug: CrateTierSlug) => {
+  const handleOpenCrate = useCallback(async (crateSlug: CrateTierSlug) => {
     const crateDef = CRATE_TIERS[crateSlug];
     const isDailyFree = crateSlug === 'sovereign' && isFiveStarGeneral && isDailyVaultReady;
     const currentCredits = wallet ? wallet.creditsBalance : 0;
@@ -425,7 +425,7 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
       setStatusMsg({ type: 'error', text: 'Network failure during capsule orbital drop' });
       playAlert();
     }
-  };
+  }, [isFiveStarGeneral, isDailyVaultReady, wallet, playClick, playAction, activeCadet.cadetId, playVictory, playSuccess, fetchWalletAndInventory, playAlert]);
 
   const getCategoryLabel = (category: ItemCategory) => {
     switch (category) {

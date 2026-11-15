@@ -18,7 +18,7 @@ const severityGlow: Record<number, string> = {
   3: 'shadow-[#EF4444]/30',
 };
 
-export default function EventCard() {
+const EventCard = React.memo(function EventCard() {
   const { state, dispatch } = useGame();
   const event = state.activeEvent;
 
@@ -116,4 +116,6 @@ export default function EventCard() {
       </div>
     </div>
   );
-}
+});
+
+export default EventCard;

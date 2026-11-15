@@ -154,66 +154,74 @@ async function getSqlClient(): Promise<NeonQueryFunction<false, false> | null> {
   }
 }
 
+let guildSchemaPromise: Promise<void> | null = null;
+
 /**
  * Idempotent schema provisioning for Neon Postgres
+ * Gated behind a module-level promise to guarantee single execution per cold start.
  */
 export async function ensureGuildSchema(sql: NeonQueryFunction<false, false>): Promise<void> {
   if (globalThis.__jat_guilds_schema_ready__) return;
 
-  try {
-    await sql`
-      CREATE TABLE IF NOT EXISTS guilds (
-        id VARCHAR(64) PRIMARY KEY,
-        name VARCHAR(64) NOT NULL UNIQUE,
-        tag VARCHAR(16) NOT NULL,
-        emblem VARCHAR(32) NOT NULL DEFAULT '🛡️',
-        motto TEXT NOT NULL DEFAULT '',
-        leader_id VARCHAR(64) NOT NULL,
-        treasury_mc INT NOT NULL DEFAULT 0,
-        total_guild_score INT NOT NULL DEFAULT 0,
-        buff_level INT NOT NULL DEFAULT 1,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-    `;
-
-    await sql`
-      CREATE TABLE IF NOT EXISTS guild_members (
-        guild_id VARCHAR(64) NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
-        cadet_id VARCHAR(64) NOT NULL UNIQUE,
-        callsign VARCHAR(64) NOT NULL,
-        avatar VARCHAR(32) NOT NULL DEFAULT '👨‍🚀',
-        role VARCHAR(16) NOT NULL DEFAULT 'member',
-        contributed_mc INT NOT NULL DEFAULT 0,
-        contributed_score INT NOT NULL DEFAULT 0,
-        joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        PRIMARY KEY (guild_id, cadet_id)
-      );
-    `;
-
-    // Seed default starter guilds if table is empty
-    const countResult = await sql`SELECT COUNT(*)::int as count FROM guilds;`;
-    if (countResult && countResult[0] && countResult[0].count === 0) {
-      for (const g of STARTER_GUILDS) {
+  if (!guildSchemaPromise) {
+    guildSchemaPromise = (async () => {
+      try {
         await sql`
-          INSERT INTO guilds (id, name, tag, emblem, motto, leader_id, treasury_mc, total_guild_score, buff_level, created_at, updated_at)
-          VALUES (${g.id}, ${g.name}, ${g.tag}, ${g.emblem}, ${g.motto}, ${g.leaderId}, ${g.treasuryMC}, ${g.totalGuildScore}, ${g.buffLevel}, ${g.createdAt}, ${g.updatedAt})
-          ON CONFLICT (id) DO NOTHING;
-        `;
-        for (const m of g.members) {
-          await sql`
-            INSERT INTO guild_members (guild_id, cadet_id, callsign, avatar, role, contributed_mc, contributed_score, joined_at)
-            VALUES (${g.id}, ${m.cadetId}, ${m.callsign}, ${m.avatar}, ${m.role}, ${m.contributedMC}, ${m.contributedScore}, ${m.joinedAt})
-            ON CONFLICT (guild_id, cadet_id) DO NOTHING;
-          `;
-        }
-      }
-    }
+          CREATE TABLE IF NOT EXISTS guilds (
+            id VARCHAR(64) PRIMARY KEY,
+            name VARCHAR(64) NOT NULL UNIQUE,
+            tag VARCHAR(16) NOT NULL,
+            emblem VARCHAR(32) NOT NULL DEFAULT '🛡️',
+            motto TEXT NOT NULL DEFAULT '',
+            leader_id VARCHAR(64) NOT NULL,
+            treasury_mc INT NOT NULL DEFAULT 0,
+            total_guild_score INT NOT NULL DEFAULT 0,
+            buff_level INT NOT NULL DEFAULT 1,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          );
 
-    globalThis.__jat_guilds_schema_ready__ = true;
-  } catch (err) {
-    console.error('Failed to ensure guild database schema:', err);
+          CREATE TABLE IF NOT EXISTS guild_members (
+            guild_id VARCHAR(64) NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
+            cadet_id VARCHAR(64) NOT NULL UNIQUE,
+            callsign VARCHAR(64) NOT NULL,
+            avatar VARCHAR(32) NOT NULL DEFAULT '👨‍🚀',
+            role VARCHAR(16) NOT NULL DEFAULT 'member',
+            contributed_mc INT NOT NULL DEFAULT 0,
+            contributed_score INT NOT NULL DEFAULT 0,
+            joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            PRIMARY KEY (guild_id, cadet_id)
+          );
+        `;
+
+        // Seed default starter guilds if table is empty
+        const countResult = await sql`SELECT COUNT(*)::int as count FROM guilds;`;
+        if (countResult && countResult[0] && countResult[0].count === 0) {
+          for (const g of STARTER_GUILDS) {
+            await sql`
+              INSERT INTO guilds (id, name, tag, emblem, motto, leader_id, treasury_mc, total_guild_score, buff_level, created_at, updated_at)
+              VALUES (${g.id}, ${g.name}, ${g.tag}, ${g.emblem}, ${g.motto}, ${g.leaderId}, ${g.treasuryMC}, ${g.totalGuildScore}, ${g.buffLevel}, ${g.createdAt}, ${g.updatedAt})
+              ON CONFLICT (id) DO NOTHING;
+            `;
+            for (const m of g.members) {
+              await sql`
+                INSERT INTO guild_members (guild_id, cadet_id, callsign, avatar, role, contributed_mc, contributed_score, joined_at)
+                VALUES (${g.id}, ${m.cadetId}, ${m.callsign}, ${m.avatar}, ${m.role}, ${m.contributedMC}, ${m.contributedScore}, ${m.joinedAt})
+                ON CONFLICT (guild_id, cadet_id) DO NOTHING;
+              `;
+            }
+          }
+        }
+
+        globalThis.__jat_guilds_schema_ready__ = true;
+      } catch (err) {
+        guildSchemaPromise = null;
+        console.error('Failed to ensure guild database schema:', err);
+      }
+    })();
   }
+
+  await guildSchemaPromise;
 }
 
 /**
@@ -249,15 +257,10 @@ export async function getAllGuilds(): Promise<Guild[]> {
         joined_at: string;
       };
 
-      const guildRows = (await sql`
-        SELECT * FROM guilds
-        ORDER BY total_guild_score DESC, treasury_mc DESC;
-      `) as unknown as GuildRow[];
-
-      const memberRows = (await sql`
-        SELECT * FROM guild_members
-        ORDER BY contributed_score DESC, contributed_mc DESC;
-      `) as unknown as MemberRow[];
+      const [guildRows, memberRows] = (await Promise.all([
+        sql`SELECT * FROM guilds ORDER BY total_guild_score DESC, treasury_mc DESC;`,
+        sql`SELECT * FROM guild_members ORDER BY contributed_score DESC, contributed_mc DESC;`,
+      ])) as unknown as [GuildRow[], MemberRow[]];
 
       const membersByGuild = new Map<string, GuildMember[]>();
       for (const m of memberRows) {

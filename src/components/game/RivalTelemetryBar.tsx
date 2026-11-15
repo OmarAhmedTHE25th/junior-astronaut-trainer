@@ -171,7 +171,7 @@ export default function RivalTelemetryBar({
   const isEmpJammed = Boolean(state.activeDebuffs && state.activeDebuffs.empJammedSols > 0);
 
   return (
-    <div className="w-full bg-[#0d112b]/95 border-b border-amber-500/40 text-xs font-mono shadow-xl backdrop-blur-md transition-all">
+    <div className="w-full bg-[#0d112b]/98 border-b border-amber-500/40 text-xs font-mono shadow-xl transition-all">
       {/* ── TOP TELEMETRY COMPARISON BAR ── */}
       <div className="px-3 sm:px-4 py-2 flex flex-wrap items-center justify-between gap-3">
         {/* Tournament Match Identifier */}

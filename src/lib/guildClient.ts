@@ -6,6 +6,7 @@ import type { Guild, GuildMember } from './guildTypes';
 export const GUILD_STORAGE_KEY = 'jat_guild_v1';
 
 const guildListeners = new Set<(guild: Guild | null) => void>();
+const inFlightGuildRequests = new Map<string, Promise<{ success?: boolean; guilds?: Guild[]; currentGuild?: Guild | null; error?: string }>>();
 
 /**
  * Read the active player's cached guild synchronously from localStorage
@@ -82,13 +83,22 @@ export function useGuild(cadetId?: string): UseGuildReturn {
 
   const refreshGuilds = useCallback(async () => {
     if (!cadetId && typeof window === 'undefined') return;
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
     setIsLoading(true);
     setError(null);
 
+    const url = cadetId ? `/api/guilds?cadetId=${encodeURIComponent(cadetId)}` : '/api/guilds';
     try {
-      const url = cadetId ? `/api/guilds?cadetId=${encodeURIComponent(cadetId)}` : '/api/guilds';
-      const res = await fetch(url);
-      const data = await res.json();
+      let reqPromise = inFlightGuildRequests.get(url);
+      if (!reqPromise) {
+        reqPromise = fetch(url)
+          .then((res) => res.json())
+          .finally(() => {
+            inFlightGuildRequests.delete(url);
+          });
+        inFlightGuildRequests.set(url, reqPromise);
+      }
+      const data = await reqPromise;
 
       if (data.success) {
         setAllGuilds(data.guilds || []);
@@ -109,6 +119,16 @@ export function useGuild(cadetId?: string): UseGuildReturn {
 
   useEffect(() => {
     refreshGuilds();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshGuilds();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [refreshGuilds]);
 
   const createGuild = useCallback(

@@ -7,6 +7,7 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useMemo,
   useRef,
   type ReactNode,
 } from 'react';
@@ -47,6 +48,18 @@ export function useGame(): GameContextType {
     throw new Error('useGame must be used within a GameProvider');
   }
   return ctx;
+}
+
+export interface MissionTimerContextType {
+  timeRemaining: number;
+}
+
+export const MissionTimerContext = createContext<MissionTimerContextType>({
+  timeRemaining: TIMED_CRISIS_SOL_SECONDS,
+});
+
+export function useMissionTimer(): MissionTimerContextType {
+  return useContext(MissionTimerContext);
 }
 
 interface GameProviderProps {
@@ -108,6 +121,7 @@ export function GameProvider({
   );
   const [factIndex, setFactIndex] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(TIMED_CRISIS_SOL_SECONDS);
+  const timeRemainingRef = useRef(TIMED_CRISIS_SOL_SECONDS);
   const [isPaused, setIsPaused] = useState(false);
   const activeSolRef = useRef(state.sol);
   const elapsedMissionSecondsRef = useRef(0);
@@ -147,8 +161,8 @@ export function GameProvider({
         isTimed &&
         state.phase === 'action'
       ) {
-        if (timeRemaining > 0) {
-          const bonus = Math.round(timeRemaining * 10);
+        if (timeRemainingRef.current > 0) {
+          const bonus = Math.round(timeRemainingRef.current * 10);
           if (bonus > 0) {
             rawDispatch({ type: 'RECORD_TIMED_BONUS', bonusPoints: bonus });
           }
@@ -156,13 +170,14 @@ export function GameProvider({
       }
       rawDispatch(action);
     },
-    [isTimed, state.phase, timeRemaining]
+    [isTimed, state.phase]
   );
 
   // Reset countdown on new sol
   useEffect(() => {
     if (state.sol !== activeSolRef.current) {
       activeSolRef.current = state.sol;
+      timeRemainingRef.current = TIMED_CRISIS_SOL_SECONDS;
       setTimeRemaining(TIMED_CRISIS_SOL_SECONDS);
     }
   }, [state.sol]);
@@ -174,25 +189,26 @@ export function GameProvider({
 
     const interval = setInterval(() => {
       elapsedMissionSecondsRef.current += 0.1;
-      setTimeRemaining((prev) => {
-        const next = Math.max(0, +(prev - 0.1).toFixed(1));
-        if (next <= 0) {
-          clearInterval(interval);
-          // Timer ended: Player immediately loses mission in Timed Crisis Mode (or VIP retry activated)
-          rawDispatch({
-            type: 'TRIGGER_TIMEOUT_GAMEOVER',
-          });
-          if ((state.retriesRemaining ?? 0) > 0) {
-            return TIMED_CRISIS_SOL_SECONDS;
-          }
-          return 0;
+      const prev = timeRemainingRef.current;
+      const next = Math.max(0, +(prev - 0.1).toFixed(1));
+      timeRemainingRef.current = next;
+      setTimeRemaining(next);
+
+      if (next <= 0) {
+        clearInterval(interval);
+        // Timer ended: Player immediately loses mission in Timed Crisis Mode (or VIP retry activated)
+        rawDispatch({
+          type: 'TRIGGER_TIMEOUT_GAMEOVER',
+        });
+        if ((state.retriesRemaining ?? 0) > 0) {
+          timeRemainingRef.current = TIMED_CRISIS_SOL_SECONDS;
+          setTimeRemaining(TIMED_CRISIS_SOL_SECONDS);
         }
-        return next;
-      });
+      }
     }, 100);
 
     return () => clearInterval(interval);
-  }, [isTimed, state.phase, isPaused]);
+  }, [isTimed, state.phase, isPaused, state.retriesRemaining]);
 
   // Load and synchronize Companion Pet, Slotted Boosts, and Marketplace Inventory
   useEffect(() => {
@@ -502,20 +518,30 @@ export function GameProvider({
 
   const currentFact = facts.length > 0 ? facts[factIndex] : null;
 
+  const gameContextValue = useMemo(
+    () => ({
+      state,
+      dispatch,
+      currentFact,
+      rotateFact,
+      timeRemaining: timeRemainingRef.current,
+      isPaused,
+      setIsPaused,
+      quitMission,
+    }),
+    [state, dispatch, currentFact, rotateFact, isPaused, setIsPaused, quitMission]
+  );
+
+  const timerContextValue = useMemo(
+    () => ({ timeRemaining }),
+    [timeRemaining]
+  );
+
   return (
-    <GameContext.Provider
-      value={{
-        state,
-        dispatch,
-        currentFact,
-        rotateFact,
-        timeRemaining,
-        isPaused,
-        setIsPaused,
-        quitMission,
-      }}
-    >
-      {children}
+    <GameContext.Provider value={gameContextValue}>
+      <MissionTimerContext.Provider value={timerContextValue}>
+        {children}
+      </MissionTimerContext.Provider>
     </GameContext.Provider>
   );
 }

@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import Button from '@/components/ui/Button';
-import LeaderboardModal from './LeaderboardModal';
-import TelemetryChart from './TelemetryChart';
 import { useGame } from './GameProvider';
+
+const LeaderboardModal = dynamic(() => import('./LeaderboardModal'), { ssr: false });
+const TelemetryChart = dynamic(() => import('./TelemetryChart'), { ssr: false });
 import { calculateScore } from '@/lib/gameEngine';
 import { playVictory, playGameOver, playClick, playSuccess } from '@/lib/sound';
 import { useBattlePass, addBattlePassXP } from '@/lib/battlePass';
@@ -20,7 +22,7 @@ import type { BadgeId, SquadCadetState } from '@/lib/types';
 import { getStoredGuild } from '@/lib/guildClient';
 import { getGuildBuff } from '@/lib/guildTypes';
 
-function ConfettiPiece({ index }: { index: number }) {
+const ConfettiPiece = React.memo(function ConfettiPiece({ index }: { index: number }) {
   const colors = ['#E87040', '#3B82F6', '#22C55E', '#6B3FA0', '#EF4444', '#F8FAFC'];
   const color = colors[index % colors.length];
   const left = Math.random() * 100;
@@ -30,7 +32,7 @@ function ConfettiPiece({ index }: { index: number }) {
 
   return (
     <div
-      className="absolute top-0 animate-[confetti-fall_linear_forwards] pointer-events-none"
+      className="absolute top-0 animate-[confetti-fall_linear_forwards] pointer-events-none will-change-transform"
       style={{
         left: `${left}%`,
         animationDelay: `${delay}s`,
@@ -44,7 +46,7 @@ function ConfettiPiece({ index }: { index: number }) {
       aria-hidden="true"
     />
   );
-}
+});
 
 export default function EndScreen() {
   const router = useRouter();
@@ -67,12 +69,12 @@ export default function EndScreen() {
 
   const isFiveStar = Boolean(state.isFiveStarGeneral || bpState.isFiveStarGeneral);
   const isVictory = state.phase === 'victory';
-  const finalScore = calculateScore(state);
+  const finalScore = useMemo(() => calculateScore(state), [state]);
 
   const activeGuild = state.guild || (typeof window !== 'undefined' ? getStoredGuild() : null);
   const guildTag = activeGuild?.tag;
   const isGuildGoldTrim = activeGuild?.buffLevel === 5;
-  const guildBuff = getGuildBuff(activeGuild?.buffLevel || 0);
+  const guildBuff = useMemo(() => getGuildBuff(activeGuild?.buffLevel || 0), [activeGuild?.buffLevel]);
   const guildCreditsMultiplier = 1 + (guildBuff.creditsBonusPercent / 100);
 
   const rawCallsign = activeCadet.callsign || 'CADET';
@@ -80,19 +82,26 @@ export default function EndScreen() {
     ? `[${guildTag}] ${rawCallsign}`
     : rawCallsign;
 
-  const baseCredits = Math.max(25, Math.round(finalScore * 0.25) + (state.sol - 1) * 10);
-  const vipCredits = isFiveStar ? Math.round(baseCredits * 1.25) : baseCredits;
-  const earnedCredits = Math.round(vipCredits * guildCreditsMultiplier);
-  const bpXpEarned = Math.max(100, Math.round(finalScore * 0.5) + state.sol * 15);
-  const petXpToAward = (state.petXpEarned || 0) + (isVictory ? 100 : 0);
+  const { earnedCredits, bpXpEarned, petXpToAward, stars, starDisplay } = useMemo(() => {
+    const baseCredits = Math.max(25, Math.round(finalScore * 0.25) + (state.sol - 1) * 10);
+    const vipCredits = isFiveStar ? Math.round(baseCredits * 1.25) : baseCredits;
+    const earned = Math.round(vipCredits * guildCreditsMultiplier);
+    const bpXp = Math.max(100, Math.round(finalScore * 0.5) + state.sol * 15);
+    const petXp = (state.petXpEarned || 0) + (isVictory ? 100 : 0);
+    const starCount = Math.min(5, Math.max(1, Math.ceil(finalScore / 200)));
+    const starsStr = '⭐'.repeat(starCount) + '☆'.repeat(5 - starCount);
+    return {
+      earnedCredits: earned,
+      bpXpEarned: bpXp,
+      petXpToAward: petXp,
+      stars: starCount,
+      starDisplay: starsStr,
+    };
+  }, [finalScore, state.sol, state.petXpEarned, isFiveStar, guildCreditsMultiplier, isVictory]);
 
   const activeSpecialty = SPECIALTY_METAS.find(
     (s) => s.id === (state.specialty || activeCadet.specialty || 'commander')
   );
-
-  // Star rating: 1-5 based on score
-  const stars = Math.min(5, Math.max(1, Math.ceil(finalScore / 200)));
-  const starDisplay = '⭐'.repeat(stars) + '☆'.repeat(5 - stars);
 
   const formatMissionDuration = (seconds?: number) => {
     if (!seconds || seconds <= 0) return '00:00';
@@ -286,7 +295,7 @@ export default function EndScreen() {
 
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-[fade-in_0.5s_ease-out]">
         {/* Backdrop */}
-        <div className="absolute inset-0 bg-[#0B1026]/90 backdrop-blur-md no-print" aria-hidden="true" />
+        <div className="absolute inset-0 bg-[#0B1026]/95 no-print" aria-hidden="true" />
 
         {/* Confetti */}
         {showConfetti && (

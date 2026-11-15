@@ -1,13 +1,15 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import ProgressBar from '@/components/ui/ProgressBar';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import LiveTelemetryTicker from './LiveTelemetryTicker';
-import TelemetryChart from './TelemetryChart';
-import SponsorAdModal from './SponsorAdModal';
-import { useGame } from './GameProvider';
+
+const TelemetryChart = dynamic(() => import('./TelemetryChart'), { ssr: false });
+const SponsorAdModal = dynamic(() => import('./SponsorAdModal'), { ssr: false });
+import { useGame, useMissionTimer } from './GameProvider';
 import { useSound } from '@/lib/sound';
 import { useProfile } from '@/lib/profile';
 import { useBattlePass } from '@/lib/battlePass';
@@ -15,20 +17,95 @@ import { useGuild } from '@/lib/guildClient';
 import { SPECIALTY_METAS } from '@/lib/types';
 import type { SquadCadetState } from '@/lib/types';
 
+interface TimedCrisisTimerWidgetProps {
+  isTimedMode?: boolean;
+  phase: string;
+}
+
+/**
+ * Isolated high-frequency (100ms) countdown widget.
+ * Subscribes only to MissionTimerContext so tick re-renders do not touch HUD or the main game board.
+ */
+const TimedCrisisTimerWidget = React.memo(function TimedCrisisTimerWidget({
+  isTimedMode,
+  phase,
+}: TimedCrisisTimerWidgetProps) {
+  const { timeRemaining } = useMissionTimer();
+  const { playTimerTick } = useSound();
+  const lastTickSecondRef = useRef<number>(15);
+
+  useEffect(() => {
+    if (!isTimedMode) return;
+    const currentSec = Math.ceil(timeRemaining);
+    if (currentSec <= 3 && currentSec > 0 && currentSec !== lastTickSecondRef.current && phase === 'action') {
+      playTimerTick();
+      lastTickSecondRef.current = currentSec;
+    } else if (currentSec > 3) {
+      lastTickSecondRef.current = currentSec;
+    }
+  }, [timeRemaining, isTimedMode, phase, playTimerTick]);
+
+  if (!isTimedMode) return null;
+
+  return (
+    <div
+      className={`
+        flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 will-change-transform
+        ${
+          timeRemaining <= 3
+            ? 'bg-rose-950/80 border-rose-500 text-rose-300 ring-2 ring-rose-500/50'
+            : timeRemaining <= 6
+            ? 'bg-amber-950/80 border-amber-500 text-amber-300 shadow-amber-500/20'
+            : 'bg-[#1a1f3d]/90 border-cyan-500/40 text-cyan-300 shadow-cyan-500/10'
+        }
+        shadow-lg
+      `}
+      role="timer"
+      aria-label={`Sol Decision Countdown: ${timeRemaining.toFixed(1)} seconds remaining`}
+    >
+      <span className="text-base select-none">
+        ⏱️
+      </span>
+      <div className="flex flex-col">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[9px] font-mono font-extrabold uppercase tracking-widest opacity-80">
+            {timeRemaining <= 3 ? 'CRITICAL TIME' : timeRemaining <= 6 ? 'DECISION TIME' : 'CRISIS CLOCK'}
+          </span>
+          <span className="text-xs font-mono font-extrabold tabular-nums">
+            {timeRemaining.toFixed(1)}s
+          </span>
+        </div>
+        {/* Visual Progress Bar */}
+        <div className="w-20 sm:w-24 h-1.5 rounded-full bg-black/60 overflow-hidden mt-0.5 border border-white/10">
+          <div
+            className={`h-full transition-all duration-100 rounded-full will-change-transform ${
+              timeRemaining <= 3
+                ? 'bg-rose-500'
+                : timeRemaining <= 6
+                ? 'bg-amber-400'
+                : 'bg-cyan-400'
+            }`}
+            style={{ width: `${Math.max(0, Math.min(100, (timeRemaining / 15) * 100))}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+});
+
 interface HUDProps {
   onOpenMenu?: () => void;
 }
 
 export default function HUD({ onOpenMenu }: HUDProps) {
-  const { state, timeRemaining } = useGame();
+  const { state } = useGame();
   const { profile } = useProfile();
   const { state: bpState } = useBattlePass();
-  const { isMuted, toggleSound, playClick, playWarning, playTimerTick } = useSound();
+  const { isMuted, toggleSound, playClick, playWarning } = useSound();
   const [isTelemetryOpen, setIsTelemetryOpen] = useState(false);
   const [isSponsorModalOpen, setIsSponsorModalOpen] = useState(false);
   const [squadCadets, setSquadCadets] = useState<SquadCadetState[]>([]);
   const prevLowRef = useRef<boolean>(false);
-  const lastTickSecondRef = useRef<number>(15);
 
   const activeSpecialty = SPECIALTY_METAS.find((s) => s.id === (state.specialty || profile.specialty || 'commander'));
   const currentAvatar = state.avatar || profile.avatar || '🚀';
@@ -44,12 +121,17 @@ export default function HUD({ onOpenMenu }: HUDProps) {
   const isEmpJammed = Boolean(state.activeDebuffs && state.activeDebuffs.empJammedSols > 0);
   const isSolarBlinded = Boolean(state.activeDebuffs && state.activeDebuffs.solarBlindedSols > 0);
 
-  // Poll Squad Standings if in Squad Race
+  // Poll Squad Standings if in Squad Race with in-flight deduplication and visibility pausing
   useEffect(() => {
     if (!state.squadCode) return;
 
     let isMounted = true;
+    let inFlight = false;
+
     const fetchSquad = async () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      if (inFlight) return;
+      inFlight = true;
       try {
         const res = await fetch(`/api/squad/${state.squadCode}`);
         if (!res.ok) return;
@@ -59,14 +141,25 @@ export default function HUD({ onOpenMenu }: HUDProps) {
         }
       } catch {
         // Flaky Wi-Fi / offline resilience
+      } finally {
+        inFlight = false;
       }
     };
 
     fetchSquad();
     const interval = setInterval(fetchSquad, 3000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchSquad();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       isMounted = false;
       clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [state.squadCode]);
 
@@ -79,18 +172,6 @@ export default function HUD({ onOpenMenu }: HUDProps) {
     }
     prevLowRef.current = isAnyLow;
   }, [isAnyLow, state.phase, playWarning]);
-
-  // Timed Crisis Mode: Urgent audio blip when timeRemaining <= 3s
-  useEffect(() => {
-    if (!state.isTimedMode) return;
-    const currentSec = Math.ceil(timeRemaining);
-    if (currentSec <= 3 && currentSec > 0 && currentSec !== lastTickSecondRef.current && state.phase === 'action') {
-      playTimerTick();
-      lastTickSecondRef.current = currentSec;
-    } else if (currentSec > 3) {
-      lastTickSecondRef.current = currentSec;
-    }
-  }, [timeRemaining, state.isTimedMode, state.phase, playTimerTick]);
 
   return (
     <>
@@ -143,8 +224,7 @@ export default function HUD({ onOpenMenu }: HUDProps) {
       )}
 
       <header
-        className="w-full bg-[#0B1026]/90 backdrop-blur-md border-b border-white/10
-                   px-4 py-3 flex flex-wrap items-center justify-between gap-3 z-30"
+        className="w-full bg-[#0B1026]/95 border-b border-white/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3 z-30"
         role="banner"
         aria-label="Mission status"
       >
@@ -165,51 +245,8 @@ export default function HUD({ onOpenMenu }: HUDProps) {
           </div>
         </div>
 
-        {/* Timed Crisis Mode Countdown Widget */}
-        {state.isTimedMode && (
-          <div
-            className={`
-              flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200
-              ${
-                timeRemaining <= 3
-                  ? 'bg-rose-950/80 border-rose-500 text-rose-300 ring-2 ring-rose-500/50 animate-pulse'
-                  : timeRemaining <= 6
-                  ? 'bg-amber-950/80 border-amber-500 text-amber-300 shadow-amber-500/20'
-                  : 'bg-[#1a1f3d]/90 border-cyan-500/40 text-cyan-300 shadow-cyan-500/10'
-              }
-              shadow-lg
-            `}
-            role="timer"
-            aria-label={`Sol Decision Countdown: ${timeRemaining.toFixed(1)} seconds remaining`}
-          >
-            <span className={`text-base ${timeRemaining <= 3 ? 'animate-bounce' : ''}`}>
-              ⏱️
-            </span>
-            <div className="flex flex-col">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[9px] font-mono font-extrabold uppercase tracking-widest opacity-80">
-                  {timeRemaining <= 3 ? 'CRITICAL TIME' : timeRemaining <= 6 ? 'DECISION TIME' : 'CRISIS CLOCK'}
-                </span>
-                <span className="text-xs font-mono font-extrabold tabular-nums">
-                  {timeRemaining.toFixed(1)}s
-                </span>
-              </div>
-              {/* Visual Progress Bar */}
-              <div className="w-20 sm:w-24 h-1.5 rounded-full bg-black/60 overflow-hidden mt-0.5 border border-white/10">
-                <div
-                  className={`h-full transition-all duration-100 rounded-full ${
-                    timeRemaining <= 3
-                      ? 'bg-rose-500'
-                      : timeRemaining <= 6
-                      ? 'bg-amber-400'
-                      : 'bg-cyan-400'
-                  }`}
-                  style={{ width: `${Math.max(0, Math.min(100, (timeRemaining / 15) * 100))}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Timed Crisis Mode Countdown Widget (Isolated Context) */}
+        <TimedCrisisTimerWidget isTimedMode={state.isTimedMode} phase={state.phase} />
 
         {/* Cadet Profile & Specialty Pill */}
         <div className={`hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-xl border ${
@@ -425,7 +462,7 @@ export default function HUD({ onOpenMenu }: HUDProps) {
     {state.squadCode && (
       <aside
         aria-label="Live squad telemetry mesh"
-        className="w-full bg-[#131838]/95 border-b border-cyan-500/30 px-3 py-1.5 backdrop-blur-md z-20 shadow-lg shadow-black/40"
+        className="w-full bg-[#131838]/98 border-b border-cyan-500/30 px-3 py-1.5 z-20 shadow-lg shadow-black/40"
       >
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 text-xs">
           {/* Squad indicator tag */}

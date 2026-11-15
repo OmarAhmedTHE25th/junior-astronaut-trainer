@@ -116,7 +116,7 @@ export default function SquadMultiplayerHUD({
   return (
     <aside
       aria-label="Real-time squad tactical console"
-      className="w-full bg-[#0d1226]/95 border-b border-cyan-500/40 shadow-xl backdrop-blur-md z-30"
+      className="w-full bg-[#0d1226]/98 border-b border-cyan-500/40 shadow-xl z-30"
     >
       <div className="max-w-7xl mx-auto px-4 py-2.5 space-y-2.5">
         {/* Top Ribbon: Match Status, Code, & Shared Habitat Telemetry */}

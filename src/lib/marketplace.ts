@@ -58,76 +58,78 @@ async function getSqlClient(): Promise<NeonQueryFunction<false, false> | null> {
   }
 }
 
+let marketplaceSchemaPromise: Promise<void> | null = null;
+
 /**
  * Idempotent Neon PostgreSQL schema migration with CHECK constraints and unique indexes.
+ * Gated behind a module-level promise to guarantee single execution per cold start.
  */
 export async function ensureMarketplaceSchema(sql: NeonQueryFunction<false, false>): Promise<void> {
   if (globalThis.__jat_market_schema_ready__) return;
 
-  try {
-    await sql`
-      CREATE TABLE IF NOT EXISTS player_wallets (
-        player_id VARCHAR(64) PRIMARY KEY,
-        credits_balance INT NOT NULL DEFAULT 500 CHECK (credits_balance >= 0),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-    `;
+  if (!marketplaceSchemaPromise) {
+    marketplaceSchemaPromise = (async () => {
+      try {
+        await sql`
+          CREATE TABLE IF NOT EXISTS player_wallets (
+            player_id VARCHAR(64) PRIMARY KEY,
+            credits_balance INT NOT NULL DEFAULT 500 CHECK (credits_balance >= 0),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          );
 
-    await sql`
-      CREATE TABLE IF NOT EXISTS player_inventory (
-        id VARCHAR(64) PRIMARY KEY,
-        player_id VARCHAR(64) NOT NULL,
-        item_slug VARCHAR(64) NOT NULL,
-        item_name TEXT NOT NULL,
-        category VARCHAR(32) NOT NULL,
-        quantity INT NOT NULL DEFAULT 0 CHECK (quantity >= 0),
-        metadata_json JSONB DEFAULT '{}'::jsonb,
-        UNIQUE (player_id, item_slug)
-      );
-    `;
+          CREATE TABLE IF NOT EXISTS player_inventory (
+            id VARCHAR(64) PRIMARY KEY,
+            player_id VARCHAR(64) NOT NULL,
+            item_slug VARCHAR(64) NOT NULL,
+            item_name TEXT NOT NULL,
+            category VARCHAR(32) NOT NULL,
+            quantity INT NOT NULL DEFAULT 0 CHECK (quantity >= 0),
+            metadata_json JSONB DEFAULT '{}'::jsonb,
+            UNIQUE (player_id, item_slug)
+          );
 
-    await sql`
-      CREATE TABLE IF NOT EXISTS market_listings (
-        id VARCHAR(64) PRIMARY KEY,
-        seller_id VARCHAR(64) NOT NULL,
-        seller_name TEXT NOT NULL,
-        seller_avatar TEXT NOT NULL DEFAULT '👨‍🚀',
-        item_slug VARCHAR(64) NOT NULL,
-        item_name TEXT NOT NULL,
-        category VARCHAR(32) NOT NULL,
-        quantity_remaining INT NOT NULL CHECK (quantity_remaining >= 0),
-        initial_quantity INT NOT NULL CHECK (initial_quantity > 0),
-        unit_price INT NOT NULL CHECK (unit_price > 0),
-        status VARCHAR(16) NOT NULL DEFAULT 'active',
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        expires_at TIMESTAMPTZ NOT NULL
-      );
-    `;
+          CREATE TABLE IF NOT EXISTS market_listings (
+            id VARCHAR(64) PRIMARY KEY,
+            seller_id VARCHAR(64) NOT NULL,
+            seller_name TEXT NOT NULL,
+            seller_avatar TEXT NOT NULL DEFAULT '👨‍🚀',
+            item_slug VARCHAR(64) NOT NULL,
+            item_name TEXT NOT NULL,
+            category VARCHAR(32) NOT NULL,
+            quantity_remaining INT NOT NULL CHECK (quantity_remaining >= 0),
+            initial_quantity INT NOT NULL CHECK (initial_quantity > 0),
+            unit_price INT NOT NULL CHECK (unit_price > 0),
+            status VARCHAR(16) NOT NULL DEFAULT 'active',
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            expires_at TIMESTAMPTZ NOT NULL
+          );
 
-    await sql`
-      CREATE TABLE IF NOT EXISTS market_transactions (
-        id VARCHAR(64) PRIMARY KEY,
-        listing_id VARCHAR(64) NOT NULL REFERENCES market_listings(id),
-        buyer_id VARCHAR(64) NOT NULL,
-        seller_id VARCHAR(64) NOT NULL,
-        item_slug VARCHAR(64) NOT NULL,
-        quantity_bought INT NOT NULL CHECK (quantity_bought > 0),
-        total_price INT NOT NULL CHECK (total_price > 0),
-        market_tax_paid INT NOT NULL DEFAULT 0,
-        executed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-    `;
+          CREATE TABLE IF NOT EXISTS market_transactions (
+            id VARCHAR(64) PRIMARY KEY,
+            listing_id VARCHAR(64) NOT NULL REFERENCES market_listings(id),
+            buyer_id VARCHAR(64) NOT NULL,
+            seller_id VARCHAR(64) NOT NULL,
+            item_slug VARCHAR(64) NOT NULL,
+            quantity_bought INT NOT NULL CHECK (quantity_bought > 0),
+            total_price INT NOT NULL CHECK (total_price > 0),
+            market_tax_paid INT NOT NULL DEFAULT 0,
+            executed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          );
 
-    await sql`
-      CREATE INDEX IF NOT EXISTS idx_market_listings_status ON market_listings(status, category);
-      CREATE INDEX IF NOT EXISTS idx_player_inventory_player ON player_inventory(player_id);
-    `;
+          CREATE INDEX IF NOT EXISTS idx_market_listings_status ON market_listings(status, category);
+          CREATE INDEX IF NOT EXISTS idx_player_inventory_player ON player_inventory(player_id);
+        `;
 
-    globalThis.__jat_market_schema_ready__ = true;
-  } catch (err) {
-    console.error('Failed to create marketplace schema:', err);
-    throw err;
+        globalThis.__jat_market_schema_ready__ = true;
+      } catch (err) {
+        marketplaceSchemaPromise = null;
+        console.error('Failed to create marketplace schema:', err);
+        throw err;
+      }
+    })();
   }
+
+  await marketplaceSchemaPromise;
 }
 
 /**

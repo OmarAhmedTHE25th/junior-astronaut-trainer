@@ -270,6 +270,7 @@ export default function SponsorAdModal({
           <video
             ref={videoRef}
             src="/ads/WHOPPER.mp4"
+            preload="none"
             playsInline
             controls={false}
             onTimeUpdate={handleTimeUpdate}
