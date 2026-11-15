@@ -233,12 +233,10 @@ export default function MainMenu() {
             </div>
           </button>
 
-          {/* Mars Credits / Exchange Button */}
-          <button
-            onClick={() => {
-              playClick();
-              setIsMarketplaceOpen(true);
-            }}
+          {/* Mars Credits / Store Button */}
+          <Link
+            href="/store"
+            onClick={playClick}
             className="
               flex items-center gap-2 px-3 py-1.5 rounded-xl
               bg-slate-900 border border-emerald-500/40 hover:border-emerald-400
@@ -251,7 +249,7 @@ export default function MainMenu() {
             <span className="text-[10px] uppercase font-bold text-emerald-300/80 bg-emerald-500/20 px-1.5 py-0.5 rounded border border-emerald-500/30">
               Store &amp; Gear →
             </span>
-          </button>
+          </Link>
 
           {/* Sound Toggle Button */}
           <button
