@@ -108,27 +108,50 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
     fetchWalletAndInventory().finally(() => setIsLoading(false));
   }, [fetchWalletAndInventory]);
 
-  // URL Query Param Listener for Stripe Checkout Returns (?payment=success&bundleId=...)
+  // URL Query Param Listener for Stripe Checkout Returns (?payment=success&bundleId=...&session_id=...)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
     if (params.get('payment') === 'success') {
       const bundleId = params.get('bundleId');
-      const bundle = STRIPE_BUNDLES.find((b) => b.id === bundleId);
-      if (bundle) {
-        if (bundle.id === 'bundle-fivestar-pass') {
-          activateGeneral();
+      const sessionId = params.get('session_id');
+
+      // Verify session_id is present from Stripe before fulfillment
+      if (sessionId && bundleId) {
+        const bundle = STRIPE_BUNDLES.find((b) => b.id === bundleId);
+        if (bundle) {
+          const fulfillPurchase = async () => {
+            if (bundle.id === 'bundle-fivestar-pass' || bundle.isBattlePass) {
+              activateGeneral();
+            }
+            if (bundle.mcAmount > 0) {
+              try {
+                await fetch('/api/market/reward', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    playerId: activeCadet.cadetId,
+                    credits: bundle.mcAmount,
+                  }),
+                });
+              } catch (err) {
+                console.error('Failed to credit Mars Credits upon return:', err);
+              }
+            }
+            await fetchWalletAndInventory();
+            playVictory();
+            setStatusMsg({
+              type: 'success',
+              text: `🎉 Stripe Payment Successful! ${bundle.name} has been credited to your outpost account.`,
+            });
+          };
+
+          fulfillPurchase();
         }
-        fetchWalletAndInventory();
-        playVictory();
-        setStatusMsg({
-          type: 'success',
-          text: `🎉 Stripe Payment Successful! ${bundle.name} has been credited to your outpost account.`,
-        });
       }
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, [activateGeneral, fetchWalletAndInventory, playVictory]);
+  }, [activateGeneral, fetchWalletAndInventory, playVictory, activeCadet.cadetId]);
 
   // Catalog items filtered by category and search
   const catalogList = useMemo(() => {
@@ -250,53 +273,44 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
     }
   };
 
-  // Handle Stripe / Sandbox Test Mode Checkout
+  // Handle Hosted Stripe Checkout Portal
   const handleStripeCheckout = async (bundle: StoreStripeBundle) => {
     if (isProcessing) return;
     playClick();
     setIsProcessing(true);
 
     try {
-      const returnUrl =
-        typeof window !== 'undefined'
-          ? `${window.location.origin}/store?payment=success&bundleId=${bundle.id}`
-          : undefined;
-
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bundleId: bundle.id,
           playerId: activeCadet.cadetId,
-          returnUrl,
         }),
       });
 
       const data = await res.json();
-      const redirectUrl = data.checkoutUrl || data.url;
 
-      if (redirectUrl) {
-        window.location.href = redirectUrl;
+      if (!res.ok || !data.success || !data.checkoutUrl) {
+        const errorText = data.error || 'Failed to initiate Stripe Checkout session';
+        setStatusMsg({ type: 'error', text: errorText });
+        playAlert();
         return;
       }
 
-      if (data.sandbox) {
-        // Instant sandbox fallback
-        if (bundle.id === 'bundle-fivestar-pass') {
-          activateGeneral();
-        }
-        await fetchWalletAndInventory();
-        playVictory();
-        setStatusMsg({
-          type: 'success',
-          text: `✨ [SANDBOX TEST MODE] Successfully granted ${bundle.name} (${bundle.credits ? `+${bundle.credits} MC` : 'Five-Star General VIP Activated'})!`,
-        });
+      const checkoutUrl = data.checkoutUrl as string;
+      if (checkoutUrl.startsWith('https://checkout.stripe.com')) {
+        window.location.href = checkoutUrl;
+        return;
       } else {
-        setStatusMsg({ type: 'error', text: data.error || 'Checkout initialization failed' });
+        setStatusMsg({
+          type: 'error',
+          text: `Unexpected Checkout URL from server: ${checkoutUrl}`,
+        });
         playAlert();
       }
     } catch {
-      setStatusMsg({ type: 'error', text: 'Network error connecting to payment gateway' });
+      setStatusMsg({ type: 'error', text: 'Network error connecting to Stripe payment gateway' });
       playAlert();
     } finally {
       setIsProcessing(false);
@@ -467,17 +481,17 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
         </div>
       </div>
 
-      {/* ── STRIPE / SANDBOX CREDIT TOP-UP & VIP BAR ── */}
+      {/* ── STRIPE HOSTED CHECKOUT CREDIT TOP-UP & VIP BAR ── */}
       <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0B1026] border border-cyan-500/30 shadow-lg">
         <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
           <div className="flex items-center gap-2">
             <span className="text-base">💳</span>
             <span className="text-xs font-mono font-black text-cyan-300 uppercase tracking-wider">
-              MC TOP-UP &amp; VIP ENTITLEMENTS (STRIPE TEST MODE)
+              MC TOP-UP &amp; VIP ENTITLEMENTS (STRIPE CHECKOUT)
             </span>
           </div>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-200 border border-cyan-500/40">
-            Instant Test Mode Fallback
+            Official Hosted Portal
           </span>
         </div>
 
