@@ -45,7 +45,7 @@ function ConfettiPiece({ index }: { index: number }) {
 
 export default function EndScreen() {
   const router = useRouter();
-  const { state, dispatch } = useGame();
+  const { state, dispatch, quitMission } = useGame();
   const { profile, isLoaded } = useProfile();
   const [showConfetti, setShowConfetti] = useState(false);
   const [newlyUnlockedBadges, setNewlyUnlockedBadges] = useState<BadgeId[]>([]);
@@ -196,50 +196,14 @@ export default function EndScreen() {
   }, [state.squadCode]);
 
   const handlePlayAgain = () => {
-    try {
-      localStorage.removeItem('jat_active_save_v1');
-    } catch {}
     playClick();
-
-    const activeCadetId =
-      state.cadetId ||
-      (typeof window !== 'undefined' ? getOrCreateCadetProfile().cadetId : undefined);
-
-    if (activeCadetId) {
-      fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
-        method: 'DELETE',
-        keepalive: true,
-      }).catch(() => {});
-    }
-
-    try {
-      localStorage.removeItem('jat_active_save_v1');
-    } catch {}
-
+    quitMission();
     dispatch({ type: 'RESTART' });
   };
 
   const handleReturnToCommandCenter = () => {
-    try {
-      localStorage.removeItem('jat_active_save_v1');
-    } catch {}
     playClick();
-
-    const activeCadetId =
-      state.cadetId ||
-      (typeof window !== 'undefined' ? getOrCreateCadetProfile().cadetId : undefined);
-
-    if (activeCadetId) {
-      fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
-        method: 'DELETE',
-        keepalive: true,
-      }).catch(() => {});
-    }
-
-    try {
-      localStorage.removeItem('jat_active_save_v1');
-    } catch {}
-
+    quitMission();
     window.location.assign('/');
   };
 

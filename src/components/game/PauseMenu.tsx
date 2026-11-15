@@ -16,42 +16,20 @@ interface PauseMenuProps {
 
 export default function PauseMenu({ isOpen, onClose, onChangeDifficulty }: PauseMenuProps) {
   const router = useRouter();
-  const { state, dispatch } = useGame();
+  const { state, dispatch, quitMission } = useGame();
   const { isMuted, toggleSound, playClick } = useSound();
   const [activeTab, setActiveTab] = useState<'menu' | 'rules' | 'science'>('menu');
 
   const handleRestart = () => {
     playClick();
-    try {
-      localStorage.removeItem('jat_active_save_v1');
-    } catch {}
-    const activeCadetId =
-      state.cadetId ||
-      (typeof window !== 'undefined' ? getOrCreateCadetProfile().cadetId : undefined);
-    if (activeCadetId) {
-      fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
-        method: 'DELETE',
-        keepalive: true,
-      }).catch(() => {});
-    }
+    quitMission();
     dispatch({ type: 'RESTART' });
     onClose();
   };
 
   const handleChangeDifficulty = () => {
     playClick();
-    try {
-      localStorage.removeItem('jat_active_save_v1');
-    } catch {}
-    const activeCadetId =
-      state.cadetId ||
-      (typeof window !== 'undefined' ? getOrCreateCadetProfile().cadetId : undefined);
-    if (activeCadetId) {
-      fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
-        method: 'DELETE',
-        keepalive: true,
-      }).catch(() => {});
-    }
+    quitMission();
     onClose();
     if (onChangeDifficulty) {
       onChangeDifficulty();
@@ -63,18 +41,7 @@ export default function PauseMenu({ isOpen, onClose, onChangeDifficulty }: Pause
   const handleExitToMainMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     playClick();
-    try {
-      localStorage.removeItem('jat_active_save_v1');
-    } catch {}
-    const activeCadetId =
-      state.cadetId ||
-      (typeof window !== 'undefined' ? getOrCreateCadetProfile().cadetId : undefined);
-    if (activeCadetId) {
-      fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
-        method: 'DELETE',
-        keepalive: true,
-      }).catch(() => {});
-    }
+    quitMission();
     window.location.href = '/';
   };
 

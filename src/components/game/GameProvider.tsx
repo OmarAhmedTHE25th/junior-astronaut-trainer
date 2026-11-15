@@ -34,6 +34,7 @@ interface GameContextType {
   timeRemaining: number;
   isPaused: boolean;
   setIsPaused: (paused: boolean) => void;
+  quitMission: () => void;
 }
 
 export const GameContext = createContext<GameContextType | null>(null);
@@ -102,6 +103,30 @@ export function GameProvider({
   const activeSolRef = useRef(state.sol);
   const elapsedMissionSecondsRef = useRef(0);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isQuittingRef = useRef(false);
+
+  const quitMission = useCallback(() => {
+    isQuittingRef.current = true;
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    try {
+      localStorage.removeItem('jat_active_save_v1');
+    } catch {}
+
+    const activeCadetId =
+      state.cadetId ||
+      cadet?.cadetId ||
+      (typeof window !== 'undefined' ? getOrCreateCadetProfile().cadetId : undefined);
+
+    if (activeCadetId) {
+      fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
+        method: 'DELETE',
+        keepalive: true,
+      }).catch(() => {});
+    }
+  }, [state.cadetId, cadet]);
 
   const isTimed = Boolean(state.isTimedMode ?? isTimedMode);
 
@@ -299,6 +324,9 @@ export function GameProvider({
       return;
     }
 
+    // Do not auto-save if an explicit quit has been triggered
+    if (isQuittingRef.current) return;
+
     const activeCadetId =
       state.cadetId ||
       cadet?.cadetId ||
@@ -306,12 +334,9 @@ export function GameProvider({
 
     if (!activeCadetId) return;
 
-    // Guard: Never write to jat_active_save_v1 on Sol 1 before the player has actually taken an action
-    const hasMissionStarted = state.sol > 1 || (state.log && state.log.length > 0);
-    if (!hasMissionStarted) return;
-
     if (
-      (state.phase === 'action' || state.phase === 'event') &&
+      (state.phase === 'action' || state.phase === 'event' || state.phase === 'result') &&
+      !isQuittingRef.current &&
       state.power > 0 &&
       state.oxygen > 0 &&
       state.shielding > 0
@@ -328,8 +353,9 @@ export function GameProvider({
       }
 
       saveTimeoutRef.current = setTimeout(() => {
-        // Prevent auto-save once game is over or concluded
+        // Prevent auto-save once game is over or concluded or quitting
         if (
+          isQuittingRef.current ||
           state.phase === 'gameover' ||
           state.phase === 'victory' ||
           state.power <= 0 ||
@@ -462,6 +488,7 @@ export function GameProvider({
         timeRemaining,
         isPaused,
         setIsPaused,
+        quitMission,
       }}
     >
       {children}
