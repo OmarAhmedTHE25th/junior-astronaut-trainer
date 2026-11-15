@@ -10,6 +10,7 @@ import type {
   BoostSlug,
   CommanderProfile,
 } from '@/lib/battleRoyaleTypes';
+import type { SabotageSlug, SabotagePaymentType } from '@/lib/sabotageTypes';
 import LoadoutHangar from './LoadoutHangar';
 import MarsDropMap from './MarsDropMap';
 
@@ -40,6 +41,7 @@ export default function BattleRoyaleModal({ isOpen, onClose }: BattleRoyaleModal
   const [eventLog, setEventLog] = useState<string | null>(null);
   const [isQueueing, setIsQueueing] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
+  const [isSabotaging, setIsSabotaging] = useState(false);
 
   // Fetch Commander Profile
   const fetchProfile = useCallback(async () => {
@@ -152,6 +154,52 @@ export default function BattleRoyaleModal({ isOpen, onClose }: BattleRoyaleModal
     }
   };
 
+  // Execute Sabotage against rival in adjacent/current sector
+  const handleSabotageRival = async (
+    targetPlayerId: string,
+    slug: SabotageSlug,
+    paymentType: SabotagePaymentType
+  ) => {
+    if (!activeMatch) return;
+    setIsSabotaging(true);
+
+    try {
+      const res = await fetch(`/api/br/${activeMatch.id}/sabotage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          attackerId: activeCadet.cadetId,
+          targetPlayerId,
+          sabotageSlug: slug,
+          paymentType,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.match) {
+        setActiveMatch(data.match);
+        setEventLog(data.eventLog);
+
+        if (data.isVictory) {
+          playSuccess();
+          setViewMode('summary');
+        } else if (data.targetEliminated) {
+          playSuccess();
+        } else {
+          playAction();
+        }
+      } else {
+        playAlert();
+        setEventLog(`⚠️ Sabotage failed: ${data.error || 'Target out of range'}`);
+      }
+    } catch {
+      playAlert();
+      setEventLog('⚠️ Comm error deploying electronic warfare.');
+    } finally {
+      setIsSabotaging(false);
+    }
+  };
+
   const currentPlayer = activeMatch?.players.find((p) => p.playerId === activeCadet.cadetId);
 
   return (
@@ -194,7 +242,9 @@ export default function BattleRoyaleModal({ isOpen, onClose }: BattleRoyaleModal
               match={activeMatch}
               currentPlayer={currentPlayer}
               onMoveSector={handleMoveSector}
+              onSabotageRival={handleSabotageRival}
               isLoading={isMoving}
+              isSabotaging={isSabotaging}
             />
           </div>
         )}

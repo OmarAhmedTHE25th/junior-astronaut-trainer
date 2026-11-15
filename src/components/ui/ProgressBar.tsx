@@ -8,6 +8,8 @@ interface ProgressBarProps {
   icon: string;
   color?: 'blue' | 'green' | 'orange' | 'red' | 'purple';
   showWarning?: boolean;
+  isGlitching?: boolean;
+  displayOverride?: string;
 }
 
 const colorMap: Record<string, { bar: string; bg: string; glow: string }> = {
@@ -44,21 +46,23 @@ export default function ProgressBar({
   icon,
   color = 'blue',
   showWarning = true,
+  isGlitching = false,
+  displayOverride,
 }: ProgressBarProps) {
   const clamped = Math.max(0, Math.min(100, value));
-  const isLow = clamped < 20 && showWarning;
+  const isLow = clamped < 20 && showWarning && !isGlitching;
   const colors = colorMap[color];
 
   return (
     <div
-      className="flex items-center gap-2 min-w-[120px]"
+      className={`flex items-center gap-2 min-w-[120px] ${isGlitching ? 'animate-pulse' : ''}`}
       role="meter"
-      aria-label={`${label}: ${clamped}%`}
-      aria-valuenow={clamped}
+      aria-label={`${label}: ${isGlitching ? 'SCRAMBLED' : `${clamped}%`}`}
+      aria-valuenow={isGlitching ? 50 : clamped}
       aria-valuemin={0}
       aria-valuemax={100}
     >
-      <span className="text-lg" aria-hidden="true">
+      <span className={`text-lg ${isGlitching ? 'filter invert animate-spin' : ''}`} aria-hidden="true">
         {icon}
       </span>
       <div className="flex flex-col flex-1 gap-0.5">
@@ -67,21 +71,27 @@ export default function ProgressBar({
             {label}
           </span>
           <span
-            className={`text-xs font-bold tabular-nums ${
-              isLow ? 'text-[#EF4444]' : 'text-[#F8FAFC]'
+            className={`text-xs font-bold font-mono tabular-nums ${
+              isGlitching
+                ? 'text-purple-400 font-extrabold tracking-widest'
+                : isLow
+                ? 'text-[#EF4444]'
+                : 'text-[#F8FAFC]'
             }`}
           >
-            {clamped}%
+            {isGlitching ? displayOverride || '??%' : `${clamped}%`}
           </span>
         </div>
         <div
-          className={`h-3 rounded-full overflow-hidden ${colors.bg}`}
+          className={`h-3 rounded-full overflow-hidden ${isGlitching ? 'bg-purple-900/40 ring-1 ring-purple-500/50' : colors.bg}`}
         >
           <div
             className={`h-full rounded-full transition-all duration-700 ease-out shadow-lg ${
-              colors.bar
+              isGlitching
+                ? 'bg-gradient-to-r from-purple-500 via-rose-500 to-amber-400 animate-pulse'
+                : colors.bar
             } ${colors.glow} ${isLow ? 'animate-pulse' : ''}`}
-            style={{ width: `${clamped}%` }}
+            style={{ width: `${isGlitching ? 60 : clamped}%` }}
           />
         </div>
       </div>

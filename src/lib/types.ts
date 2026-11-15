@@ -163,11 +163,20 @@ export interface GameState {
   marsCreditsEarned?: number;
   /** Whether a solar flare pre-warning is active from pet */
   solarFlareWarningActive?: boolean;
+  /** Active debuffs inflicted by rival electronic warfare or sabotage */
+  activeDebuffs?: {
+    empJammedSols: number;
+    solarBlindedSols: number;
+    spoofedAlertActive: boolean;
+  };
+  /** Sabotage operation cooldown availability sols: { [sabotageSlug]: availableSol } */
+  sabotageCooldowns?: Record<string, number>;
 }
 
 export * from './tournamentTypes';
 export * from './marketplaceTypes';
 export * from './battleRoyaleTypes';
+export * from './sabotageTypes';
 
 // ── Reducer Actions ─────────────────────────────────────────
 
@@ -198,6 +207,31 @@ export type GameAction =
       slottedBoosts?: string[];
       combatInventory?: Record<string, number>;
     }
+  | {
+      type: 'TRIGGER_SABOTAGE';
+      slug: string;
+      paymentType: 'power' | 'mc';
+      powerCost?: number;
+      stolenO2?: number;
+      stolenPower?: number;
+      targetName?: string;
+    }
+  | {
+      type: 'RECEIVE_SABOTAGE';
+      event: {
+        id: string;
+        attackerName: string;
+        attackerAvatar?: string;
+        sabotageSlug: string;
+        payloadJson?: {
+          stolenO2?: number;
+          stolenPower?: number;
+          damage?: number;
+          customNote?: string;
+        };
+      };
+    }
+  | { type: 'CLEAR_SPOOFED_ALERT' }
   | { type: 'TRIGGER_EVENT'; event: GameEvent }
   | { type: 'RESOLVE_EVENT'; choiceId?: string; payload?: EventChoice }
   | { type: 'TRIGGER_TIMEOUT_GAMEOVER' }

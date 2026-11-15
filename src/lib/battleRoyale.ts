@@ -4,6 +4,8 @@
 
 import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
 import { getConnectionString } from './storageAdapter';
+import { SABOTAGE_CATALOG } from './sabotageTypes';
+import { deductPlayerCredits } from './marketplace';
 import {
   RANK_TIERS,
   PET_CATALOG,
@@ -862,4 +864,96 @@ export async function consumePlayerBoost(
   if (!b || b.quantity <= 0) return { success: false, remainingQuantity: 0 };
   b.quantity -= 1;
   return { success: true, remainingQuantity: b.quantity };
+}
+
+/**
+ * 10. Execute Sabotage against a rival commander in Battle Royale
+ */
+export async function executeBRSabotage(options: {
+  matchId: string;
+  attackerId: string;
+  targetPlayerId: string;
+  sabotageSlug: 'emp-jam' | 'supply-intercept' | 'solar-blind' | 'comms-spoof';
+  paymentType: 'power' | 'mc';
+}): Promise<{
+  match: BRMatch;
+  eventLog: string;
+  targetEliminated: boolean;
+  isVictory: boolean;
+}> {
+  const { matchId, attackerId, targetPlayerId, sabotageSlug, paymentType } = options;
+  const mem = getMemoryStore();
+  const match = mem.matches.get(matchId);
+  if (!match) throw new Error('Match not found');
+
+  const attacker = match.players.find((p) => p.playerId === attackerId);
+  if (!attacker || attacker.status !== 'alive') throw new Error('Attacker not alive in match');
+
+  const target = match.players.find((p) => p.playerId === targetPlayerId);
+  if (!target || target.status !== 'alive') throw new Error('Target commander not found or already eliminated');
+
+  // Verify adjacent or same sector
+  const dx = Math.abs(attacker.sectorX - target.sectorX);
+  const dy = Math.abs(attacker.sectorY - target.sectorY);
+  if (dx > 1 || dy > 1) {
+    throw new Error('Target commander is beyond electronic warfare range (adjacent sector required)');
+  }
+
+  const def = SABOTAGE_CATALOG[sabotageSlug];
+  if (!def) throw new Error(`Invalid sabotage slug: ${sabotageSlug}`);
+
+  // Deduct payment
+  if (paymentType === 'power') {
+    if (attacker.power < def.powerCost) {
+      throw new Error(`Insufficient power: requires ${def.powerCost}⚡ (Current: ${attacker.power}⚡)`);
+    }
+    attacker.power -= def.powerCost;
+  } else {
+    await deductPlayerCredits(attackerId, def.mcCost);
+  }
+
+  let eventLog = '';
+  let targetEliminated = false;
+
+  if (sabotageSlug === 'emp-jam') {
+    target.power = Math.max(0, target.power - 18);
+    eventLog = `⚡ EMP Jam delivered against ${target.username} in Sector [${target.sectorX},${target.sectorY}]! Radar jammed & -18 Power drained.`;
+  } else if (sabotageSlug === 'supply-intercept') {
+    const drainO2 = 12;
+    const drainPower = 10;
+    target.oxygen = Math.max(0, target.oxygen - drainO2);
+    target.power = Math.max(0, target.power - drainPower);
+    attacker.oxygen = Math.min(100, attacker.oxygen + 6);
+    attacker.power = Math.min(100, attacker.power + 5);
+    eventLog = `🛰️ Siphoned ${target.username}'s cargo! Stole +6% O₂ & +5% Power (Target: -${drainO2}% O₂, -${drainPower}% Power).`;
+  } else if (sabotageSlug === 'solar-blind') {
+    const dmg = 15;
+    target.hull = Math.max(0, target.hull - dmg);
+    target.shielding = Math.max(0, target.shielding - 10);
+    eventLog = `🌪️ Regolith Laser Blind struck ${target.username}! Inflicted 15 Hull Damage and blinded solar sensors.`;
+  } else {
+    target.shielding = Math.max(0, target.shielding - 15);
+    eventLog = `📡 Comms spoof injected false solar flare alert at ${target.username}!`;
+  }
+
+  // Check if target was eliminated
+  if (target.hull <= 0 || target.oxygen <= 0) {
+    target.status = 'eliminated';
+    target.placement = match.aliveCount;
+    match.aliveCount = Math.max(1, match.aliveCount - 1);
+    attacker.kills = (attacker.kills || 0) + 1;
+    targetEliminated = true;
+    eventLog += ` 💀 ${target.username} ELIMINATED! (${attacker.kills} Kills)`;
+  }
+
+  const isVictory = match.aliveCount === 1 && attacker.status === 'alive';
+  if (isVictory) {
+    attacker.placement = 1;
+    match.status = 'completed';
+    match.winnerPlayerId = attacker.playerId;
+    match.winnerUsername = attacker.username;
+    eventLog = `🏆 VICTORY ROYALE! You eliminated the final rival and conquered Drop Zone: Olympus!`;
+  }
+
+  return { match, eventLog, targetEliminated, isVictory };
 }

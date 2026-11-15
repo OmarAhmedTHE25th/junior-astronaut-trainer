@@ -29,6 +29,9 @@ export default function HUD({ onOpenMenu }: HUDProps) {
   const currentAvatar = state.avatar || (profile.cadetId !== 'cadet-nova-01' ? profile.avatar : '🚀');
   const currentCallsign = state.callsign || (profile.cadetId !== 'cadet-nova-01' ? profile.callsign : 'ASTRONAUT');
 
+  const isEmpJammed = Boolean(state.activeDebuffs && state.activeDebuffs.empJammedSols > 0);
+  const isSolarBlinded = Boolean(state.activeDebuffs && state.activeDebuffs.solarBlindedSols > 0);
+
   // Poll Squad Standings if in Squad Race
   useEffect(() => {
     if (!state.squadCode) return;
@@ -93,6 +96,36 @@ export default function HUD({ onOpenMenu }: HUDProps) {
           </div>
           <span className="px-2 py-0.5 rounded bg-black/40 text-[10px] uppercase border border-white/20">
             Impact Imminent
+          </span>
+        </div>
+      )}
+
+      {/* Hostile EMP Jam Banner */}
+      {isEmpJammed && (
+        <div className="w-full bg-gradient-to-r from-purple-950 via-rose-900 to-indigo-950 text-white px-4 py-2 text-xs font-mono font-black flex items-center justify-between shadow-xl animate-pulse z-40 border-b border-purple-500/50">
+          <div className="flex items-center gap-2">
+            <span className="text-base animate-spin">⚡</span>
+            <span className="text-amber-300">
+              🚨 HOSTILE EMP TELEMETRY JAM ACTIVE ({state.activeDebuffs?.empJammedSols} Sols remaining): Telemetry gauges scrambled by microwave static. Command Override re-roll locked!
+            </span>
+          </div>
+          <span className="px-2 py-0.5 rounded bg-black/60 text-[10px] text-purple-300 uppercase border border-purple-400/40 font-bold">
+            EW Jammed
+          </span>
+        </div>
+      )}
+
+      {/* Solar Array Regolith Blind Banner */}
+      {isSolarBlinded && (
+        <div className="w-full bg-gradient-to-r from-amber-950 via-orange-950 to-amber-900 text-amber-200 px-4 py-1.5 text-xs font-mono font-bold flex items-center justify-between border-b border-amber-500/40 z-40">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🌪️</span>
+            <span>
+              HOSTILE REGOLITH DUST BLIND ({state.activeDebuffs?.solarBlindedSols} Sols remaining): Solar collectors blanketed in abrasive dust. Power operation output reduced by -35%!
+            </span>
+          </div>
+          <span className="text-[10px] bg-black/50 px-2 py-0.5 rounded text-amber-400 border border-amber-500/40 font-bold">
+            -35% Power Gen
           </span>
         </div>
       )}
@@ -218,6 +251,7 @@ export default function HUD({ onOpenMenu }: HUDProps) {
           icon="⚡"
           color="orange"
           showWarning
+          isGlitching={isEmpJammed}
         />
         <ProgressBar
           value={state.oxygen}
@@ -225,6 +259,7 @@ export default function HUD({ onOpenMenu }: HUDProps) {
           icon="🫁"
           color="blue"
           showWarning
+          isGlitching={isEmpJammed}
         />
         <ProgressBar
           value={state.shielding}
@@ -232,6 +267,7 @@ export default function HUD({ onOpenMenu }: HUDProps) {
           icon="🛡️"
           color="green"
           showWarning
+          isGlitching={isEmpJammed}
         />
       </div>
 

@@ -902,3 +902,41 @@ export async function rewardPlayerCredits(
   }
   return { success: true, newBalance: wallet.creditsBalance };
 }
+
+/**
+ * 10. Deduct Mars Credits atomically from player wallet
+ */
+export async function deductPlayerCredits(
+  playerId: string,
+  amount: number
+): Promise<{ success: boolean; remainingCredits: number }> {
+  if (amount <= 0) return { success: true, remainingCredits: 0 };
+  const sql = await getSqlClient();
+
+  if (sql) {
+    // Ensure wallet exists first
+    await getPlayerWallet(playerId);
+
+    const rows = await sql`
+      UPDATE player_wallets
+      SET credits_balance = credits_balance - ${amount},
+          updated_at = NOW()
+      WHERE player_id = ${playerId} AND credits_balance >= ${amount}
+      RETURNING credits_balance;
+    `;
+
+    if (!rows || rows.length === 0) {
+      throw new Error(`Insufficient Mars Credits: required ${amount} MC`);
+    }
+
+    return { success: true, remainingCredits: rows[0].credits_balance };
+  }
+
+  const wallet = await getPlayerWallet(playerId);
+  if (wallet.creditsBalance < amount) {
+    throw new Error(`Insufficient Mars Credits: required ${amount} MC (balance: ${wallet.creditsBalance} MC)`);
+  }
+  wallet.creditsBalance -= amount;
+  wallet.updatedAt = new Date().toISOString();
+  return { success: true, remainingCredits: wallet.creditsBalance };
+}

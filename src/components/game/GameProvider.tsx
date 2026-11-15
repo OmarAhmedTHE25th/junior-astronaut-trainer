@@ -388,6 +388,46 @@ export function GameProvider({
     specialty,
   ]);
 
+  // ── Real-Time Sabotage & Electronic Warfare Incoming Poller ──
+  useEffect(() => {
+    if (state.phase !== 'action' && state.phase !== 'event') return;
+    const activeCadetId =
+      state.cadetId ||
+      cadet?.cadetId ||
+      (typeof window !== 'undefined' ? getOrCreateCadetProfile().cadetId : undefined);
+    if (!activeCadetId) return;
+
+    let isMounted = true;
+    const pollSabotage = async () => {
+      try {
+        const res = await fetch('/api/sabotage/poll', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            playerId: activeCadetId,
+            contextId: state.tournamentMatchId,
+          }),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (isMounted && data.success && Array.isArray(data.events) && data.events.length > 0) {
+          for (const ev of data.events) {
+            rawDispatch({ type: 'RECEIVE_SABOTAGE', event: ev });
+          }
+        }
+      } catch {
+        // Resilient to offline/flaky network
+      }
+    };
+
+    pollSabotage();
+    const interval = setInterval(pollSabotage, 3500);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [state.phase, state.cadetId, state.tournamentMatchId, cadet]);
+
   const currentFact = facts.length > 0 ? facts[factIndex] : null;
 
   return (

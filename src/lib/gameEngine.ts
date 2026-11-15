@@ -145,6 +145,12 @@ export function createInitialState(
     commandOverrides: 1,
     lastDrawnSol: 1,
     totalOverridesUsed: 0,
+    activeDebuffs: {
+      empJammedSols: 0,
+      solarBlindedSols: 0,
+      spoofedAlertActive: false,
+    },
+    sabotageCooldowns: {},
   };
 }
 
@@ -433,10 +439,16 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         nextCooldowns[operationId] = state.sol + roll.card.cooldownSols;
       }
 
+      // If solar arrays are blinded by hostile sabotage, reduce positive power yield by 35%
+      let effectivePowerDelta = roll.netDeltas.power ?? 0;
+      if (effectivePowerDelta > 0 && (state.activeDebuffs?.solarBlindedSols || 0) > 0) {
+        effectivePowerDelta = Math.round(effectivePowerDelta * 0.65);
+      }
+
       let newState = applyEffects(
         state,
         {
-          power: roll.netDeltas.power,
+          power: effectivePowerDelta,
           oxygen: roll.netDeltas.oxygen,
           shielding: roll.netDeltas.shielding,
         },
@@ -450,7 +462,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         title: roll.logTitle,
         description: roll.logDescription,
         resourceChanges: {
-          power: roll.netDeltas.power,
+          power: effectivePowerDelta,
           oxygen: roll.netDeltas.oxygen,
           shielding: roll.netDeltas.shielding,
         },
@@ -478,6 +490,22 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     // ── Command Override (Deck Re-Roll) ───────────────────
     case 'COMMAND_OVERRIDE': {
       if (state.phase !== 'action') return state;
+      // EMP Jam disables Command Override re-roll
+      if ((state.activeDebuffs?.empJammedSols || 0) > 0) {
+        const jammedLog: LogEntry = {
+          sol: state.sol,
+          type: 'system',
+          title: '⚡ Command Override Jammed (EMP Active)',
+          description: 'Hostile microwave interference has locked the deck control bus. Re-roll unavailable this Sol.',
+          resourceChanges: {},
+          icon: '⚡',
+        };
+        return {
+          ...state,
+          log: [...state.log, jammedLog],
+        };
+      }
+
       const currentOverrides = state.commandOverrides ?? 1;
       if (currentOverrides <= 0) return state;
 
@@ -592,6 +620,160 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         equippedPet: action.equippedPet !== undefined ? action.equippedPet : state.equippedPet,
         slottedBoosts: action.slottedBoosts !== undefined ? action.slottedBoosts : state.slottedBoosts,
         combatInventory: action.combatInventory !== undefined ? action.combatInventory : state.combatInventory,
+      };
+    }
+
+    // ── Launch Tactical Sabotage / EW ─────────────────────
+    case 'TRIGGER_SABOTAGE': {
+      const { slug, paymentType, powerCost = 0, stolenO2 = 0, stolenPower = 0, targetName } = action;
+      const cooldownSols = slug === 'supply-intercept' || slug === 'solar-blind' ? 4 : 3;
+      const nextCooldowns = { ...(state.sabotageCooldowns || {}) };
+      nextCooldowns[slug] = state.sol + cooldownSols;
+
+      let nextPower = state.power;
+      if (paymentType === 'power' && powerCost > 0) {
+        nextPower = clamp(state.power - powerCost);
+      }
+
+      // Supply Intercept siphon bonus: attacker receives +6% O2 and +5% Power
+      let nextOxygen = state.oxygen;
+      if (slug === 'supply-intercept') {
+        nextOxygen = clamp(state.oxygen + (stolenO2 || 6));
+        nextPower = clamp(nextPower + (stolenPower || 5));
+      }
+
+      const logEntry: LogEntry = {
+        sol: state.sol,
+        type: 'action',
+        title: `🛰️ Electronic Warfare Launched: ${slug.toUpperCase()}`,
+        description: `Offensive cyber-operation deployed against ${targetName || 'rival outpost'}${
+          slug === 'supply-intercept' ? ' (+6% O₂, +5% Power siphoned)' : ''
+        }.${paymentType === 'power' ? ` Cost: ${powerCost}⚡` : ' Paid with Mars Credits.'}`,
+        resourceChanges: {
+          power: slug === 'supply-intercept' ? (paymentType === 'power' ? -powerCost + 5 : 5) : (paymentType === 'power' ? -powerCost : 0),
+          oxygen: slug === 'supply-intercept' ? 6 : 0,
+        },
+        icon: '⚡',
+      };
+
+      return {
+        ...state,
+        power: nextPower,
+        oxygen: nextOxygen,
+        sabotageCooldowns: nextCooldowns,
+        log: [...state.log, logEntry],
+      };
+    }
+
+    // ── Receive Incoming Hostile Sabotage / EW ─────────────
+    case 'RECEIVE_SABOTAGE': {
+      const { event } = action;
+      const attacker = event.attackerName || 'Rival Commander';
+      const debuffs = {
+        empJammedSols: state.activeDebuffs?.empJammedSols || 0,
+        solarBlindedSols: state.activeDebuffs?.solarBlindedSols || 0,
+        spoofedAlertActive: state.activeDebuffs?.spoofedAlertActive || false,
+      };
+
+      let newPower = state.power;
+      let newOxygen = state.oxygen;
+      let newMorale = state.morale;
+      let newOverrides = state.commandOverrides ?? 1;
+      let injectedEvent = state.activeEvent;
+
+      let logTitle = `🚨 INCOMING HOSTILE OPERATION: ${event.sabotageSlug.toUpperCase()}`;
+      let logDesc = `Rival outpost ${attacker} initiated hostile countermeasures.`;
+      const resChanges: Partial<Record<ResourceType, number>> = {};
+
+      if (event.sabotageSlug === 'emp-jam') {
+        debuffs.empJammedSols = 2;
+        newOverrides = 0; // disables command override for 1 Sol
+        logTitle = `🚨 EMP TELEMETRY JAM INFLICTED BY ${attacker.toUpperCase()}`;
+        logDesc = 'Vital telemetry readouts scrambled with corrupted noise for 2 Sols. Command Override deck re-roll locked for 1 Sol!';
+      } else if (event.sabotageSlug === 'supply-intercept') {
+        const drainO2 = event.payloadJson?.stolenO2 || 12;
+        const drainPower = event.payloadJson?.stolenPower || 10;
+        newOxygen = clamp(state.oxygen - drainO2);
+        newPower = clamp(state.power - drainPower);
+        resChanges.oxygen = -drainO2;
+        resChanges.power = -drainPower;
+        logTitle = `🚨 ORBITAL SUPPLY INTERCEPT BY ${attacker.toUpperCase()}`;
+        logDesc = `Rival drone hacked our supply intake! Siphoned -${drainO2}% Oxygen and -${drainPower}% Power directly from reserves.`;
+      } else if (event.sabotageSlug === 'comms-spoof') {
+        debuffs.spoofedAlertActive = true;
+        newMorale = clamp(state.morale - 10);
+        logTitle = `🚨 COMMS SPOOF INCOMING FROM ${attacker.toUpperCase()}`;
+        logDesc = 'False NASA DONKI telemetry packet injected into outpost warning systems (-10% Morale).';
+        injectedEvent = {
+          id: `spoof_${Date.now()}`,
+          title: '⚠️ SPOOFED TELEMETRY: Phantom CME Detected',
+          description: 'Emergency sirens warning of an extreme X-Class Solar Flare! However, spectral signatures appear artificially spoofed by rival electronic warfare.',
+          severity: 3,
+          nasaSource: 'FORGED DONKI FEED (HOSTILE COUNTERMEASURE)',
+          icon: '📡',
+          choices: [
+            {
+              id: 'fall_for_decoy',
+              text: 'Divert Emergency Power to Shields (Fall for Decoy)',
+              effects: { power: -15, oxygen: 0, shielding: -5 },
+              moraleEffect: -5,
+              outcome: 'Shield arrays pulsed uselessly against empty space. Power and capacitors drained by the decoy flare!',
+              scienceFact: 'Hostile ECM spoofing exploits radio-frequency vulnerabilities.',
+            },
+            {
+              id: 'identify_spoof',
+              text: 'Run Diagnostic & Ignore Decoy (Clear Decoy Alert)',
+              effects: { power: 0, oxygen: 0, shielding: 0 },
+              moraleEffect: 3,
+              outcome: 'Diagnostic confirmed fake magnetic pulse. Alarm silenced and decoy discarded safely.',
+              scienceFact: 'Cryptographic authentication prevents telemetry spoofing.',
+            },
+          ],
+        };
+      } else if (event.sabotageSlug === 'solar-blind') {
+        debuffs.solarBlindedSols = 2;
+        logTitle = `🚨 REGOLITH DUST BLIND INFLICTED BY ${attacker.toUpperCase()}`;
+        logDesc = 'Laser sweep and rover dust plume coated solar arrays in regolith! Solar power generation reduced by -35% for 2 Sols.';
+      }
+
+      const logEntry: LogEntry = {
+        sol: state.sol,
+        type: 'system',
+        title: logTitle,
+        description: logDesc,
+        resourceChanges: resChanges,
+        icon: '🚨',
+      };
+
+      const candidateState: GameState = {
+        ...state,
+        power: newPower,
+        oxygen: newOxygen,
+        morale: newMorale,
+        commandOverrides: newOverrides,
+        activeDebuffs: debuffs,
+        activeEvent: injectedEvent,
+        log: [...state.log, logEntry],
+      };
+
+      if (checkGameOver(candidateState)) {
+        return {
+          ...candidateState,
+          phase: 'gameover',
+          score: calculateScore(candidateState),
+        };
+      }
+
+      return candidateState;
+    }
+
+    case 'CLEAR_SPOOFED_ALERT': {
+      return {
+        ...state,
+        activeDebuffs: {
+          ...(state.activeDebuffs || { empJammedSols: 0, solarBlindedSols: 0, spoofedAlertActive: false }),
+          spoofedAlertActive: false,
+        },
       };
     }
 
@@ -861,6 +1043,44 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         morale: updatedMorale,
       };
 
+      // Decrement Active Debuffs
+      const currentEmp = state.activeDebuffs?.empJammedSols || 0;
+      const currentBlind = state.activeDebuffs?.solarBlindedSols || 0;
+      const nextEmp = Math.max(0, currentEmp - 1);
+      const nextBlind = Math.max(0, currentBlind - 1);
+
+      if (currentEmp > 0 && nextEmp === 0) {
+        logs.push({
+          sol: nextSol,
+          type: 'system',
+          title: '⚡ EMP Microwave Interference Cleared',
+          description: 'Sensor arrays recalibrated. Vital HUD telemetry fully restored and Command Override unlocked.',
+          resourceChanges: {},
+          icon: '✅',
+        });
+      }
+
+      if (currentBlind > 0 && nextBlind === 0) {
+        logs.push({
+          sol: nextSol,
+          type: 'system',
+          title: '🌪️ Regolith Dust Blown Clear',
+          description: 'Atmospheric winds swept dust off solar collectors. Full solar array efficiency restored.',
+          resourceChanges: {},
+          icon: '☀️',
+        });
+      }
+
+      // Clean up expired sabotage cooldowns
+      const nextSabotageCooldowns: Record<string, number> = {};
+      if (state.sabotageCooldowns) {
+        for (const [slug, availSol] of Object.entries(state.sabotageCooldowns)) {
+          if (availSol > nextSol) {
+            nextSabotageCooldowns[slug] = availSol;
+          }
+        }
+      }
+
       // 1. Clean up expired operation cooldowns
       const nextCooldowns: Record<string, number> = {};
       if (state.operationCooldowns) {
@@ -894,6 +1114,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         operationCooldowns: nextCooldowns,
         activeBoostTimers: nextBoostTimers,
         equippedPet: nextEquippedPet,
+        activeDebuffs: {
+          empJammedSols: nextEmp,
+          solarBlindedSols: nextBlind,
+          spoofedAlertActive: false,
+        },
+        sabotageCooldowns: nextSabotageCooldowns,
       };
       const drawResult = drawSolOperations(candidateNextState);
 
@@ -914,6 +1140,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         equippedPet: nextEquippedPet,
         petXpEarned: nextPetXpEarned,
         solarFlareWarningActive: flareWarningActive,
+        activeDebuffs: {
+          empJammedSols: nextEmp,
+          solarBlindedSols: nextBlind,
+          spoofedAlertActive: false,
+        },
+        sabotageCooldowns: nextSabotageCooldowns,
       };
     }
 
