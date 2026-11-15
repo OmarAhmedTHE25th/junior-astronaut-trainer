@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGame } from './GameProvider';
 import HUD from './HUD';
-import ActionPanel from './ActionPanel';
+import OperationsDeck from './OperationsDeck';
 import EventCard from './EventCard';
 import MissionLog from './MissionLog';
 import EndScreen from './EndScreen';
@@ -116,7 +116,7 @@ export default function GameBoard({
           {/* Center panel */}
           <div className="flex-1 flex flex-col items-center justify-center gap-4 min-w-0">
             {/* Phase-specific content */}
-            {state.phase === 'action' && !showFact && <ActionPanel />}
+            {state.phase === 'action' && !showFact && <OperationsDeck />}
 
             {state.phase === 'event' && <EventCard />}
 

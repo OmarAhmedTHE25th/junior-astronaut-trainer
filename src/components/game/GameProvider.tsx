@@ -102,12 +102,11 @@ export function GameProvider({
   const dispatch: React.Dispatch<GameAction> = useCallback(
     (action) => {
       if (
-        action.type === 'PERFORM_ACTION' &&
+        (action.type === 'PERFORM_ACTION' || action.type === 'PERFORM_OPERATION') &&
         isTimed &&
         state.phase === 'action'
       ) {
-        const playerAction = 'action' in action && action.action ? action.action : action.payload;
-        if (playerAction && playerAction.id !== TIMEOUT_FALLBACK_ACTION.id && timeRemaining > 0) {
+        if (timeRemaining > 0) {
           const bonus = Math.round(timeRemaining * 10);
           if (bonus > 0) {
             rawDispatch({ type: 'RECORD_TIMED_BONUS', bonusPoints: bonus });

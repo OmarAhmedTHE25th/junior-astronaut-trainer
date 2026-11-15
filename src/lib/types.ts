@@ -126,6 +126,18 @@ export interface GameState {
   tournamentRngSeed?: number;
   rivalCallsign?: string;
   rivalAvatar?: string;
+  /** Active 5-card operations hand for the current sol */
+  activeHand?: string[];
+  /** Sols at which used operations become available again: { [operationId]: availableSol } */
+  operationCooldowns?: Record<string, number>;
+  /** Remaining Command Override re-rolls */
+  commandOverrides?: number;
+  /** Sol on which the hand was last drawn */
+  lastDrawnSol?: number;
+  /** Whether the current hand includes an emergency crisis draw */
+  hasEmergencyDraw?: boolean;
+  /** Total command overrides used in this run */
+  totalOverridesUsed?: number;
 }
 
 export * from './tournamentTypes';
@@ -146,6 +158,13 @@ export type GameAction =
     }
   | { type: 'LOAD_STATE'; state: GameState }
   | { type: 'PERFORM_ACTION'; action?: PlayerAction; payload?: PlayerAction }
+  | {
+      type: 'PERFORM_OPERATION';
+      operationId: string;
+      activePetId?: string;
+      activeBoosts?: string[];
+    }
+  | { type: 'COMMAND_OVERRIDE' }
   | { type: 'TRIGGER_EVENT'; event: GameEvent }
   | { type: 'RESOLVE_EVENT'; choiceId?: string; payload?: EventChoice }
   | { type: 'TRIGGER_TIMEOUT_GAMEOVER' }

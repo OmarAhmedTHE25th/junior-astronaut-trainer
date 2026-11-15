@@ -31,6 +31,11 @@ import {
   getCompoundingWearMultiplier,
   calculateTournamentScore,
 } from './survivalEngine';
+import {
+  drawSolOperations,
+  resolveOperation,
+  OPERATIONS_CATALOG,
+} from './operationsDeck';
 
 // ── Helpers ─────────────────────────────────────────────────
 
@@ -115,6 +120,31 @@ export function createInitialState(
     tournamentRngSeed: tournament?.rngSeed,
     rivalCallsign: tournament?.rivalCallsign,
     rivalAvatar: tournament?.rivalAvatar,
+    activeHand: drawSolOperations(
+      {
+        sol: 1,
+        maxSol: isEndless ? 999999 : MISSION_LENGTH,
+        power: INITIAL_RESOURCES.power,
+        oxygen: INITIAL_RESOURCES.oxygen,
+        shielding: INITIAL_RESOURCES.shielding,
+        morale: INITIAL_RESOURCES.morale,
+        phase: 'action',
+        log: [],
+        activeEvent: null,
+        score: 0,
+        usedEventIds: [],
+        difficulty,
+        specialty,
+        landingSite,
+        weatherSeed: squad?.weatherSeed,
+        tournamentRngSeed: tournament?.rngSeed,
+      } as GameState,
+      tournament?.rngSeed || squad?.weatherSeed || 424242
+    ).hand.map((c) => c.id),
+    operationCooldowns: {},
+    commandOverrides: 1,
+    lastDrawnSol: 1,
+    totalOverridesUsed: 0,
   };
 }
 
@@ -251,8 +281,18 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     // ── Load a saved mission ──────────────────────────────
     case 'LOAD_STATE': {
       const gs = action.state;
+      const activeHand =
+        gs.activeHand && gs.activeHand.length >= 5
+          ? gs.activeHand
+          : drawSolOperations(gs).hand.map((c) => c.id);
+
       return {
         ...gs,
+        activeHand,
+        operationCooldowns: gs.operationCooldowns || {},
+        commandOverrides: gs.commandOverrides ?? 1,
+        lastDrawnSol: gs.lastDrawnSol || gs.sol,
+        totalOverridesUsed: gs.totalOverridesUsed || 0,
         landingSite: gs.landingSite || 'jezero',
         squadCode: gs.squadCode,
         weatherSeed: gs.weatherSeed,
@@ -356,6 +396,99 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       // Move to the END_TURN phase (which handles depletion + events)
       return { ...newState, phase: 'result' };
+    }
+
+    // ── Execute an operation from the dynamic 5-card hand ───
+    case 'PERFORM_OPERATION': {
+      if (state.phase !== 'action') return state;
+
+      const { operationId, activePetId, activeBoosts } = action;
+      const roll = resolveOperation(
+        state,
+        operationId,
+        state.tournamentRngSeed || state.weatherSeed,
+        activePetId,
+        activeBoosts
+      );
+
+      // Multi-Sol Cooldown: Card locked until state.sol + cooldownSols
+      const nextCooldowns = { ...(state.operationCooldowns || {}) };
+      if (roll.card.cooldownSols > 0) {
+        nextCooldowns[operationId] = state.sol + roll.card.cooldownSols;
+      }
+
+      let newState = applyEffects(
+        state,
+        {
+          power: roll.netDeltas.power,
+          oxygen: roll.netDeltas.oxygen,
+          shielding: roll.netDeltas.shielding,
+        },
+        roll.moraleChange,
+        roll.scoreChange
+      );
+
+      const logEntry: LogEntry = {
+        sol: state.sol,
+        type: 'action',
+        title: roll.logTitle,
+        description: roll.logDescription,
+        resourceChanges: {
+          power: roll.netDeltas.power,
+          oxygen: roll.netDeltas.oxygen,
+          shielding: roll.netDeltas.shielding,
+        },
+        moraleChange: roll.moraleChange,
+        icon: roll.card.icon,
+      };
+
+      newState = {
+        ...newState,
+        operationCooldowns: nextCooldowns,
+        log: [...newState.log, logEntry],
+      };
+
+      if (checkGameOver(newState)) {
+        return {
+          ...newState,
+          phase: 'gameover',
+          score: calculateScore(newState),
+        };
+      }
+
+      return { ...newState, phase: 'result' };
+    }
+
+    // ── Command Override (Deck Re-Roll) ───────────────────
+    case 'COMMAND_OVERRIDE': {
+      if (state.phase !== 'action') return state;
+      const currentOverrides = state.commandOverrides ?? 1;
+      if (currentOverrides <= 0) return state;
+
+      const overrideCount = (state.totalOverridesUsed || 0) + 1;
+      const drawResult = drawSolOperations(
+        state,
+        state.tournamentRngSeed || state.weatherSeed,
+        overrideCount
+      );
+
+      const logEntry: LogEntry = {
+        sol: state.sol,
+        type: 'system',
+        title: '🔄 Command Override Deployed',
+        description: 'Tactical re-roll executed. Operations deck redealt under emergency command authority.',
+        resourceChanges: {},
+        icon: '🔄',
+      };
+
+      return {
+        ...state,
+        activeHand: drawResult.hand.map((c) => c.id),
+        hasEmergencyDraw: drawResult.hasEmergencyDraw,
+        commandOverrides: currentOverrides - 1,
+        totalOverridesUsed: overrideCount,
+        log: [...state.log, logEntry],
+      };
     }
 
     // ── Trigger a random event ────────────────────────────
@@ -555,6 +688,39 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         morale: updatedMorale,
       };
 
+      // 1. Clean up expired operation cooldowns
+      const nextCooldowns: Record<string, number> = {};
+      if (state.operationCooldowns) {
+        for (const [opId, expireSol] of Object.entries(state.operationCooldowns)) {
+          if (expireSol > nextSol) {
+            nextCooldowns[opId] = expireSol;
+          }
+        }
+      }
+
+      // 2. Award 1 Command Override re-roll every 5 Sols survived
+      let nextOverrides = state.commandOverrides ?? 1;
+      if (nextSol % 5 === 0) {
+        nextOverrides += 1;
+        logs.push({
+          sol: nextSol,
+          type: 'system',
+          title: '🔄 Command Override Granted',
+          description: `Sol ${nextSol} milestone unlocked +1 tactical operations deck re-roll.`,
+          resourceChanges: {},
+          icon: '🔄',
+        });
+      }
+
+      // 3. Draw fresh 5 operations for nextSol
+      const candidateNextState: GameState = {
+        ...state,
+        sol: nextSol,
+        morale: updatedMorale,
+        operationCooldowns: nextCooldowns,
+      };
+      const drawResult = drawSolOperations(candidateNextState);
+
       return {
         ...state,
         sol: nextSol,
@@ -562,6 +728,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         log: logs,
         telemetryHistory: [...(state.telemetryHistory || []), newPoint],
         phase: 'action',
+        operationCooldowns: nextCooldowns,
+        activeHand: drawResult.hand.map((c) => c.id),
+        hasEmergencyDraw: drawResult.hasEmergencyDraw,
+        commandOverrides: nextOverrides,
+        lastDrawnSol: nextSol,
       };
     }
 
