@@ -1,4 +1,4 @@
-// ─── Junior Astronaut Mission Trainer – Cadet Profiles, Specialties & Telemetry ───
+// ─── Junior Astronaut Mission Trainer – Cadet Profile, Specialties & Telemetry ───
 
 import { useState, useEffect, useCallback } from 'react';
 import type { CadetProfile, CadetBadge, BadgeId, GameState, CadetSpecialty } from './types';
@@ -45,10 +45,8 @@ export const CADET_BADGES: CadetBadge[] = [
 export const AVATAR_OPTIONS = ['🚀', '🛸', '🪐', '🛰️', '👨‍🚀', '👩‍🚀'] as const;
 
 export const PROFILE_KEY = 'jat_profile_v1';
-export const ROSTER_KEY = 'jat_cadet_roster_v1';
 
 const profileListeners = new Set<(profile: CadetProfile) => void>();
-const rosterListeners = new Set<(roster: CadetProfile[]) => void>();
 
 export const DEFAULT_PROFILE: CadetProfile = {
   cadetId: 'cadet-nova-01',
@@ -115,57 +113,11 @@ export async function pushProfileToCloud(profile: CadetProfile): Promise<boolean
   }
 }
 
-/** Get the roster of all cadets on this device */
-export function getCadetRoster(): CadetProfile[] {
-  if (typeof window === 'undefined') {
-    return [DEFAULT_PROFILE];
-  }
-
-  try {
-    const raw = localStorage.getItem(ROSTER_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        // Heal roster: filter out accidental SSR placeholder 'cadet-nova-01' if real cadets exist
-        const hasRealCadets = parsed.some((p) => p.cadetId && p.cadetId !== 'cadet-nova-01');
-        const validList = hasRealCadets
-          ? parsed.filter((p) => p.cadetId && p.cadetId !== 'cadet-nova-01')
-          : parsed;
-
-        const sanitized = validList.map((p) => ({
-          ...p,
-          specialty: p.specialty || 'commander',
-        }));
-
-        if (sanitized.length > 0) {
-          return sanitized;
-        }
-      }
-    }
-  } catch {}
-
-  const active = getOrCreateCadetProfile();
-  const initialRoster = [active];
-  try {
-    localStorage.setItem(ROSTER_KEY, JSON.stringify(initialRoster));
-  } catch {}
-  return initialRoster;
-}
-
-/** Save updated roster to localStorage and notify roster listeners */
-export function saveCadetRoster(roster: CadetProfile[]): void {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(ROSTER_KEY, JSON.stringify(roster));
-  } catch {}
-  rosterListeners.forEach((fn) => fn(roster));
-}
-
-/** Get a cadet profile from the local roster by cadetId */
+/** Get a cadet profile from local storage by cadetId (reads the single active profile) */
 export function getCadetProfileById(cadetId?: string): CadetProfile | null {
-  if (!cadetId || typeof window === 'undefined') return null;
-  const roster = getCadetRoster();
-  return roster.find((p) => p.cadetId === cadetId) || null;
+  if (typeof window === 'undefined') return null;
+  const current = getOrCreateCadetProfile();
+  return !cadetId || current.cadetId === cadetId ? current : current;
 }
 
 /** Get current active profile from localStorage or create a fresh zero-friction profile */
@@ -174,30 +126,16 @@ export function getOrCreateCadetProfile(): CadetProfile {
     return DEFAULT_PROFILE;
   }
 
+  // Clean legacy multi-cadet roster storage
+  try {
+    localStorage.removeItem('jat_cadet_roster_v1');
+  } catch {}
+
   try {
     const raw = localStorage.getItem(PROFILE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as CadetProfile;
       if (parsed.cadetId && parsed.callsign) {
-        // If the active profile in storage is the SSR fallback placeholder but real cadets exist in the roster, activate the real cadet
-        if (parsed.cadetId === 'cadet-nova-01') {
-          const rosterRaw = localStorage.getItem(ROSTER_KEY);
-          if (rosterRaw) {
-            const parsedRoster = JSON.parse(rosterRaw);
-            if (Array.isArray(parsedRoster)) {
-              const realCadet = parsedRoster.find((p) => p.cadetId && p.cadetId !== 'cadet-nova-01');
-              if (realCadet) {
-                const cleanedReal = {
-                  ...realCadet,
-                  specialty: realCadet.specialty || 'commander',
-                };
-                localStorage.setItem(PROFILE_KEY, JSON.stringify(cleanedReal));
-                return cleanedReal;
-              }
-            }
-          }
-        }
-
         return {
           ...parsed,
           specialty: parsed.specialty || 'commander',
@@ -209,12 +147,11 @@ export function getOrCreateCadetProfile(): CadetProfile {
   const defaultProfile = createDefaultProfile();
   try {
     localStorage.setItem(PROFILE_KEY, JSON.stringify(defaultProfile));
-    localStorage.setItem(ROSTER_KEY, JSON.stringify([defaultProfile]));
   } catch {}
   return defaultProfile;
 }
 
-/** Save updated cadet profile to active slot + roster + cloud */
+/** Save updated cadet profile to active slot + cloud */
 export function saveCadetProfile(profile: CadetProfile, syncCloud = true): void {
   if (typeof window === 'undefined') return;
 
@@ -237,51 +174,12 @@ export function saveCadetProfile(profile: CadetProfile, syncCloud = true): void 
     localStorage.setItem(PROFILE_KEY, JSON.stringify(sanitized));
   } catch {}
 
-  // Update in roster as well
-  try {
-    const roster = getCadetRoster();
-    const idx = roster.findIndex((p) => p.cadetId === sanitized.cadetId);
-    if (idx >= 0) {
-      roster[idx] = sanitized;
-    } else {
-      roster.push(sanitized);
-    }
-    saveCadetRoster(roster);
-  } catch {}
-
   profileListeners.forEach((fn) => fn(sanitized));
 
   // Asynchronously sync to Neon Postgres in background
   if (syncCloud) {
     pushProfileToCloud(sanitized).catch(() => {});
   }
-}
-
-/** Switch active cadet to another profile from the roster */
-export function switchActiveCadet(cadetId: string): CadetProfile | null {
-  const roster = getCadetRoster();
-  const target = roster.find((p) => p.cadetId === cadetId);
-  if (!target) return null;
-
-  saveCadetProfile(target, false);
-  return target;
-}
-
-/** Create a new cadet profile and switch to it immediately */
-export function createNewCadet(
-  callsignPrefix = 'CDR-NOVA',
-  avatar = '🚀',
-  specialty: CadetSpecialty = 'commander'
-): CadetProfile {
-  const newProfile = createDefaultProfile(callsignPrefix, specialty);
-  newProfile.avatar = avatar;
-
-  const roster = getCadetRoster();
-  roster.push(newProfile);
-  saveCadetRoster(roster);
-
-  saveCadetProfile(newProfile, true);
-  return newProfile;
 }
 
 /** Cloud purge helper: delete cadet from Neon Postgres & cloud storage */
@@ -299,44 +197,27 @@ export async function purgeCadetFromCloud(cadetId: string): Promise<boolean> {
 }
 
 /**
- * Permanently purge a cadet's data from both local storage and Neon cloud storage.
- * If the purged cadet was active, switches to the next available cadet or creates a fresh one.
+ * Permanently purge the player's data from both local storage and Neon cloud storage.
+ * Resets to a clean default profile.
  */
 export async function purgeCadetCompletely(cadetId: string): Promise<{ success: boolean; newActiveProfile: CadetProfile }> {
   // 1. Purge from cloud storage
   await purgeCadetFromCloud(cadetId);
 
-  // 2. Purge from local storage
-  const roster = getCadetRoster();
-  const updatedRoster = roster.filter((p) => p.cadetId !== cadetId);
+  // 2. Clear active save
+  try {
+    localStorage.removeItem('jat_active_save_v1');
+    localStorage.removeItem('jat_cadet_roster_v1');
+  } catch {}
 
-  const active = getOrCreateCadetProfile();
-  let nextActive: CadetProfile;
+  // 3. Create fresh single default profile
+  const nextActive = createDefaultProfile();
+  try {
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(nextActive));
+  } catch {}
+  profileListeners.forEach((fn) => fn(nextActive));
 
-  if (active.cadetId === cadetId) {
-    // Clear active save if it belonged to this cadet
-    try {
-      localStorage.removeItem('jat_active_save_v1');
-    } catch {}
-
-    if (updatedRoster.length > 0) {
-      nextActive = updatedRoster[0];
-    } else {
-      nextActive = createDefaultProfile();
-      updatedRoster.push(nextActive);
-    }
-
-    try {
-      localStorage.setItem(PROFILE_KEY, JSON.stringify(nextActive));
-    } catch {}
-    profileListeners.forEach((fn) => fn(nextActive));
-  } else {
-    nextActive = active;
-  }
-
-  saveCadetRoster(updatedRoster);
-
-  // Clean local leaderboard entries for this cadet if present
+  // 4. Clean local leaderboard entries
   try {
     const rawLb = localStorage.getItem('jat_local_leaderboard_v1');
     if (rawLb) {
@@ -349,24 +230,6 @@ export async function purgeCadetCompletely(cadetId: string): Promise<{ success: 
   } catch {}
 
   return { success: true, newActiveProfile: nextActive };
-}
-
-/** Delete a cadet profile from the roster (must leave at least 1) */
-export function deleteCadet(cadetId: string): boolean {
-  const roster = getCadetRoster();
-  if (roster.length <= 1) return false;
-
-  purgeCadetFromCloud(cadetId).catch(() => {});
-
-  const updatedRoster = roster.filter((p) => p.cadetId !== cadetId);
-  saveCadetRoster(updatedRoster);
-
-  const active = getOrCreateCadetProfile();
-  if (active.cadetId === cadetId) {
-    // Switch to first remaining
-    saveCadetProfile(updatedRoster[0], false);
-  }
-  return true;
 }
 
 /** Recover / sync profile from Neon Cloud by cadet ID */
@@ -401,14 +264,6 @@ export function subscribeProfile(listener: (profile: CadetProfile) => void): () 
   };
 }
 
-/** Subscribe to roster changes */
-export function subscribeRoster(listener: (roster: CadetProfile[]) => void): () => void {
-  rosterListeners.add(listener);
-  return () => {
-    rosterListeners.delete(listener);
-  };
-}
-
 /**
  * Evaluates game outcome against badge requirements and returns the updated profile
  * plus any newly awarded badge IDs.
@@ -417,13 +272,9 @@ export function evaluateBadges(
   finalState: GameState,
   fallbackProfile?: CadetProfile
 ): { updatedProfile: CadetProfile; newBadges: BadgeId[] } {
-  // 1. Locate the exact cadet who played this mission:
   let targetProfile: CadetProfile | null = null;
 
-  if (finalState.cadetId) {
-    targetProfile = getCadetProfileById(finalState.cadetId);
-  }
-  if (!targetProfile && fallbackProfile && fallbackProfile.cadetId !== 'cadet-nova-01') {
+  if (fallbackProfile && fallbackProfile.cadetId !== 'cadet-nova-01') {
     targetProfile = fallbackProfile;
   }
   if (!targetProfile) {
@@ -434,15 +285,21 @@ export function evaluateBadges(
   const earnedSet = new Set<BadgeId>(currentProfile.badges);
   const newBadges: BadgeId[] = [];
 
-  const isWon = finalState.phase === 'victory' || (finalState.sol >= 30 && finalState.power > 0 && finalState.oxygen > 0 && finalState.shielding > 0);
+  const isWon =
+    finalState.phase === 'victory' ||
+    (finalState.sol >= 30 && finalState.power > 0 && finalState.oxygen > 0 && finalState.shielding > 0);
 
   // 1. Solar Storm Survivor: survived a severity 3 solar event
   if (!earnedSet.has('solar_storm_survivor')) {
     const survivedSevereSolar = finalState.log.some(
       (entry) =>
         entry.type === 'event' &&
-        (entry.title.includes('Solar') || entry.description.toLowerCase().includes('solar') || entry.description.toLowerCase().includes('storm')) &&
-        (entry.description.toLowerCase().includes('held') || entry.description.toLowerCase().includes('safe') || entry.description.toLowerCase().includes('shelter'))
+        (entry.title.includes('Solar') ||
+          entry.description.toLowerCase().includes('solar') ||
+          entry.description.toLowerCase().includes('storm')) &&
+        (entry.description.toLowerCase().includes('held') ||
+          entry.description.toLowerCase().includes('safe') ||
+          entry.description.toLowerCase().includes('shelter'))
     );
     if (survivedSevereSolar) {
       earnedSet.add('solar_storm_survivor');
@@ -493,31 +350,24 @@ export function evaluateBadges(
   return { updatedProfile, newBadges };
 }
 
-/** React hook for managing cadet profile and roster */
+/** React hook for managing single cadet player profile */
 export function useProfile() {
   const [profile, setProfileState] = useState<CadetProfile>(DEFAULT_PROFILE);
-  const [roster, setRosterState] = useState<CadetProfile[]>([DEFAULT_PROFILE]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const active = getOrCreateCadetProfile();
-    const currentRoster = getCadetRoster();
     setProfileState(active);
-    setRosterState(currentRoster);
     setIsLoaded(true);
 
     const unsubProfile = subscribeProfile((updated) => {
       setProfileState(updated);
     });
-    const unsubRoster = subscribeRoster((updatedRoster) => {
-      setRosterState(updatedRoster);
-    });
 
     return () => {
       unsubProfile();
-      unsubRoster();
     };
   }, []);
 
@@ -550,37 +400,12 @@ export function useProfile() {
     [profile]
   );
 
-  const handleSwitchCadet = useCallback((cadetId: string) => {
-    const switched = switchActiveCadet(cadetId);
-    if (switched) {
-      setProfileState(switched);
-    }
-    return Boolean(switched);
-  }, []);
-
-  const handleCreateNewCadet = useCallback((prefix?: string, avatar?: string, specialty?: CadetSpecialty) => {
-    const created = createNewCadet(prefix, avatar, specialty);
-    setProfileState(created);
-    setRosterState(getCadetRoster());
-    return created;
-  }, []);
-
-  const handleDeleteCadet = useCallback((cadetId: string) => {
-    const ok = deleteCadet(cadetId);
-    if (ok) {
-      setProfileState(getOrCreateCadetProfile());
-      setRosterState(getCadetRoster());
-    }
-    return ok;
-  }, []);
-
   const handleRecoverCloudProfile = useCallback(async (cadetId: string) => {
     setIsCloudSyncing(true);
     try {
       const synced = await syncCloudProfile(cadetId);
       if (synced) {
         setProfileState(synced);
-        setRosterState(getCadetRoster());
         return { success: true, profile: synced };
       }
       return { success: false, error: 'Cadet profile not found in cloud database.' };
@@ -596,7 +421,6 @@ export function useProfile() {
     try {
       const res = await purgeCadetCompletely(targetId);
       setProfileState(res.newActiveProfile);
-      setRosterState(getCadetRoster());
       return { success: true, newProfile: res.newActiveProfile };
     } catch (err) {
       console.error('Failed to purge cadet data:', err);
@@ -608,16 +432,12 @@ export function useProfile() {
 
   return {
     profile,
-    roster,
     isLoaded,
     isCloudSyncing,
     isDeleting,
     updateCallsign,
     updateAvatar,
     updateSpecialty,
-    switchCadet: handleSwitchCadet,
-    createNewCadet: handleCreateNewCadet,
-    deleteCadet: handleDeleteCadet,
     purgeCadetData: handlePurgeCadetData,
     recoverCloudProfile: handleRecoverCloudProfile,
     badgesMeta: CADET_BADGES,

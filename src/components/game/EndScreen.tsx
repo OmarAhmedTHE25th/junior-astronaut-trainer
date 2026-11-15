@@ -12,7 +12,6 @@ import {
   useProfile,
   evaluateBadges,
   CADET_BADGES,
-  getCadetProfileById,
   getOrCreateCadetProfile,
 } from '@/lib/profile';
 import { SPECIALTY_METAS } from '@/lib/types';
@@ -56,11 +55,11 @@ export default function EndScreen() {
   const [squadPodium, setSquadPodium] = useState<SquadCadetState[]>([]);
   const submittedRef = useRef(false);
 
-  // Identify the exact cadet who played this mission (not the static SSR placeholder)
+  // Identify the active cadet profile
   const activeCadet =
-    (state.cadetId ? getCadetProfileById(state.cadetId) : null) ||
-    (isLoaded && profile.cadetId !== 'cadet-nova-01' ? profile : null) ||
-    (typeof window !== 'undefined' ? getOrCreateCadetProfile() : profile);
+    isLoaded && profile.cadetId !== 'cadet-nova-01'
+      ? profile
+      : (typeof window !== 'undefined' ? getOrCreateCadetProfile() : profile);
 
   const isVictory = state.phase === 'victory';
   const finalScore = calculateScore(state);

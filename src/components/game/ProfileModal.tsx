@@ -15,15 +15,11 @@ interface ProfileModalProps {
 export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const {
     profile,
-    roster,
     isCloudSyncing,
     isDeleting,
     updateCallsign,
     updateAvatar,
     updateSpecialty,
-    switchCadet,
-    createNewCadet,
-    deleteCadet,
     purgeCadetData,
     recoverCloudProfile,
     badgesMeta,
@@ -73,24 +69,6 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     updateSpecialty(specialty);
   };
 
-  const handleCreateCadet = () => {
-    playSuccess();
-    createNewCadet();
-  };
-
-  const handleSwitch = (id: string) => {
-    playClick();
-    switchCadet(id);
-  };
-
-  const handleDelete = async (id: string, name?: string) => {
-    if (typeof window !== 'undefined' && window.confirm(`Delete cadet "${name || id}" from both local storage and cloud database?`)) {
-      playAlert();
-      await purgeCadetData(id);
-      playSuccess();
-    }
-  };
-
   const handleExecutePurge = async () => {
     playAlert();
     setDeleteStatusMsg(null);
@@ -100,13 +78,13 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       setShowDeleteConfirm(false);
       setDeleteStatusMsg({
         type: 'success',
-        text: `All records for cadet permanently deleted from local device and cloud storage.`,
+        text: 'All records for cadet permanently reset on local device and cloud storage.',
       });
       setTimeout(() => setDeleteStatusMsg(null), 4000);
     } else {
       setDeleteStatusMsg({
         type: 'error',
-        text: res.error || 'Failed to complete deletion.',
+        text: res.error || 'Failed to complete reset.',
       });
     }
   };
@@ -144,62 +122,8 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="👨‍🚀 Cadet Dossier & Flight Credentials">
       <div className="space-y-6 max-h-[75vh] overflow-y-auto pr-1">
-        {/* Multi-Cadet Switcher Bar */}
-        <div className="bg-[#0B1026]/90 rounded-2xl p-3.5 border border-white/10 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-              <span>👥</span> Active Cadet Roster ({roster.length})
-            </span>
-            <button
-              type="button"
-              onClick={handleCreateCadet}
-              className="text-xs font-bold px-2.5 py-1 rounded-lg bg-[#E87040]/20 hover:bg-[#E87040]/30 text-[#E87040] border border-[#E87040]/40 transition-colors flex items-center gap-1 cursor-pointer"
-            >
-              <span>+</span> New Cadet
-            </button>
-          </div>
-
-          <div className="flex flex-wrap gap-2 pt-1">
-            {roster.map((c) => {
-              const isActive = c.cadetId === profile.cadetId;
-              return (
-                <div
-                  key={c.cadetId}
-                  className={`
-                    group flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs transition-all cursor-pointer
-                    ${
-                      isActive
-                        ? 'bg-[#E87040]/20 border-[#E87040] text-white font-bold shadow-md shadow-[#E87040]/20 ring-1 ring-[#E87040]'
-                        : 'bg-[#1a1f3d]/60 border-white/10 text-white/70 hover:bg-[#1a1f3d] hover:text-white'
-                    }
-                  `}
-                  onClick={() => !isActive && handleSwitch(c.cadetId)}
-                >
-                  <span className="text-base">{c.avatar}</span>
-                  <span className="font-mono">{c.callsign}</span>
-                  {isActive && <span className="text-[10px] text-[#22C55E]">● Active</span>}
-                  {roster.length > 1 && !isActive && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(c.cadetId, c.callsign);
-                      }}
-                      className="ml-1 opacity-0 group-hover:opacity-100 hover:text-red-400 text-white/40 p-0.5 transition-opacity"
-                      title="Delete profile from local & cloud"
-                      aria-label={`Delete profile ${c.callsign}`}
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
         {/* Callsign & Avatar Identity Section */}
-        <div className="bg-[#1a1f3d]/90 rounded-2xl p-5 border border-[#6B3FA0]/40 shadow-xl space-y-4">
+        <div className="bg-[#1a1f3d]/90 rounded-2xl p-5 border border-slate-700 shadow-xl space-y-4">
           <div className="flex flex-col sm:flex-row items-center gap-5">
             {/* Active Patch Avatar */}
             <div className="relative group">
@@ -213,7 +137,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             {/* Callsign Editor */}
             <div className="flex-1 w-full">
               <form onSubmit={handleSaveCallsign} className="space-y-2">
-                <label htmlFor="callsign-input" className="block text-xs font-mono font-bold text-[#E87040] uppercase tracking-wider">
+                <label htmlFor="callsign-input" className="block text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">
                   Astronaut Callsign
                 </label>
                 <div className="flex gap-2">
@@ -230,7 +154,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                     className="
                       flex-1 px-3.5 py-2.5 rounded-xl bg-[#0B1026] border border-white/20
                       text-white font-mono font-bold text-sm tracking-wide
-                      focus:outline-none focus:ring-2 focus:ring-[#E87040] focus:border-transparent
+                      focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent
                       min-h-[44px]
                     "
                   />
@@ -266,7 +190,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                     transition-all cursor-pointer min-h-[44px] min-w-[44px]
                     ${
                       profile.avatar === av
-                        ? 'bg-[#E87040]/30 border-2 border-[#E87040] scale-110 shadow-md shadow-[#E87040]/30'
+                        ? 'bg-cyan-400/20 border-2 border-cyan-400 scale-110 shadow-md shadow-cyan-400/20'
                         : 'bg-[#0B1026]/70 border border-white/10 hover:border-white/30'
                     }
                   `}
@@ -285,7 +209,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             <h4 className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-2">
               <span>🚀</span> Mission Specialty &amp; Gameplay Perks
             </h4>
-            <span className="text-xs text-[#E87040] font-mono">
+            <span className="text-xs text-cyan-400 font-mono">
               Active: {specialtiesMeta.find((s) => s.id === profile.specialty)?.name || 'Mission Commander'}
             </span>
           </div>
@@ -350,7 +274,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             </div>
             <div className="p-3.5 rounded-xl bg-[#0B1026]/80 border border-white/10 text-center space-y-1">
               <span className="text-xs text-[#F8FAFC]/50 block">Sols Survived</span>
-              <span className="text-xl font-extrabold text-[#E87040] tabular-nums">
+              <span className="text-xl font-extrabold text-cyan-400 tabular-nums">
                 {profile.totalSolsSurvived}
               </span>
             </div>
@@ -363,52 +287,53 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           </div>
         </div>
 
-        {/* Unlockable Achievement Badges */}
+        {/* Badges Grid */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h4 className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <span>🎖️</span> Career Honors &amp; Badges ({profile.badges.length}/{badgesMeta.length})
+              <span>🏅</span> Flight Badges &amp; Achievements
             </h4>
+            <span className="text-xs font-mono text-cyan-400">
+              {profile.badges.length} / {badgesMeta.length} Unlocked
+            </span>
           </div>
 
-          <div className="grid grid-cols-1 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {badgesMeta.map((badge) => {
-              const isUnlocked = profile.badges.includes(badge.id);
+              const isEarned = profile.badges.includes(badge.id);
               return (
                 <div
                   key={badge.id}
                   className={`
-                    flex items-center gap-3.5 p-3.5 rounded-2xl border transition-all
+                    p-3 rounded-xl border flex items-center gap-3 transition-all
                     ${
-                      isUnlocked
-                        ? 'bg-[#1a1f3d] border-[#22C55E]/60 shadow-lg shadow-[#22C55E]/10'
-                        : 'bg-[#0B1026]/60 border-white/10 opacity-60'
+                      isEarned
+                        ? 'bg-[#1a1f3d]/80 border-cyan-400/50 shadow-md'
+                        : 'bg-[#0B1026]/40 border-white/5 opacity-50'
                     }
                   `}
                 >
                   <div
                     className={`
-                      w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0
-                      ${isUnlocked ? 'bg-[#22C55E]/20 border border-[#22C55E]/40' : 'bg-white/5 border border-white/10'}
+                      w-11 h-11 rounded-xl flex items-center justify-center text-2xl flex-shrink-0
+                      ${isEarned ? 'bg-cyan-400/20 border border-cyan-400/40' : 'bg-slate-800 border border-white/5 grayscale'}
                     `}
                   >
                     {badge.icon}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <h5 className="font-bold text-sm text-white truncate">{badge.name}</h5>
-                      {isUnlocked ? (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#22C55E]/20 text-[#22C55E] uppercase">
-                          Unlocked ✓
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white/10 text-white/50 uppercase">
-                          Locked
-                        </span>
+                      <span className={`text-xs font-bold truncate ${isEarned ? 'text-white' : 'text-[#F8FAFC]/40'}`}>
+                        {badge.name}
+                      </span>
+                      {isEarned && (
+                        <span className="text-[10px] text-[#22C55E] font-bold">✓</span>
                       )}
                     </div>
-                    <p className="text-xs text-[#F8FAFC]/70 mt-0.5">{badge.description}</p>
-                    <p className="text-[10px] text-[#E87040] font-mono mt-1">Requirement: {badge.requirement}</p>
+                    <p className="text-[11px] text-[#F8FAFC]/60 truncate">{badge.description}</p>
+                    <span className="text-[10px] font-mono text-cyan-400/80 block mt-0.5">
+                      Req: {badge.requirement}
+                    </span>
                   </div>
                 </div>
               );
@@ -416,26 +341,38 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           </div>
         </div>
 
-        {/* Cloud Recovery & Sync Section */}
-        <div className="p-4 rounded-2xl bg-[#0B1026]/80 border border-white/10 space-y-3">
+        {/* Cloud Sync & Cadet ID Section */}
+        <div className="p-4 rounded-2xl bg-[#0B1026]/90 border border-white/10 space-y-3">
           <div className="flex items-center justify-between">
             <h4 className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-              <span>☁️</span> Neon Cloud Sync &amp; Device Recovery
+              <span>☁️</span> Neon Cloud Sync &amp; Cadet ID
             </h4>
-            <button
-              type="button"
-              onClick={handleCopyId}
-              className="text-[11px] font-mono text-[#3B82F6] hover:text-[#60A5FA] cursor-pointer flex items-center gap-1"
-            >
-              {copiedId ? '✓ Copied!' : 'Copy Cadet ID'}
-            </button>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30">
+              Synced
+            </span>
           </div>
 
-          <p className="text-xs text-[#F8FAFC]/60">
-            Your career progress is automatically backed up. Use your Cadet ID to transfer your profile to any classroom computer or judging device:
+          <p className="text-xs text-[#F8FAFC]/70 leading-relaxed">
+            Your telemetry and credentials are saved to this browser and synced to Neon Postgres. Use your unique Cadet ID to restore your profile on another computer or browser:
           </p>
 
-          <form onSubmit={handleRecover} className="flex gap-2">
+          <div className="flex items-center gap-2 bg-[#1a1f3d] p-2.5 rounded-xl border border-white/10">
+            <code className="text-xs font-mono text-cyan-300 flex-1 truncate select-all">
+              {profile.cadetId}
+            </code>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={handleCopyId}
+              className="px-3 text-xs"
+            >
+              {copiedId ? 'Copied!' : 'Copy ID'}
+            </Button>
+          </div>
+
+          {/* Cloud Recovery Form */}
+          <form onSubmit={handleRecover} className="pt-2 border-t border-white/10 flex gap-2">
             <input
               type="text"
               value={recoveryId}
@@ -444,7 +381,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               className="
                 flex-1 px-3 py-2 rounded-xl bg-[#1a1f3d] border border-white/20
                 text-white font-mono text-xs
-                focus:outline-none focus:ring-2 focus:ring-[#3B82F6]
+                focus:outline-none focus:ring-2 focus:ring-cyan-400
               "
             />
             <Button
@@ -477,7 +414,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           </div>
 
           <p className="text-xs text-[#F8FAFC]/70 leading-relaxed">
-            Permanently delete this cadet&apos;s dossier, active mission saves, career badges, and leaderboard rankings from both this device (<code className="text-amber-300 text-[11px]">localStorage</code>) and Neon Postgres cloud storage.
+            Permanently reset this cadet&apos;s dossier, active mission saves, career badges, and leaderboard rankings from both this device (<code className="text-amber-300 text-[11px]">localStorage</code>) and Neon Postgres cloud storage.
           </p>
 
           {!showDeleteConfirm ? (
@@ -494,7 +431,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                   flex items-center gap-2 cursor-pointer
                 "
               >
-                <span>🗑️</span> Delete Cadet Data (Local &amp; Cloud)
+                <span>🗑️</span> Reset Cadet Data (Local &amp; Cloud)
               </button>
             </div>
           ) : (
@@ -510,7 +447,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                   disabled={isDeleting}
                   className="bg-red-600 hover:bg-red-500 text-white border-red-700 text-xs px-4"
                 >
-                  {isDeleting ? 'Erasing Cloud & Local...' : 'Yes, Permanently Delete'}
+                  {isDeleting ? 'Resetting Cloud & Local...' : 'Yes, Permanently Reset'}
                 </Button>
                 <Button
                   variant="secondary"

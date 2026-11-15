@@ -26,8 +26,8 @@ export default function HUD({ onOpenMenu }: HUDProps) {
   const lastTickSecondRef = useRef<number>(15);
 
   const activeSpecialty = SPECIALTY_METAS.find((s) => s.id === (state.specialty || profile.specialty || 'commander'));
-  const currentAvatar = state.avatar || (profile.cadetId !== 'cadet-nova-01' ? profile.avatar : '🚀');
-  const currentCallsign = state.callsign || (profile.cadetId !== 'cadet-nova-01' ? profile.callsign : 'ASTRONAUT');
+  const currentAvatar = state.avatar || profile.avatar || '🚀';
+  const currentCallsign = state.callsign || profile.callsign || 'ASTRONAUT';
 
   const isEmpJammed = Boolean(state.activeDebuffs && state.activeDebuffs.empJammedSols > 0);
   const isSolarBlinded = Boolean(state.activeDebuffs && state.activeDebuffs.solarBlindedSols > 0);
