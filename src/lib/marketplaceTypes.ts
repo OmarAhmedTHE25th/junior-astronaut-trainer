@@ -146,3 +146,146 @@ export const CATALOG_ITEMS: Record<string, MarketplaceItemDef> = {
     effectSummary: 'Tactical: Jam rival telemetry pings',
   },
 };
+
+// ─── Orbital Supply Drop Crates & Loot Pods ───────────────────
+
+export type CrateTierSlug = 'standard' | 'elite' | 'sovereign';
+export type RewardRarity = 'common' | 'rare' | 'legendary';
+
+export interface CrateDef {
+  slug: CrateTierSlug;
+  name: string;
+  costMC: number;
+  costCredits: number;
+  icon: string;
+  badge: string;
+  description: string;
+  rebateMC?: number;
+  freeDailyForVIP?: boolean;
+  odds: {
+    common: number;     // e.g. 0.65
+    rare: number;       // e.g. 0.28
+    legendary: number;  // e.g. 0.07
+  };
+  features: string[];
+}
+
+export const CRATE_TIERS: Record<CrateTierSlug, CrateDef> = {
+  standard: {
+    slug: 'standard',
+    name: 'Standard Orbital Crate',
+    costMC: 150,
+    costCredits: 150,
+    icon: '📦',
+    badge: 'STANDARD',
+    description: 'Automated atmospheric resupply capsule deployed via drogue chute.',
+    odds: { common: 0.65, rare: 0.28, legendary: 0.07 },
+    features: ['65% Common Consumables', '28% Rare Tech Modules', '7% Legendary / 500 MC Jackpot'],
+  },
+  elite: {
+    slug: 'elite',
+    name: 'Deep-Space Elite Pod',
+    costMC: 400,
+    costCredits: 400,
+    icon: '🛸',
+    badge: 'ELITE POD',
+    description: 'Pressurized aerospace capsule with reinforced avionics and guaranteed 100 MC rebate.',
+    rebateMC: 100,
+    odds: { common: 0.30, rare: 0.50, legendary: 0.20 },
+    features: ['Instant 100 MC Rebate', '50% Rare Tech Modules', '20% Legendary / 1,000 MC Jackpot'],
+  },
+  sovereign: {
+    slug: 'sovereign',
+    name: 'Five-Star General Sovereign Vault',
+    costMC: 750,
+    costCredits: 750,
+    icon: '👑',
+    badge: 'SOVEREIGN VAULT',
+    description: 'Orbital titanium dreadnought vault containing apex colony hardware with double yield.',
+    freeDailyForVIP: true,
+    odds: { common: 0.00, rare: 0.55, legendary: 0.45 },
+    features: ['1 Free Daily Open for VIPs', 'Zero Common Items', '45% Legendary / 2,500 MC Jackpot', '2x Quantity Yield'],
+  },
+};
+
+export interface CrateReward {
+  itemSlug?: string;
+  itemName: string;
+  name?: string;
+  icon: string;
+  quantity: number;
+  rarity: RewardRarity;
+  isJackpot?: boolean;
+  jackpotCredits?: number;
+  description?: string;
+  rebateCredits?: number;
+  isPityGuaranteed?: boolean;
+}
+
+// ─── Stripe Mars Credit Bundles ───────────────────────────────
+
+export interface StoreStripeBundle {
+  id: string;
+  name: string;
+  mcAmount: number;
+  credits?: number;
+  usdPriceCents: number;
+  priceFormatted: string;
+  priceUsd?: string;
+  icon: string;
+  badge?: string;
+  description?: string;
+  isBattlePass?: boolean;
+}
+
+export const STRIPE_BUNDLES: StoreStripeBundle[] = [
+  {
+    id: 'bundle-500',
+    name: 'Cadet Supply Crate (500 MC)',
+    mcAmount: 500,
+    credits: 500,
+    usdPriceCents: 99,
+    priceFormatted: '$0.99',
+    priceUsd: '$0.99',
+    icon: '💰',
+    badge: 'STARTER',
+    description: '500 Mars Credits Top-Up',
+  },
+  {
+    id: 'bundle-1500',
+    name: 'Commander Stash (1,500 MC)',
+    mcAmount: 1500,
+    credits: 1500,
+    usdPriceCents: 249,
+    priceFormatted: '$2.49',
+    priceUsd: '$2.49',
+    icon: '🪙',
+    badge: 'POPULAR (+25% BONUS)',
+    description: '1,500 Mars Credits Top-Up',
+  },
+  {
+    id: 'bundle-5000',
+    name: 'Outpost Treasury (5,000 MC)',
+    mcAmount: 5000,
+    credits: 5000,
+    usdPriceCents: 499,
+    priceFormatted: '$4.99',
+    priceUsd: '$4.99',
+    icon: '💎',
+    badge: 'BEST VALUE (2X VALUE)',
+    description: '5,000 Mars Credits Top-Up',
+  },
+  {
+    id: 'bundle-fivestar-pass',
+    name: '★★★★★ Five-Star General VIP Pass',
+    mcAmount: 0,
+    credits: 0,
+    usdPriceCents: 499,
+    priceFormatted: '$4.99',
+    priceUsd: '$4.99',
+    icon: '⭐',
+    badge: 'PERMANENT VIP ENTITLEMENT',
+    description: '3 Retries + Free Daily Drop + VIP Perks',
+    isBattlePass: true,
+  },
+];

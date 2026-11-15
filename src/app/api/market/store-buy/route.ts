@@ -4,7 +4,7 @@ import { executeStorePurchase } from '@/lib/marketplace';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { playerId, buyerId, itemSlug, quantity } = body;
+    const { playerId, buyerId, itemSlug, quantity, isGrant } = body;
     const finalPlayerId = playerId || buyerId;
 
     if (!finalPlayerId || !itemSlug || !quantity) {
@@ -18,6 +18,7 @@ export async function POST(request: Request) {
       playerId: finalPlayerId,
       itemSlug,
       quantity: Number(quantity),
+      isGrant: Boolean(isGrant),
     });
 
     return NextResponse.json(result);

@@ -15,6 +15,7 @@ import { PET_CATALOG } from '@/lib/battleRoyaleTypes';
 import { gameReducer, createInitialState } from '@/lib/gameEngine';
 import { TIMED_CRISIS_SOL_SECONDS, TIMEOUT_FALLBACK_ACTION } from '@/lib/constants';
 import { getOrCreateCadetProfile } from '@/lib/profile';
+import { getBattlePassState } from '@/lib/battlePass';
 import nasaFacts from '@/data/nasa-facts.json';
 
 interface NASAFact {
@@ -94,7 +95,13 @@ export function GameProvider({
           cadet,
           squadCode ? { squadCode, weatherSeed } : undefined,
           isTimedMode,
-          tournament
+          tournament,
+          typeof window !== 'undefined'
+            ? {
+                isFiveStarGeneral: getBattlePassState().isFiveStarGeneral,
+                retriesRemaining: getBattlePassState().isFiveStarGeneral ? 3 : 0,
+              }
+            : undefined
         )
   );
   const [factIndex, setFactIndex] = useState(0);
@@ -169,10 +176,13 @@ export function GameProvider({
         const next = Math.max(0, +(prev - 0.1).toFixed(1));
         if (next <= 0) {
           clearInterval(interval);
-          // Timer ended: Player immediately loses mission in Timed Crisis Mode
+          // Timer ended: Player immediately loses mission in Timed Crisis Mode (or VIP retry activated)
           rawDispatch({
             type: 'TRIGGER_TIMEOUT_GAMEOVER',
           });
+          if ((state.retriesRemaining ?? 0) > 0) {
+            return TIMED_CRISIS_SOL_SECONDS;
+          }
           return 0;
         }
         return next;
@@ -190,6 +200,18 @@ export function GameProvider({
 
     async function loadLoadout() {
       try {
+        // 0. Synchronize Battle Pass / Five-Star General VIP entitlements
+        try {
+          const bp = getBattlePassState();
+          if (bp.isFiveStarGeneral && (!state.isFiveStarGeneral || state.retriesRemaining === undefined)) {
+            rawDispatch({
+              type: 'SET_BATTLEPASS_ENTITLEMENTS',
+              isFiveStarGeneral: true,
+              retriesRemaining: 3,
+            });
+          }
+        } catch {}
+
         // 1. Slotted boosts from localStorage
         let slotted: BoostSlug[] = ['cryo-o2-stim', 'lead-lined-nanogel'];
         try {

@@ -79,6 +79,10 @@ export function createInitialState(
     rngSeed?: number;
     rivalCallsign?: string;
     rivalAvatar?: string;
+  },
+  battlePass?: {
+    isFiveStarGeneral?: boolean;
+    retriesRemaining?: number;
   }
 ): GameState {
   const isEndless = Boolean(tournament?.tournamentId);
@@ -151,6 +155,8 @@ export function createInitialState(
       spoofedAlertActive: false,
     },
     sabotageCooldowns: {},
+    isFiveStarGeneral: battlePass?.isFiveStarGeneral,
+    retriesRemaining: battlePass?.retriesRemaining ?? (battlePass?.isFiveStarGeneral ? 3 : 0),
   };
 }
 
@@ -171,6 +177,45 @@ export function getMoraleModifier(morale: number): number {
  */
 export function checkGameOver(state: GameState): boolean {
   return state.power <= 0 || state.oxygen <= 0 || state.shielding <= 0;
+}
+
+/**
+ * If the player has Five-Star General emergency retries remaining,
+ * restore vitals to 45% and continue the mission instead of game over.
+ */
+export function applyRetryOrGameOver(state: GameState, reason?: string): GameState {
+  if ((state.retriesRemaining ?? 0) > 0) {
+    const remaining = (state.retriesRemaining ?? 0) - 1;
+    const retryLog: LogEntry = {
+      sol: state.sol,
+      type: 'system',
+      title: '★★★★★ FIVE-STAR GENERAL OVERRIDE',
+      description: `★★★★★ FIVE-STAR GENERAL OVERRIDE: Emergency Life-Support Retry Activated! Critical outpost systems restored to 45% (${remaining} retries remaining).`,
+      resourceChanges: {
+        power: Math.max(0, 45 - state.power),
+        oxygen: Math.max(0, 45 - state.oxygen),
+        shielding: Math.max(0, 45 - state.shielding),
+      },
+      moraleChange: Math.max(0, 45 - state.morale),
+      icon: '🔄',
+    };
+    return {
+      ...state,
+      power: 45,
+      oxygen: 45,
+      shielding: 45,
+      morale: Math.max(state.morale, 45),
+      retriesRemaining: remaining,
+      phase: 'action',
+      log: [...state.log, retryLog],
+    };
+  }
+  return {
+    ...state,
+    phase: 'gameover',
+    gameOverReason: reason ?? state.gameOverReason,
+    score: calculateScore(state),
+  };
 }
 
 /**
@@ -295,7 +340,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         action.landingSite || 'jezero',
         action.cadet,
         action.squad,
-        action.isTimedMode
+        action.isTimedMode,
+        undefined,
+        {
+          isFiveStarGeneral: state.isFiveStarGeneral,
+          retriesRemaining: state.retriesRemaining,
+        }
       );
       return { ...initial, phase: 'action' };
     }
@@ -319,6 +369,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         squadCode: gs.squadCode,
         weatherSeed: gs.weatherSeed,
         isTimedMode: gs.isTimedMode,
+        isFiveStarGeneral: gs.isFiveStarGeneral,
+        retriesRemaining: gs.retriesRemaining,
         gameOverReason: gs.gameOverReason,
         missionTimeSeconds: gs.missionTimeSeconds ?? 0,
         rapidResponseBonus: gs.rapidResponseBonus ?? 0,
@@ -409,11 +461,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       // Check for game over after action
       if (checkGameOver(newState)) {
-        return {
-          ...newState,
-          phase: 'gameover',
-          score: calculateScore(newState),
-        };
+        return applyRetryOrGameOver(newState, 'depletion');
       }
 
       // Move to the END_TURN phase (which handles depletion + events)
@@ -477,11 +525,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
 
       if (checkGameOver(newState)) {
-        return {
-          ...newState,
-          phase: 'gameover',
-          score: calculateScore(newState),
-        };
+        return applyRetryOrGameOver(newState, 'depletion');
       }
 
       return { ...newState, phase: 'result' };
@@ -757,11 +801,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
 
       if (checkGameOver(candidateState)) {
-        return {
-          ...candidateState,
-          phase: 'gameover',
-          score: calculateScore(candidateState),
-        };
+        return applyRetryOrGameOver(candidateState, 'sabotage');
       }
 
       return candidateState;
@@ -857,11 +897,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
 
       if (checkGameOver(newState)) {
-        return {
-          ...newState,
-          phase: 'gameover',
-          score: calculateScore(newState),
-        };
+        return applyRetryOrGameOver(newState, 'depletion');
       }
 
       return newState;
@@ -869,6 +905,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     // ── Decision window expired: immediate loss in Timed Mode ──
     case 'TRIGGER_TIMEOUT_GAMEOVER': {
+      if ((state.retriesRemaining ?? 0) > 0) {
+        return applyRetryOrGameOver(state, 'timeout');
+      }
+
       const logEntry: LogEntry = {
         sol: state.sol,
         type: 'system',
@@ -928,11 +968,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       // 2. Check for game over after depletion
       if (checkGameOver(newState)) {
-        return {
-          ...newState,
-          phase: 'gameover',
-          score: calculateScore(newState),
-        };
+        return applyRetryOrGameOver(newState, 'depletion');
       }
 
       // 3. Maybe trigger a random event
@@ -1149,6 +1185,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    case 'SET_BATTLEPASS_ENTITLEMENTS': {
+      return {
+        ...state,
+        isFiveStarGeneral: action.isFiveStarGeneral,
+        retriesRemaining: action.retriesRemaining,
+      };
+    }
+
     // ── Mission voluntarily aborted from Pause Menu ──────────
     case 'ABORT_MISSION': {
       return {
@@ -1174,7 +1218,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           squadCode: state.squadCode,
           weatherSeed: state.weatherSeed,
         },
-        state.isTimedMode
+        state.isTimedMode,
+        undefined,
+        {
+          isFiveStarGeneral: state.isFiveStarGeneral,
+          retriesRemaining: state.isFiveStarGeneral ? 3 : 0,
+        }
       );
     }
 

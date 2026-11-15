@@ -898,6 +898,7 @@ export async function executeStorePurchase(options: {
   playerId: string;
   itemSlug: string;
   quantity: number;
+  isGrant?: boolean;
 }): Promise<{
   success: boolean;
   remainingCredits: number;
@@ -905,7 +906,7 @@ export async function executeStorePurchase(options: {
   totalCost: number;
   itemSlug: string;
 }> {
-  const { playerId, itemSlug, quantity } = options;
+  const { playerId, itemSlug, quantity, isGrant } = options;
 
   if (quantity <= 0 || !Number.isInteger(quantity)) {
     throw new Error('Purchase quantity must be a positive integer');
@@ -916,25 +917,28 @@ export async function executeStorePurchase(options: {
     throw new Error(`Item ${itemSlug} not found in colony catalog`);
   }
 
-  const totalCost = itemDef.basePrice * quantity;
+  const totalCost = isGrant ? 0 : itemDef.basePrice * quantity;
   const sql = await getSqlClient();
 
   if (sql) {
     // 1. Ensure wallet exists and check balance
-    await getPlayerWallet(playerId);
+    let currentWallet = await getPlayerWallet(playerId);
 
-    const updatedWallets = await sql`
-      UPDATE player_wallets
-      SET credits_balance = credits_balance - ${totalCost}, updated_at = NOW()
-      WHERE player_id = ${playerId} AND credits_balance >= ${totalCost}
-      RETURNING credits_balance;
-    `;
+    if (totalCost > 0) {
+      const updatedWallets = await sql`
+        UPDATE player_wallets
+        SET credits_balance = credits_balance - ${totalCost}, updated_at = NOW()
+        WHERE player_id = ${playerId} AND credits_balance >= ${totalCost}
+        RETURNING credits_balance;
+      `;
 
-    if (!updatedWallets || updatedWallets.length === 0) {
-      const currentWallet = await getPlayerWallet(playerId);
-      throw new Error(
-        `Insufficient Mars Credits: required ${totalCost} MC, available ${currentWallet.creditsBalance} MC`
-      );
+      if (!updatedWallets || updatedWallets.length === 0) {
+        currentWallet = await getPlayerWallet(playerId);
+        throw new Error(
+          `Insufficient Mars Credits: required ${totalCost} MC, available ${currentWallet.creditsBalance} MC`
+        );
+      }
+      currentWallet = { ...currentWallet, creditsBalance: updatedWallets[0].credits_balance };
     }
 
     // 2. Upsert bought quantity into inventory
@@ -949,7 +953,7 @@ export async function executeStorePurchase(options: {
 
     return {
       success: true,
-      remainingCredits: updatedWallets[0].credits_balance,
+      remainingCredits: currentWallet.creditsBalance,
       newInventoryQuantity: updatedInv[0].quantity,
       totalCost,
       itemSlug,
@@ -960,14 +964,15 @@ export async function executeStorePurchase(options: {
   const mem = getMemoryStore();
   const wallet = await getPlayerWallet(playerId);
 
-  if (wallet.creditsBalance < totalCost) {
-    throw new Error(
-      `Insufficient Mars Credits: required ${totalCost} MC, available ${wallet.creditsBalance} MC`
-    );
+  if (totalCost > 0) {
+    if (wallet.creditsBalance < totalCost) {
+      throw new Error(
+        `Insufficient Mars Credits: required ${totalCost} MC, available ${wallet.creditsBalance} MC`
+      );
+    }
+    wallet.creditsBalance -= totalCost;
+    wallet.updatedAt = new Date().toISOString();
   }
-
-  wallet.creditsBalance -= totalCost;
-  wallet.updatedAt = new Date().toISOString();
 
   let playerItems = mem.inventory.get(playerId);
   if (!playerItems) {

@@ -171,6 +171,10 @@ export interface GameState {
   };
   /** Sabotage operation cooldown availability sols: { [sabotageSlug]: availableSol } */
   sabotageCooldowns?: Record<string, number>;
+  /** Five-Star General VIP status */
+  isFiveStarGeneral?: boolean;
+  /** Emergency Life-Support retries remaining for this mission (max 3 for Five-Star General) */
+  retriesRemaining?: number;
 }
 
 export * from './tournamentTypes';
@@ -238,6 +242,11 @@ export type GameAction =
   | { type: 'RECORD_TIMED_BONUS'; bonusPoints: number }
   | { type: 'UPDATE_MISSION_TIME'; seconds: number }
   | { type: 'ADVANCE_SOL' }
+  | {
+      type: 'SET_BATTLEPASS_ENTITLEMENTS';
+      isFiveStarGeneral: boolean;
+      retriesRemaining: number;
+    }
   | { type: 'END_TURN' }
   | { type: 'NEXT_SOL' }
   | { type: 'RESET' }

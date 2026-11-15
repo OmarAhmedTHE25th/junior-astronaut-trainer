@@ -8,6 +8,7 @@ import TelemetryChart from './TelemetryChart';
 import { useGame } from './GameProvider';
 import { calculateScore } from '@/lib/gameEngine';
 import { playVictory, playGameOver, playClick, playSuccess } from '@/lib/sound';
+import { useBattlePass, addBattlePassXP } from '@/lib/battlePass';
 import {
   useProfile,
   evaluateBadges,
@@ -47,6 +48,7 @@ export default function EndScreen() {
   const router = useRouter();
   const { state, dispatch, quitMission } = useGame();
   const { profile, isLoaded } = useProfile();
+  const { state: bpState } = useBattlePass();
   const [showConfetti, setShowConfetti] = useState(false);
   const [newlyUnlockedBadges, setNewlyUnlockedBadges] = useState<BadgeId[]>([]);
   const [leaderboardRank, setLeaderboardRank] = useState<number | null>(null);
@@ -61,9 +63,12 @@ export default function EndScreen() {
       ? profile
       : (typeof window !== 'undefined' ? getOrCreateCadetProfile() : profile);
 
+  const isFiveStar = Boolean(state.isFiveStarGeneral || bpState.isFiveStarGeneral);
   const isVictory = state.phase === 'victory';
   const finalScore = calculateScore(state);
-  const earnedCredits = Math.max(25, Math.round(finalScore * 0.25) + (state.sol - 1) * 10);
+  const baseCredits = Math.max(25, Math.round(finalScore * 0.25) + (state.sol - 1) * 10);
+  const earnedCredits = isFiveStar ? Math.round(baseCredits * 1.25) : baseCredits;
+  const bpXpEarned = Math.max(100, Math.round(finalScore * 0.5) + state.sol * 15);
   const petXpToAward = (state.petXpEarned || 0) + (isVictory ? 100 : 0);
 
   const activeSpecialty = SPECIALTY_METAS.find(
@@ -161,10 +166,12 @@ export default function EndScreen() {
       }).catch(() => {});
     }
 
-    // 4. Reward Mars Credits and Companion Pet XP
-    const earnedCredits = Math.max(25, Math.round(finalScore * 0.25) + (state.sol - 1) * 10);
-    const petXpToAward = (state.petXpEarned || 0) + (isVictory ? 100 : 0);
+    // 3.5 Award Galactic Battle Pass XP
+    try {
+      addBattlePassXP(bpXpEarned);
+    } catch {}
 
+    // 4. Reward Mars Credits (with +25% VIP bonus for Five-Star Generals) and Companion Pet XP
     fetch('/api/market/reward', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -175,7 +182,7 @@ export default function EndScreen() {
         petXp: petXpToAward,
       }),
     }).catch((err) => console.warn('Reward API notice:', err));
-  }, [isLoaded, state, activeCadet]);
+  }, [isLoaded, state, activeCadet, bpXpEarned, earnedCredits, petXpToAward]);
 
   // If this mission was a Competitive Squad Race, fetch final squad standings
   useEffect(() => {
@@ -335,16 +342,36 @@ export default function EndScreen() {
               </div>
             )}
 
-            {/* Mars Colony Economy & Companion Pet Rewards Banner */}
+            {/* Mars Colony Economy, Battle Pass & Companion Pet Rewards Banner */}
             <div className="mt-4 w-full p-3.5 rounded-2xl bg-[#111827] border border-emerald-500/40 flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-left">
               <div className="flex items-center gap-2.5">
                 <span className="text-2xl p-1 rounded-xl bg-emerald-500/20 border border-emerald-400/30">💰</span>
                 <div>
-                  <span className="font-heading font-black text-emerald-300 text-sm block leading-none">
-                    +{earnedCredits} Mars Credits Earned!
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-heading font-black text-emerald-300 text-sm block leading-none">
+                      +{earnedCredits} Mars Credits Earned!
+                    </span>
+                    {isFiveStar && (
+                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/50">
+                        +25% VIP BONUS
+                      </span>
+                    )}
+                  </div>
                   <span className="text-[10px] text-white/60 mt-0.5 block">
                     Credited to Colony Wallet for Marketplace trading &amp; upgrades
+                  </span>
+                </div>
+              </div>
+
+              {/* Battle Pass XP Award */}
+              <div className="flex items-center gap-2">
+                <span className="text-xl p-1 rounded-xl bg-cyan-500/20 border border-cyan-400/30">🎖️</span>
+                <div>
+                  <span className="font-bold text-cyan-300 block leading-none">
+                    +{bpXpEarned} Battle Pass XP
+                  </span>
+                  <span className="text-[10px] text-white/60 mt-0.5 block">
+                    Galactic Pass season rank progression
                   </span>
                 </div>
               </div>
@@ -511,6 +538,11 @@ export default function EndScreen() {
                   <span className="text-xs font-mono uppercase text-amber-200/80 tracking-widest block">
                     This official certificate is proudly awarded to
                   </span>
+                  {isFiveStar && (
+                    <div className="text-[11px] font-mono font-black text-amber-400 uppercase tracking-widest flex items-center justify-center gap-1.5 mb-1">
+                      <span>★★★★★</span> FIVE-STAR GENERAL <span>★★★★★</span>
+                    </div>
+                  )}
                   <div className="text-2xl sm:text-3xl font-extrabold font-mono text-white flex items-center justify-center gap-2">
                     <span>{activeCadet.avatar}</span>
                     <span className="tracking-wide">{activeCadet.callsign}</span>

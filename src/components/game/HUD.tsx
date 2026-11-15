@@ -9,6 +9,7 @@ import TelemetryChart from './TelemetryChart';
 import { useGame } from './GameProvider';
 import { useSound } from '@/lib/sound';
 import { useProfile } from '@/lib/profile';
+import { useBattlePass } from '@/lib/battlePass';
 import { SPECIALTY_METAS } from '@/lib/types';
 import type { SquadCadetState } from '@/lib/types';
 
@@ -19,6 +20,7 @@ interface HUDProps {
 export default function HUD({ onOpenMenu }: HUDProps) {
   const { state, timeRemaining } = useGame();
   const { profile } = useProfile();
+  const { state: bpState } = useBattlePass();
   const { isMuted, toggleSound, playClick, playWarning, playTimerTick } = useSound();
   const [isTelemetryOpen, setIsTelemetryOpen] = useState(false);
   const [squadCadets, setSquadCadets] = useState<SquadCadetState[]>([]);
@@ -28,6 +30,8 @@ export default function HUD({ onOpenMenu }: HUDProps) {
   const activeSpecialty = SPECIALTY_METAS.find((s) => s.id === (state.specialty || profile.specialty || 'commander'));
   const currentAvatar = state.avatar || profile.avatar || '🚀';
   const currentCallsign = state.callsign || profile.callsign || 'ASTRONAUT';
+  const isFiveStarGeneral = Boolean(state.isFiveStarGeneral || bpState.isFiveStarGeneral);
+  const retriesRemaining = state.retriesRemaining ?? (isFiveStarGeneral ? 3 : 0);
 
   const isEmpJammed = Boolean(state.activeDebuffs && state.activeDebuffs.empJammedSols > 0);
   const isSolarBlinded = Boolean(state.activeDebuffs && state.activeDebuffs.solarBlindedSols > 0);
@@ -200,9 +204,16 @@ export default function HUD({ onOpenMenu }: HUDProps) {
         )}
 
         {/* Cadet Profile & Specialty Pill */}
-        <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-xl bg-[#1a1f3d]/80 border border-white/10">
+        <div className={`hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-xl border ${
+          isFiveStarGeneral ? 'bg-[#1e1b10] border-amber-400/60 shadow-amber-500/10' : 'bg-[#1a1f3d]/80 border-white/10'
+        }`}>
           <span className="text-lg">{currentAvatar}</span>
           <div className="flex flex-col">
+            {isFiveStarGeneral ? (
+              <span className="text-[9px] font-mono font-black text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                <span>★★★★★</span> FIVE-STAR GENERAL
+              </span>
+            ) : null}
             <span className="font-mono font-bold text-white text-xs leading-none">
               {currentCallsign}
             </span>
@@ -211,6 +222,20 @@ export default function HUD({ onOpenMenu }: HUDProps) {
             </span>
           </div>
         </div>
+
+        {/* Five-Star General Emergency Life-Support Retries Pill */}
+        {isFiveStarGeneral && (
+          <div
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#1e1b10] border border-amber-400/70 text-amber-300 font-mono text-xs font-bold shadow-lg"
+            title="Emergency Life-Support Overrides: Auto-restores vitals to 45% upon fatal crisis or depletion."
+          >
+            <span className="text-sm">🔄</span>
+            <div className="flex flex-col">
+              <span className="text-[8px] uppercase tracking-widest text-amber-400/80">Life-Support</span>
+              <span className="text-amber-300 tabular-nums">Retries: {retriesRemaining}/3</span>
+            </div>
+          </div>
+        )}
 
         {/* Equipped Companion Pet Pill */}
         {state.equippedPet && (

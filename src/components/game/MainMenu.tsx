@@ -16,6 +16,7 @@ import GameModesModal from './GameModesModal';
 import PetHangarModal from './PetHangarModal';
 import { useSound } from '@/lib/sound';
 import { useProfile, getOrCreateCadetProfile, DEFAULT_PROFILE } from '@/lib/profile';
+import { useBattlePass } from '@/lib/battlePass';
 import { SPECIALTY_METAS } from '@/lib/types';
 import type { GameState } from '@/lib/types';
 
@@ -34,6 +35,8 @@ interface EquippedPetState {
 export default function MainMenu() {
   const { isMuted, toggleSound, playClick } = useSound();
   const { profile, isLoaded } = useProfile();
+  const { state: bpState } = useBattlePass();
+  const isFiveStar = bpState.isFiveStarGeneral;
 
   // Modals state
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
@@ -181,12 +184,13 @@ export default function MainMenu() {
               playClick();
               setIsProfileOpen(true);
             }}
-            className="
+            className={`
               flex items-center gap-2 px-3 py-1.5 rounded-xl
-              bg-[#141b3d]/90 border border-white/10 hover:border-[#E87040]
+              ${isFiveStar ? 'bg-[#1e1b10] border-amber-400/60 shadow-amber-500/10' : 'bg-[#141b3d]/90 border-white/10'}
+              border hover:border-[#E87040]
               transition-all hover:scale-105 active:scale-95 cursor-pointer
               shadow-md min-h-[40px]
-            "
+            `}
             title="Open Cadet Dossier & Flight Credentials"
             aria-label="Open Cadet Dossier"
           >
@@ -194,12 +198,21 @@ export default function MainMenu() {
               {activeCadet.avatar || '👨‍🚀'}
             </div>
             <div className="text-left">
+              {isFiveStar && (
+                <div className="text-[8px] font-mono font-black text-amber-400 uppercase tracking-widest flex items-center gap-0.5 leading-tight mb-0.5">
+                  <span>★★★★★</span> VIP GENERAL
+                </div>
+              )}
               <div className="flex items-center gap-1.5 leading-none">
                 <span className="font-mono font-bold text-xs text-white">
                   {activeCadet.callsign || 'CADET'}
                 </span>
-                <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  {rankMeta.badge} {rankMeta.title}
+                <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded ${
+                  isFiveStar
+                    ? 'bg-amber-400/20 text-amber-300 border border-amber-400/50'
+                    : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                }`}>
+                  {isFiveStar ? '★★★★★ GENERAL' : `${rankMeta.badge} ${rankMeta.title}`}
                 </span>
               </div>
               <span className="text-[10px] text-white/50 block font-mono mt-0.5">
