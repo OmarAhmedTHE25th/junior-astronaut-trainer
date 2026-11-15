@@ -23,6 +23,7 @@ import {
   markDailyVaultClaimed,
   BATTLEPASS_TIERS,
 } from '@/lib/battlePass';
+import SponsorAdModal from './SponsorAdModal';
 
 interface ColonyStoreContentProps {
   layoutMode?: 'page' | 'modal';
@@ -80,6 +81,7 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
   const [crateModalOpen, setCrateModalOpen] = useState(false);
   const [crateModalReward, setCrateModalReward] = useState<CrateReward | null>(null);
   const [activeOpeningSlug, setActiveOpeningSlug] = useState<CrateTierSlug | null>(null);
+  const [isSponsorAdOpen, setIsSponsorAdOpen] = useState(false);
 
   // Initialize pity count from localStorage
   useEffect(() => {
@@ -490,9 +492,28 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
               MC TOP-UP &amp; VIP ENTITLEMENTS (STRIPE CHECKOUT)
             </span>
           </div>
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-200 border border-cyan-500/40">
-            Official Hosted Portal
-          </span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => {
+                playClick();
+                setIsSponsorAdOpen(true);
+              }}
+              className="
+                px-3 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/60
+                text-amber-300 font-mono font-extrabold text-xs
+                hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer
+                flex items-center gap-1.5
+              "
+              title="Watch mandatory sponsor commercial for +150 Mars Credits"
+            >
+              <span>🍔</span>
+              <span>Watch Sponsor Broadcast (+150 MC)</span>
+            </button>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-200 border border-cyan-500/40">
+              Official Hosted Portal
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
@@ -1447,6 +1468,21 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
           </div>
         </div>
       )}
+
+      {/* Sponsor Ad Modal */}
+      <SponsorAdModal
+        isOpen={isSponsorAdOpen}
+        onClose={() => setIsSponsorAdOpen(false)}
+        rewardMode="credits"
+        cadetId={activeCadet?.cadetId}
+        onRewardClaimed={(credits) => {
+          setStatusMsg({
+            type: 'success',
+            text: `🍔 Sponsor Broadcast Completed! +${credits || 150} Mars Credits credited to your wallet.`,
+          });
+          fetchWalletAndInventory();
+        }}
+      />
     </div>
   );
 }

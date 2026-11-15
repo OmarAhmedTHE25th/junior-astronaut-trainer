@@ -1242,6 +1242,50 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    // ── Emergency Sponsor Rations Relief ───────────────────
+    case 'APPLY_SPONSOR_RELIEF': {
+      if (state.hasUsedSponsorRation) {
+        return state;
+      }
+      const newPower = Math.min(100, state.power + 20);
+      const newOxygen = Math.min(100, state.oxygen + 20);
+      const newShielding = Math.min(100, state.shielding + 20);
+
+      const logEntry: LogEntry = {
+        sol: state.sol,
+        type: 'system',
+        title: '🍔 ARES SPONSOR OVERRIDE',
+        description: '🍔 ARES SPONSOR OVERRIDE: Emergency rations delivered courtesy of BK Orbital.',
+        resourceChanges: {
+          power: newPower - state.power,
+          oxygen: newOxygen - state.oxygen,
+          shielding: newShielding - state.shielding,
+        },
+        icon: '🍔',
+      };
+
+      const updatedHistory = state.telemetryHistory ? [...state.telemetryHistory] : [];
+      if (updatedHistory.length > 0) {
+        const lastIdx = updatedHistory.length - 1;
+        updatedHistory[lastIdx] = {
+          ...updatedHistory[lastIdx],
+          power: newPower,
+          oxygen: newOxygen,
+          shielding: newShielding,
+        };
+      }
+
+      return {
+        ...state,
+        power: newPower,
+        oxygen: newOxygen,
+        shielding: newShielding,
+        hasUsedSponsorRation: true,
+        log: [logEntry, ...state.log],
+        telemetryHistory: updatedHistory,
+      };
+    }
+
     // ── Mission voluntarily aborted from Pause Menu ──────────
     case 'ABORT_MISSION': {
       return {

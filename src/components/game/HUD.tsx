@@ -6,6 +6,7 @@ import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import LiveTelemetryTicker from './LiveTelemetryTicker';
 import TelemetryChart from './TelemetryChart';
+import SponsorAdModal from './SponsorAdModal';
 import { useGame } from './GameProvider';
 import { useSound } from '@/lib/sound';
 import { useProfile } from '@/lib/profile';
@@ -24,6 +25,7 @@ export default function HUD({ onOpenMenu }: HUDProps) {
   const { state: bpState } = useBattlePass();
   const { isMuted, toggleSound, playClick, playWarning, playTimerTick } = useSound();
   const [isTelemetryOpen, setIsTelemetryOpen] = useState(false);
+  const [isSponsorModalOpen, setIsSponsorModalOpen] = useState(false);
   const [squadCadets, setSquadCadets] = useState<SquadCadetState[]>([]);
   const prevLowRef = useRef<boolean>(false);
   const lastTickSecondRef = useRef<number>(15);
@@ -334,6 +336,36 @@ export default function HUD({ onOpenMenu }: HUDProps) {
           </span>
         </div>
 
+        {/* Emergency Sponsor Ration Button (1 use per mission) */}
+        <button
+          onClick={() => {
+            if (!state.hasUsedSponsorRation) {
+              playClick();
+              setIsSponsorModalOpen(true);
+            }
+          }}
+          disabled={state.hasUsedSponsorRation}
+          title={
+            state.hasUsedSponsorRation
+              ? 'Sponsor emergency ration already consumed for this mission'
+              : 'Emergency Sponsor Broadcast: Watch BK Orbital transmission for +20% Power, O2 & Shields'
+          }
+          className={`
+            px-2.5 py-1.5 rounded-xl border font-mono font-bold text-xs shadow-md transition-all
+            flex items-center gap-1.5 min-h-[44px]
+            ${
+              state.hasUsedSponsorRation
+                ? 'bg-slate-900/40 border-white/5 text-white/30 cursor-not-allowed opacity-50'
+                : 'bg-amber-950/40 border-amber-500/50 hover:border-amber-400 text-amber-300 hover:scale-105 active:scale-95 cursor-pointer animate-pulse'
+            }
+          `}
+        >
+          <span className="text-base select-none">🍔</span>
+          <span className="hidden xl:inline">
+            {state.hasUsedSponsorRation ? 'Ration Used' : 'Emergency Ration (+20%)'}
+          </span>
+        </button>
+
         {/* Telemetry Curves Modal Button */}
         <button
           onClick={() => {
@@ -500,6 +532,14 @@ export default function HUD({ onOpenMenu }: HUDProps) {
         </div>
       </div>
     </Modal>
+
+    {/* Emergency Sponsor Ration Commercial Modal */}
+    <SponsorAdModal
+      isOpen={isSponsorModalOpen}
+      onClose={() => setIsSponsorModalOpen(false)}
+      rewardMode="vitals"
+      cadetId={state.cadetId || profile.cadetId}
+    />
   </>
 );
 }

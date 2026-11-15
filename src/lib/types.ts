@@ -182,6 +182,8 @@ export interface GameState {
     buffLevel: number;
     name?: string;
   } | null;
+  /** Whether emergency sponsor rations were consumed during this mission (max 1 use) */
+  hasUsedSponsorRation?: boolean;
 }
 
 export * from './tournamentTypes';
@@ -258,7 +260,8 @@ export type GameAction =
   | { type: 'NEXT_SOL' }
   | { type: 'RESET' }
   | { type: 'RESTART' }
-  | { type: 'ABORT_MISSION' };
+  | { type: 'ABORT_MISSION' }
+  | { type: 'APPLY_SPONSOR_RELIEF' };
 
 // ── Martian Landing Sites ───────────────────────────────────
 
