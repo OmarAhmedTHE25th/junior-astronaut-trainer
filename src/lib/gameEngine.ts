@@ -241,6 +241,22 @@ function applySolDepletion(state: GameState): GameState {
     shielding: Math.round(SOL_DEPLETION.shielding * effectiveMult * site.shieldDepletionMod),
   };
 
+  // Companion Pet o2_scavenge perk reduces natural oxygen depletion
+  if (state.equippedPet?.perkType === 'o2_scavenge') {
+    const o2Discount = Math.min(0.5, (state.equippedPet.perkValue || 15) / 100);
+    depletionEffects.oxygen = Math.round(depletionEffects.oxygen * (1 - o2Discount));
+  }
+
+  // Tactical Stim: cryo-o2-stim cuts oxygen depletion in half
+  if (state.activeBoostTimers?.['cryo-o2-stim'] && state.activeBoostTimers['cryo-o2-stim'] > 0) {
+    depletionEffects.oxygen = Math.round(depletionEffects.oxygen * 0.5);
+  }
+
+  // Tactical Stim: overclock-capacitor adds +10 extra power drain per sol
+  if (state.activeBoostTimers?.['overclock-capacitor'] && state.activeBoostTimers['overclock-capacitor'] > 0) {
+    depletionEffects.power = (depletionEffects.power || 0) - 10;
+  }
+
   const newState = applyEffects(state, depletionEffects, -1); // morale ticks down slightly
 
   const logEntry: LogEntry = {
@@ -491,6 +507,94 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    // ── Activate a Slotted Tactical Stim ──────────────────
+    case 'ACTIVATE_BOOST': {
+      if (state.phase !== 'action') return state;
+      const { boostSlug } = action;
+      const duration = boostSlug === 'cryo-o2-stim' ? 3 : 2;
+
+      const nextTimers = { ...(state.activeBoostTimers || {}), [boostSlug]: duration };
+      let scoreBonus = 0;
+      if (boostSlug === 'emp-jammer') {
+        scoreBonus = 150;
+      }
+
+      const logEntry: LogEntry = {
+        sol: state.sol,
+        type: 'system',
+        title: `💉 Tactical Stim Activated: ${boostSlug.replace(/-/g, ' ').toUpperCase()}`,
+        description: `Stimulant online for ${duration} Sols. Performance parameters augmented.`,
+        resourceChanges: {},
+        scoreEffect: scoreBonus,
+        icon: '💉',
+      };
+
+      return {
+        ...state,
+        activeBoostTimers: nextTimers,
+        score: state.score + scoreBonus,
+        log: [...state.log, logEntry],
+      };
+    }
+
+    // ── Deploy an Emergency Marketplace Consumable ─────────
+    case 'DEPLOY_SUPPLY': {
+      if (state.phase !== 'action') return state;
+      const { itemSlug } = action;
+      const inv = { ...(state.combatInventory || {}) };
+      if (!inv[itemSlug] || inv[itemSlug] <= 0) return state;
+
+      inv[itemSlug] -= 1;
+      let effects: Partial<Record<ResourceType, number>> = {};
+      let moraleGain = 0;
+      let itemName = itemSlug;
+
+      if (itemSlug === 'oxygen-canister') {
+        effects = { oxygen: 25 };
+        itemName = 'Oxygen Canister (+25% O₂)';
+      } else if (itemSlug === 'fuel-cell') {
+        effects = { power: 25 };
+        itemName = 'Hydrogen Fuel Cell (+25% Power)';
+      } else if (itemSlug === 'rad-shielding' || itemSlug === 'hull-plating') {
+        effects = { shielding: 25 };
+        itemName = 'Radiation Shielding (+25% Shield)';
+      } else if (itemSlug === 'hydroponic-rations') {
+        moraleGain = 20;
+        itemName = 'Hydroponic Rations (+20 Morale)';
+      } else if (itemSlug === 'emergency-scrubber') {
+        effects = { oxygen: 15, shielding: 10 };
+        itemName = 'Emergency Scrubber (+15% O₂, +10% Shield)';
+      }
+
+      let newState = applyEffects(state, effects, moraleGain);
+
+      const logEntry: LogEntry = {
+        sol: state.sol,
+        type: 'system',
+        title: `📦 Emergency Supply Deployed`,
+        description: `Consumed ${itemName} directly from Mars Marketplace inventory. Reserves replenished.`,
+        resourceChanges: effects,
+        moraleChange: moraleGain,
+        icon: '📦',
+      };
+
+      return {
+        ...newState,
+        combatInventory: inv,
+        log: [...newState.log, logEntry],
+      };
+    }
+
+    // ── Synchronize loadout from client / APIs ─────────────
+    case 'SYNC_LOADOUT': {
+      return {
+        ...state,
+        equippedPet: action.equippedPet !== undefined ? action.equippedPet : state.equippedPet,
+        slottedBoosts: action.slottedBoosts !== undefined ? action.slottedBoosts : state.slottedBoosts,
+        combatInventory: action.combatInventory !== undefined ? action.combatInventory : state.combatInventory,
+      };
+    }
+
     // ── Trigger a random event ────────────────────────────
     case 'TRIGGER_EVENT': {
       const event: GameEvent = action.event;
@@ -519,6 +623,17 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const isSolarEvent = state.activeEvent.id.includes('solar') || state.activeEvent.title.includes('Solar');
       if (specialty === 'physicist' && isSolarEvent && resolvedEffects.shielding < 0) {
         resolvedEffects.shielding = Math.round(resolvedEffects.shielding * 0.75);
+      }
+
+      // Lead-Lined Nanogel Stim: 100% radiation / shield damage immunity
+      if (isSolarEvent && state.activeBoostTimers?.['lead-lined-nanogel'] && state.activeBoostTimers['lead-lined-nanogel'] > 0) {
+        if (resolvedEffects.shielding < 0) resolvedEffects.shielding = 0;
+      }
+
+      // Companion Pet flare_warning / storm_early_warning perk: reduces solar radiation damage
+      if (isSolarEvent && state.equippedPet?.perkType === 'storm_early_warning' && resolvedEffects.shielding < 0) {
+        const radDiscount = Math.min(0.6, (state.equippedPet.perkValue || 20) / 100);
+        resolvedEffects.shielding = Math.round(resolvedEffects.shielding * (1 - radDiscount));
       }
 
       let newState = applyEffects(
@@ -679,12 +794,70 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         });
       }
 
+      // Companion Pet hull_autorepair perk: Regenerates +2 to +4 Shielding every Sol
+      let hullRepairBonus = 0;
+      if (state.equippedPet?.perkType === 'hull_autorepair') {
+        hullRepairBonus = Math.max(2, Math.min(6, Math.round((state.equippedPet.perkValue || 10) / 3)));
+        logs.push({
+          sol: nextSol,
+          type: 'system',
+          title: `🦎 Pet Autorepair: ${state.equippedPet.name || 'Cryo-Gecko'}`,
+          description: `Martian bio-sealant foam auto-patched habitat micro-fractures (+${hullRepairBonus} Shielding).`,
+          resourceChanges: { shielding: hullRepairBonus },
+          icon: state.equippedPet.avatar || '🦎',
+        });
+      }
+
+      // Companion Pet storm_early_warning perk: Predicts solar flare 1 Sol in advance
+      let flareWarningActive = false;
+      if (state.equippedPet?.perkType === 'storm_early_warning') {
+        const nextSeed = (state.weatherSeed || 424242) + nextSol;
+        if (nextSeed % 3 === 0 || nextSol % 4 === 0) {
+          flareWarningActive = true;
+          logs.push({
+            sol: nextSol,
+            type: 'system',
+            title: `🐛 Tardigrade Bio-Sensor Warning`,
+            description: `Severe NASA DONKI solar storm / CME detected incoming at Sol ${nextSol + 1}! Prepare shields.`,
+            resourceChanges: {},
+            icon: '🐛',
+          });
+        }
+      }
+
+      // Decrement Active Tactical Boost Timers
+      const nextBoostTimers: Record<string, number> = {};
+      if (state.activeBoostTimers) {
+        for (const [slug, rem] of Object.entries(state.activeBoostTimers)) {
+          if (rem > 1) {
+            nextBoostTimers[slug] = rem - 1;
+          } else {
+            logs.push({
+              sol: nextSol,
+              type: 'system',
+              title: `💉 Tactical Stim Expired: ${slug.replace(/-/g, ' ').toUpperCase()}`,
+              description: `Combat stimulant duration finished. Performance returned to baseline.`,
+              resourceChanges: {},
+              icon: '⏳',
+            });
+          }
+        }
+      }
+
+      // Accrue Pet XP (+15 XP per survived Sol)
+      const nextPetXpEarned = (state.petXpEarned || 0) + 15;
+      let nextEquippedPet = state.equippedPet
+        ? { ...state.equippedPet, xp: (state.equippedPet.xp || 0) + 15 }
+        : state.equippedPet;
+
       const updatedMorale = clamp(state.morale + moraleBonus);
+      const updatedShielding = clamp(state.shielding + hullRepairBonus);
+
       const newPoint: TelemetryPoint = {
         sol: nextSol,
         power: state.power,
         oxygen: state.oxygen,
-        shielding: state.shielding,
+        shielding: updatedShielding,
         morale: updatedMorale,
       };
 
@@ -716,14 +889,18 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const candidateNextState: GameState = {
         ...state,
         sol: nextSol,
+        shielding: updatedShielding,
         morale: updatedMorale,
         operationCooldowns: nextCooldowns,
+        activeBoostTimers: nextBoostTimers,
+        equippedPet: nextEquippedPet,
       };
       const drawResult = drawSolOperations(candidateNextState);
 
       return {
         ...state,
         sol: nextSol,
+        shielding: updatedShielding,
         morale: updatedMorale,
         log: logs,
         telemetryHistory: [...(state.telemetryHistory || []), newPoint],
@@ -733,6 +910,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         hasEmergencyDraw: drawResult.hasEmergencyDraw,
         commandOverrides: nextOverrides,
         lastDrawnSol: nextSol,
+        activeBoostTimers: nextBoostTimers,
+        equippedPet: nextEquippedPet,
+        petXpEarned: nextPetXpEarned,
+        solarFlareWarningActive: flareWarningActive,
       };
     }
 

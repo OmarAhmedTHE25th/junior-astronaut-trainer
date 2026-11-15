@@ -13,6 +13,7 @@ import TournamentModal from './TournamentModal';
 import MarsMarketplace from './MarsMarketplace';
 import BattleRoyaleModal from './BattleRoyaleModal';
 import GameModesModal from './GameModesModal';
+import PetHangarModal from './PetHangarModal';
 import { useSound } from '@/lib/sound';
 import { useProfile, getOrCreateCadetProfile } from '@/lib/profile';
 import { SPECIALTY_METAS } from '@/lib/types';
@@ -45,6 +46,7 @@ export default function MainMenu() {
   const [isMarketplaceOpen, setIsMarketplaceOpen] = useState(false);
   const [isBROpen, setIsBROpen] = useState(false);
   const [isGameModesOpen, setIsGameModesOpen] = useState(false);
+  const [isHangarOpen, setIsHangarOpen] = useState(false);
 
   // Private squad code passed from GameModesModal
   const [privateRoomCode, setPrivateRoomCode] = useState<string>('');
@@ -123,7 +125,19 @@ export default function MainMenu() {
             if (pData.profile.rankMeta) {
               setRankMeta(pData.profile.rankMeta);
             }
-            if (pData.profile.equippedPet) {
+            const savedPetId = typeof window !== 'undefined' ? localStorage.getItem('jat_equipped_pet_v1') : null;
+            if (savedPetId && pData.profile.pets && pData.profile.pets.length > 0) {
+              const matched = pData.profile.pets.find((p: { id: string; nickname?: string; name?: string; avatar?: string; level?: number }) => p.id === savedPetId);
+              if (matched) {
+                setEquippedPet({
+                  name: matched.nickname || matched.name || 'Companion',
+                  avatar: matched.avatar || '🐾',
+                  level: matched.level || 1,
+                });
+              } else if (pData.profile.equippedPet) {
+                setEquippedPet(pData.profile.equippedPet);
+              }
+            } else if (pData.profile.equippedPet) {
               setEquippedPet(pData.profile.equippedPet);
             }
           }
@@ -201,7 +215,7 @@ export default function MainMenu() {
           <button
             onClick={() => {
               playClick();
-              setIsProfileOpen(true);
+              setIsHangarOpen(true);
             }}
             className="
               hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl
@@ -526,7 +540,7 @@ export default function MainMenu() {
         }}
         onOpenHangar={() => {
           setIsGameModesOpen(false);
-          setIsProfileOpen(true);
+          setIsHangarOpen(true);
         }}
         onJoinPrivateSquad={(code) => {
           setIsGameModesOpen(false);
@@ -582,6 +596,18 @@ export default function MainMenu() {
       <BattleRoyaleModal
         isOpen={isBROpen}
         onClose={() => setIsBROpen(false)}
+      />
+
+      <PetHangarModal
+        isOpen={isHangarOpen}
+        onClose={() => setIsHangarOpen(false)}
+        onPetEquipped={(pet) => {
+          setEquippedPet(pet);
+        }}
+        onOpenBattleRoyale={() => {
+          setIsHangarOpen(false);
+          setIsBROpen(true);
+        }}
       />
     </>
   );

@@ -67,6 +67,7 @@ export interface LogEntry {
   description: string;
   resourceChanges: Partial<Record<ResourceType, number>>;
   moraleChange?: number;
+  scoreEffect?: number;
   icon?: string;
 }
 
@@ -138,6 +139,30 @@ export interface GameState {
   hasEmergencyDraw?: boolean;
   /** Total command overrides used in this run */
   totalOverridesUsed?: number;
+  /** Active equipped Companion Pet snapshot */
+  equippedPet?: {
+    id: string;
+    petSlug: string;
+    nickname?: string;
+    name: string;
+    avatar: string;
+    level: number;
+    xp: number;
+    perkType: string;
+    perkValue: number;
+  } | null;
+  /** Slotted pre-drop tactical stim boosts (up to 3) */
+  slottedBoosts?: string[];
+  /** Active boost timers: { [boostSlug]: solsRemaining } */
+  activeBoostTimers?: Record<string, number>;
+  /** Marketplace consumable inventory: { [itemSlug]: quantity } */
+  combatInventory?: Record<string, number>;
+  /** Accumulated Pet XP earned during this mission */
+  petXpEarned?: number;
+  /** Mars Credits awarded at end of mission */
+  marsCreditsEarned?: number;
+  /** Whether a solar flare pre-warning is active from pet */
+  solarFlareWarningActive?: boolean;
 }
 
 export * from './tournamentTypes';
@@ -165,6 +190,14 @@ export type GameAction =
       activeBoosts?: string[];
     }
   | { type: 'COMMAND_OVERRIDE' }
+  | { type: 'ACTIVATE_BOOST'; boostSlug: string }
+  | { type: 'DEPLOY_SUPPLY'; itemSlug: string }
+  | {
+      type: 'SYNC_LOADOUT';
+      equippedPet?: GameState['equippedPet'];
+      slottedBoosts?: string[];
+      combatInventory?: Record<string, number>;
+    }
   | { type: 'TRIGGER_EVENT'; event: GameEvent }
   | { type: 'RESOLVE_EVENT'; choiceId?: string; payload?: EventChoice }
   | { type: 'TRIGGER_TIMEOUT_GAMEOVER' }

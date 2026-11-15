@@ -631,29 +631,48 @@ export function resolveOperation(
     effectiveRisk = Math.max(0, effectiveRisk - 5);
   }
 
-  // 2. Equipped Companion Pet Modifiers
-  if (activePetId) {
-    const petKey = activePetId.toLowerCase();
-    if (petKey.includes('cat') && card.category === 'structural_recon') {
-      effectiveRisk = Math.max(0, effectiveRisk - 8);
-    } else if (petKey.includes('gecko') && card.category === 'life_support') {
-      effectiveRisk = Math.max(0, effectiveRisk - 8);
-    } else if (petKey.includes('falcon') && card.category === 'power_thermal') {
-      effectiveRisk = Math.max(0, effectiveRisk - 8);
-    } else if (petKey.includes('tardigrade') && card.category === 'high_risk_gambit') {
-      effectiveRisk = Math.max(0, effectiveRisk - 10);
-    }
+  // 2. Equipped Companion Pet Modifiers (using state.equippedPet or activePetId)
+  const pet = state.equippedPet;
+  const petKey = (pet?.petSlug || activePetId || '').toLowerCase();
+  if (petKey.includes('cat') && card.category === 'structural_recon') {
+    effectiveRisk = Math.max(0, effectiveRisk - 8);
+  } else if (petKey.includes('gecko') && card.category === 'life_support') {
+    effectiveRisk = Math.max(0, effectiveRisk - 8);
+  } else if (petKey.includes('falcon') && card.category === 'power_thermal') {
+    effectiveRisk = Math.max(0, effectiveRisk - 8);
+  } else if (petKey.includes('tardigrade') && card.category === 'high_risk_gambit') {
+    effectiveRisk = Math.max(0, effectiveRisk - 10);
   }
 
   // 3. Tactical Stim Boost Modifiers
-  if (activeBoosts.includes('rad_shield_matrix') && card.riskLabel?.toLowerCase().includes('radiation')) {
-    effectiveRisk = 0; // Radiation Shield Matrix negates radiation hazards
+  const liveBoosts = [
+    ...activeBoosts,
+    ...Object.keys(state.activeBoostTimers || {}).filter(
+      (k) => (state.activeBoostTimers?.[k] || 0) > 0
+    ),
+  ];
+
+  if (
+    (liveBoosts.includes('lead-lined-nanogel') || liveBoosts.includes('rad_shield_matrix')) &&
+    (card.riskLabel?.toLowerCase().includes('radiation') || card.riskLabel?.toLowerCase().includes('emp'))
+  ) {
+    effectiveRisk = 0; // Lead-Lined Nanogel negates radiation/EMP hazards
   }
-  if (activeBoosts.includes('nano_repair_paste') && card.category === 'structural_recon') {
+  if (liveBoosts.includes('nano_repair_paste') && card.category === 'structural_recon') {
     effectiveRisk = 0; // Nano Repair Paste guarantees structural success
   }
 
-  // 4. Deterministic Risk Roll (Mulberry32)
+  // 4. Power efficiency discount from pet (Solar Falcon Drone)
+  let powerCostDiscount = 0;
+  if (
+    (pet?.perkType === 'solar_efficiency' || pet?.perkType === 'power_efficiency' || petKey.includes('falcon')) &&
+    card.resourceCosts.power &&
+    card.resourceCosts.power > 0
+  ) {
+    powerCostDiscount = Math.round(card.resourceCosts.power * ((pet?.perkValue || 25) / 100));
+  }
+
+  // 5. Deterministic Risk Roll (Mulberry32)
   const baseSeed =
     rngSeed !== undefined
       ? rngSeed
@@ -666,7 +685,7 @@ export function resolveOperation(
   const isCriticalSuccess = !isFailed && rollValue >= 92;
 
   let netDeltas: ResourceDelta = {
-    power: (card.guaranteedEffects.power || 0) - (card.resourceCosts.power || 0),
+    power: (card.guaranteedEffects.power || 0) - (Math.max(0, (card.resourceCosts.power || 0) - powerCostDiscount)),
     oxygen: (card.guaranteedEffects.oxygen || 0) - (card.resourceCosts.oxygen || 0),
     shielding: (card.guaranteedEffects.shielding || 0) - (card.resourceCosts.shielding || 0),
     morale: (card.guaranteedEffects.morale || 0) - (card.resourceCosts.morale || 0),
@@ -691,7 +710,7 @@ export function resolveOperation(
     logTitle = `⚠️ ${card.title} (FAILURE)`;
     logDescription = card.failureMessage || 'Operation risk roll failed. Secondary systems damaged.';
   } else if (isCriticalSuccess) {
-    // Critical Success bonus: +25% yields
+    // Critical Success bonus: +30% yields
     netDeltas.power = netDeltas.power && netDeltas.power > 0 ? Math.round(netDeltas.power * 1.3) : netDeltas.power;
     netDeltas.oxygen = netDeltas.oxygen && netDeltas.oxygen > 0 ? Math.round(netDeltas.oxygen * 1.3) : netDeltas.oxygen;
     netDeltas.shielding = netDeltas.shielding && netDeltas.shielding > 0 ? Math.round(netDeltas.shielding * 1.3) : netDeltas.shielding;
@@ -701,12 +720,20 @@ export function resolveOperation(
     logDescription = `${card.description} Maximum output achieved under optimal Martian atmospheric alignment!`;
   }
 
-  // Active pet yield boosts
-  if (activePetId) {
-    const petKey = activePetId.toLowerCase();
-    if (petKey.includes('cat') && netDeltas.oxygen && netDeltas.oxygen > 0) {
-      netDeltas.oxygen = Math.round(netDeltas.oxygen * 1.15); // +15% O2 Scavenge
+  // Active pet yield boosts (e.g. Rover-Cat o2_scavenge boosts Life Support yields)
+  if ((pet?.perkType === 'o2_scavenge' || petKey.includes('cat')) && card.category === 'life_support') {
+    const o2Bonus = Math.round((netDeltas.oxygen || 0) * ((pet?.perkValue || 15) / 100));
+    if (o2Bonus > 0) {
+      netDeltas.oxygen = (netDeltas.oxygen || 0) + o2Bonus;
     }
+  }
+
+  // Active tactical boost: Overclock Capacitor (Doubles positive resource gains)
+  if (liveBoosts.includes('overclock-capacitor')) {
+    if (netDeltas.power && netDeltas.power > 0) netDeltas.power *= 2;
+    if (netDeltas.oxygen && netDeltas.oxygen > 0) netDeltas.oxygen *= 2;
+    if (netDeltas.shielding && netDeltas.shielding > 0) netDeltas.shielding *= 2;
+    logDescription += ' [⚡ Overclock Capacitor Stim: 2x Resource Gain active!]';
   }
 
   return {

@@ -18,8 +18,11 @@ interface LoadoutHangarProps {
   onSelectPet: (petId: string) => void;
   selectedBoosts: BoostSlug[];
   onToggleBoost: (boostSlug: BoostSlug) => void;
-  onQueueBattleRoyale: () => void;
+  onQueueBattleRoyale?: () => void;
   isQueueing?: boolean;
+  standaloneMode?: boolean;
+  onSaveLoadout?: () => void;
+  onOpenBattleRoyale?: () => void;
 }
 
 export default function LoadoutHangar({
@@ -30,6 +33,9 @@ export default function LoadoutHangar({
   onToggleBoost,
   onQueueBattleRoyale,
   isQueueing,
+  standaloneMode = false,
+  onSaveLoadout,
+  onOpenBattleRoyale,
 }: LoadoutHangarProps) {
   const { playClick, playAction } = useSound();
   const rankMeta = profile.rankMeta || RANK_TIERS[profile.rankTier] || RANK_TIERS.dust_walker;
@@ -238,23 +244,62 @@ export default function LoadoutHangar({
         </div>
       </div>
 
-      {/* ── QUEUE / DROP LAUNCH BUTTON ── */}
-      <button
-        type="button"
-        disabled={isQueueing}
-        onClick={() => {
-          playAction();
-          onQueueBattleRoyale();
-        }}
-        className="
-          w-full py-4 rounded-2xl bg-gradient-to-r from-red-600 via-orange-600 to-purple-600
-          hover:opacity-95 text-white font-heading font-extrabold text-base tracking-wider uppercase
-          shadow-xl shadow-red-500/25 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2
-        "
-      >
-        <span className="text-xl animate-bounce">🪂</span>
-        <span>{isQueueing ? 'Deploying Orbital Dropship...' : 'Drop into Mars Battle Royale (32-Cadet Lobby)'}</span>
-      </button>
+      {/* ── ACTION BUTTONS: STANDALONE MODE VS BATTLE ROYALE DROP ── */}
+      {standaloneMode ? (
+        <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => {
+              playAction();
+              onSaveLoadout?.();
+            }}
+            className="
+              flex-1 w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600
+              hover:opacity-95 text-white font-heading font-extrabold text-base tracking-wider uppercase
+              shadow-xl shadow-emerald-500/25 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2
+            "
+          >
+            <span className="text-lg">✓</span>
+            <span>Save &amp; Equip Loadout</span>
+          </button>
+
+          {onOpenBattleRoyale && (
+            <button
+              type="button"
+              onClick={() => {
+                playClick();
+                onOpenBattleRoyale();
+              }}
+              className="
+                w-full sm:w-auto px-6 py-4 rounded-2xl bg-[#141b3d] hover:bg-[#1f285a]
+                border border-red-500/40 hover:border-red-400 text-red-200
+                font-heading font-extrabold text-sm tracking-wider uppercase
+                shadow-lg shadow-red-500/10 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2
+              "
+            >
+              <span className="text-lg">🪂</span>
+              <span>Launch Battle Royale</span>
+            </button>
+          )}
+        </div>
+      ) : (
+        <button
+          type="button"
+          disabled={isQueueing}
+          onClick={() => {
+            playAction();
+            onQueueBattleRoyale?.();
+          }}
+          className="
+            w-full py-4 rounded-2xl bg-gradient-to-r from-red-600 via-orange-600 to-purple-600
+            hover:opacity-95 text-white font-heading font-extrabold text-base tracking-wider uppercase
+            shadow-xl shadow-red-500/25 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2
+          "
+        >
+          <span className="text-xl animate-bounce">🪂</span>
+          <span>{isQueueing ? 'Deploying Orbital Dropship...' : 'Drop into Mars Battle Royale (32-Cadet Lobby)'}</span>
+        </button>
+      )}
     </div>
   );
 }

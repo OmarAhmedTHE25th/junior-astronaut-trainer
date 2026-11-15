@@ -82,6 +82,21 @@ export default function HUD({ onOpenMenu }: HUDProps) {
       {/* Live NASA Space Weather Telemetry Ticker */}
       <LiveTelemetryTicker />
 
+      {/* Solar Flare Early-Warning Banner (Tardigrade Scout Perk) */}
+      {state.solarFlareWarningActive && (
+        <div className="w-full bg-gradient-to-r from-red-600 via-orange-600 to-amber-600 text-white px-4 py-2 text-xs font-mono font-black flex items-center justify-between shadow-xl animate-pulse z-40">
+          <div className="flex items-center gap-2">
+            <span className="text-base animate-bounce">🐛</span>
+            <span>
+              TARDIGRADE BIO-SENSOR WARNING: Incoming severe NASA DONKI solar storm / CME detected in next Sol! Reinforce radiation shielding.
+            </span>
+          </div>
+          <span className="px-2 py-0.5 rounded bg-black/40 text-[10px] uppercase border border-white/20">
+            Impact Imminent
+          </span>
+        </div>
+      )}
+
       <header
         className="w-full bg-[#0B1026]/90 backdrop-blur-md border-b border-white/10
                    px-4 py-3 flex flex-wrap items-center justify-between gap-3 z-30"
@@ -163,6 +178,36 @@ export default function HUD({ onOpenMenu }: HUDProps) {
             </span>
           </div>
         </div>
+
+        {/* Equipped Companion Pet Pill */}
+        {state.equippedPet && (
+          <div
+            className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#141b3d]/90 border border-cyan-500/40 text-xs font-mono"
+            title={`${state.equippedPet.name} - ${state.equippedPet.perkType} (+${state.equippedPet.perkValue}%)`}
+          >
+            <span>{state.equippedPet.avatar}</span>
+            <span className="text-cyan-200 font-bold truncate max-w-[95px]">{state.equippedPet.name}</span>
+            <span className="text-[9px] text-cyan-400 bg-cyan-500/20 px-1 rounded font-bold">
+              Lv.{state.equippedPet.level}
+            </span>
+          </div>
+        )}
+
+        {/* Active Combat Stims Chips */}
+        {state.activeBoostTimers &&
+          Object.entries(state.activeBoostTimers)
+            .filter(([, rem]) => (rem as number) > 0)
+            .map(([slug, rem]) => (
+              <div
+                key={slug}
+                className="hidden lg:flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 text-[10px] font-mono animate-pulse"
+                title={`Active combat stimulant: ${slug}`}
+              >
+                <span>💉</span>
+                <span className="truncate max-w-[70px] uppercase font-bold">{slug.split('-')[0]}</span>
+                <span className="font-extrabold text-emerald-300">({rem}s)</span>
+              </div>
+            ))}
       </div>
 
       {/* Center: Resource bars */}

@@ -64,6 +64,8 @@ export default function EndScreen() {
 
   const isVictory = state.phase === 'victory';
   const finalScore = calculateScore(state);
+  const earnedCredits = Math.max(25, Math.round(finalScore * 0.25) + (state.sol - 1) * 10);
+  const petXpToAward = (state.petXpEarned || 0) + (isVictory ? 100 : 0);
 
   const activeSpecialty = SPECIALTY_METAS.find(
     (s) => s.id === (state.specialty || activeCadet.specialty || 'commander')
@@ -159,6 +161,21 @@ export default function EndScreen() {
         }),
       }).catch(() => {});
     }
+
+    // 4. Reward Mars Credits and Companion Pet XP
+    const earnedCredits = Math.max(25, Math.round(finalScore * 0.25) + (state.sol - 1) * 10);
+    const petXpToAward = (state.petXpEarned || 0) + (isVictory ? 100 : 0);
+
+    fetch('/api/market/reward', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        playerId: updatedProfile.cadetId,
+        credits: earnedCredits,
+        petId: state.equippedPet?.id,
+        petXp: petXpToAward,
+      }),
+    }).catch((err) => console.warn('Reward API notice:', err));
   }, [isLoaded, state, activeCadet]);
 
   // If this mission was a Competitive Squad Race, fetch final squad standings
@@ -314,6 +331,35 @@ export default function EndScreen() {
                 </span>
               </div>
             )}
+
+            {/* Mars Colony Economy & Companion Pet Rewards Banner */}
+            <div className="mt-4 w-full p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/70 via-[#141b3d] to-purple-950/70 border border-emerald-500/40 flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-left">
+              <div className="flex items-center gap-2.5">
+                <span className="text-2xl p-1 rounded-xl bg-emerald-500/20 border border-emerald-400/30">💰</span>
+                <div>
+                  <span className="font-heading font-black text-emerald-300 text-sm block leading-none">
+                    +{earnedCredits} Mars Credits Earned!
+                  </span>
+                  <span className="text-[10px] text-white/60 mt-0.5 block">
+                    Credited to Colony Wallet for Marketplace trading &amp; upgrades
+                  </span>
+                </div>
+              </div>
+
+              {state.equippedPet && petXpToAward > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xl p-1 rounded-xl bg-purple-500/20 border border-purple-400/30">{state.equippedPet.avatar || '🐾'}</span>
+                  <div>
+                    <span className="font-bold text-cyan-300 block leading-none">
+                      +{petXpToAward} XP to {state.equippedPet.name}
+                    </span>
+                    <span className="text-[10px] text-white/60 mt-0.5 block">
+                      Companion Pet progression synchronized
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Squad Race Mission Podium (if in Squad Mode) */}

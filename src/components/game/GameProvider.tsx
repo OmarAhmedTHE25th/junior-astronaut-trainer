@@ -10,7 +10,8 @@ import React, {
   useRef,
   type ReactNode,
 } from 'react';
-import type { GameState, GameAction, Difficulty, CadetSpecialty, LandingSiteId } from '@/lib/types';
+import type { GameState, GameAction, Difficulty, CadetSpecialty, LandingSiteId, BoostSlug } from '@/lib/types';
+import { PET_CATALOG } from '@/lib/battleRoyaleTypes';
 import { gameReducer, createInitialState } from '@/lib/gameEngine';
 import { TIMED_CRISIS_SOL_SECONDS, TIMEOUT_FALLBACK_ACTION } from '@/lib/constants';
 import { getOrCreateCadetProfile } from '@/lib/profile';
@@ -149,6 +150,99 @@ export function GameProvider({
 
     return () => clearInterval(interval);
   }, [isTimed, state.phase, isPaused]);
+
+  // Load and synchronize Companion Pet, Slotted Boosts, and Marketplace Inventory
+  useEffect(() => {
+    let isMounted = true;
+    const cadetId = state.cadetId || cadet?.cadetId || 'cadet-nova-01';
+    const callsign = state.callsign || cadet?.callsign || 'CDR-NOVA';
+
+    async function loadLoadout() {
+      try {
+        // 1. Slotted boosts from localStorage
+        let slotted: BoostSlug[] = ['cryo-o2-stim', 'lead-lined-nanogel'];
+        try {
+          const rawBoosts = localStorage.getItem('jat_slotted_boosts_v1');
+          if (rawBoosts) {
+            const parsed = JSON.parse(rawBoosts);
+            if (Array.isArray(parsed) && parsed.length > 0) slotted = parsed as BoostSlug[];
+          }
+        } catch {}
+
+        // 2. Fetch pets and profile
+        let equippedPetData: GameState['equippedPet'] = null;
+        const savedPetId = typeof window !== 'undefined' ? localStorage.getItem('jat_equipped_pet_v1') : null;
+
+        const pRes = await fetch(`/api/profile/${encodeURIComponent(callsign)}`);
+        if (pRes.ok) {
+          const pData = await pRes.json();
+          if (pData.success && pData.profile) {
+            const prof = pData.profile;
+            const targetPet =
+              prof.pets?.find((p: { id: string }) => p.id === savedPetId) ||
+              prof.equippedPet ||
+              prof.pets?.[0] ||
+              null;
+
+            if (targetPet) {
+              const def = PET_CATALOG[targetPet.petSlug];
+              equippedPetData = {
+                id: targetPet.id,
+                petSlug: targetPet.petSlug,
+                nickname: targetPet.nickname,
+                name: targetPet.nickname || def?.name || 'Companion',
+                avatar: targetPet.avatar || def?.avatar || '🐾',
+                level: targetPet.level || 1,
+                xp: targetPet.xp || 0,
+                perkType: targetPet.perkType || def?.perkType || 'o2_scavenge',
+                perkValue: targetPet.perkValue || 15,
+              };
+            }
+          }
+        }
+
+        // 3. Fetch marketplace inventory for combat consumables
+        let inventoryMap: Record<string, number> = {
+          'oxygen-canister': 3,
+          'fuel-cell': 2,
+          'rad-shielding': 1,
+          'hydroponic-rations': 2,
+        };
+
+        const wRes = await fetch(`/api/market/wallet?playerId=${encodeURIComponent(cadetId)}`);
+        if (wRes.ok) {
+          const wData = await wRes.json();
+          if (wData.success && Array.isArray(wData.inventory)) {
+            const freshMap: Record<string, number> = {};
+            for (const item of wData.inventory) {
+              if (item.quantity > 0) {
+                freshMap[item.itemSlug] = item.quantity;
+              }
+            }
+            if (Object.keys(freshMap).length > 0) {
+              inventoryMap = freshMap;
+            }
+          }
+        }
+
+        if (isMounted) {
+          rawDispatch({
+            type: 'SYNC_LOADOUT',
+            equippedPet: equippedPetData,
+            slottedBoosts: slotted,
+            combatInventory: inventoryMap,
+          });
+        }
+      } catch (err) {
+        console.warn('Non-blocking loadout synchronization notice:', err);
+      }
+    }
+
+    loadLoadout();
+    return () => {
+      isMounted = false;
+    };
+  }, [state.cadetId, state.callsign, cadet?.cadetId, cadet?.callsign]);
 
   // Sync elapsed mission time on end
   useEffect(() => {

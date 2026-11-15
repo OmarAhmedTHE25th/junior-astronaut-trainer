@@ -768,3 +768,98 @@ export async function useBoostInMatch(options: {
 
   return match;
 }
+
+/**
+ * 8. Award XP to a companion pet and calculate level-ups
+ */
+export async function awardPetXp(
+  playerId: string,
+  petId: string,
+  xpToAdd: number
+): Promise<{ success: boolean; level: number; xp: number; leveledUp: boolean }> {
+  if (xpToAdd <= 0) return { success: true, level: 1, xp: 0, leveledUp: false };
+  const sql = await getSqlClient();
+
+  if (sql) {
+    const rows = await sql`
+      SELECT id, level, xp, perk_value FROM player_pets
+      WHERE id = ${petId} AND owner_id = ${playerId};
+    `;
+
+    if (!rows || rows.length === 0) {
+      return { success: false, level: 1, xp: 0, leveledUp: false };
+    }
+
+    let currentXp = (rows[0].xp || 0) + xpToAdd;
+    let currentLevel = rows[0].level || 1;
+    let perkVal = rows[0].perk_value || 15;
+    let leveledUp = false;
+
+    while (currentXp >= currentLevel * 100) {
+      currentXp -= currentLevel * 100;
+      currentLevel += 1;
+      perkVal += 2;
+      leveledUp = true;
+    }
+
+    await sql`
+      UPDATE player_pets
+      SET xp = ${currentXp}, level = ${currentLevel}, perk_value = ${perkVal}
+      WHERE id = ${petId};
+    `;
+
+    return { success: true, level: currentLevel, xp: currentXp, leveledUp };
+  }
+
+  // Memory fallback
+  const mem = getMemoryStore();
+  const pets = mem.pets.get(playerId) || [];
+  const pet = pets.find((p) => p.id === petId);
+  if (!pet) return { success: false, level: 1, xp: 0, leveledUp: false };
+
+  pet.xp = (pet.xp || 0) + xpToAdd;
+  let leveledUp = false;
+  while (pet.xp >= pet.level * 100) {
+    pet.xp -= pet.level * 100;
+    pet.level += 1;
+    pet.perkValue += 2;
+    leveledUp = true;
+  }
+  return { success: true, level: pet.level, xp: pet.xp, leveledUp };
+}
+
+/**
+ * 9. Deduct a consumed tactical boost from player inventory
+ */
+export async function consumePlayerBoost(
+  playerId: string,
+  boostSlug: BoostSlug
+): Promise<{ success: boolean; remainingQuantity: number }> {
+  const sql = await getSqlClient();
+
+  if (sql) {
+    const rows = await sql`
+      SELECT quantity FROM player_boosts
+      WHERE player_id = ${playerId} AND boost_slug = ${boostSlug};
+    `;
+
+    if (!rows || rows.length === 0 || rows[0].quantity <= 0) {
+      return { success: false, remainingQuantity: 0 };
+    }
+
+    const nextQty = Math.max(0, rows[0].quantity - 1);
+    await sql`
+      UPDATE player_boosts
+      SET quantity = ${nextQty}
+      WHERE player_id = ${playerId} AND boost_slug = ${boostSlug};
+    `;
+    return { success: true, remainingQuantity: nextQty };
+  }
+
+  const mem = getMemoryStore();
+  const boosts = mem.boosts.get(playerId) || [];
+  const b = boosts.find((x) => x.boostSlug === boostSlug);
+  if (!b || b.quantity <= 0) return { success: false, remainingQuantity: 0 };
+  b.quantity -= 1;
+  return { success: true, remainingQuantity: b.quantity };
+}

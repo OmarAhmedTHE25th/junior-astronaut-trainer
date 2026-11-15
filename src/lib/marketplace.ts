@@ -812,3 +812,93 @@ export function getMarketScarcityTrends(): MarketScarcityTrend[] {
     },
   ];
 }
+
+/**
+ * 8. Consume an item from player inventory during in-run emergency deployment
+ */
+export async function consumePlayerItem(
+  playerId: string,
+  itemSlug: string,
+  count = 1
+): Promise<{ success: boolean; remainingQuantity: number; error?: string }> {
+  const sql = await getSqlClient();
+
+  if (sql) {
+    const rows = await sql`
+      SELECT id, quantity FROM player_inventory
+      WHERE player_id = ${playerId} AND item_slug = ${itemSlug};
+    `;
+
+    if (!rows || rows.length === 0 || rows[0].quantity < count) {
+      return { success: false, remainingQuantity: 0, error: 'Insufficient quantity in inventory' };
+    }
+
+    const newQty = rows[0].quantity - count;
+    if (newQty <= 0) {
+      await sql`
+        DELETE FROM player_inventory
+        WHERE player_id = ${playerId} AND item_slug = ${itemSlug};
+      `;
+    } else {
+      await sql`
+        UPDATE player_inventory
+        SET quantity = ${newQty}
+        WHERE player_id = ${playerId} AND item_slug = ${itemSlug};
+      `;
+    }
+
+    return { success: true, remainingQuantity: Math.max(0, newQty) };
+  }
+
+  // Memory fallback
+  const mem = getMemoryStore();
+  let userInv = mem.inventory.get(playerId);
+  if (!userInv) {
+    userInv = new Map();
+    mem.inventory.set(playerId, userInv);
+  }
+  const item = userInv.get(itemSlug);
+  if (!item || item.quantity < count) {
+    return { success: false, remainingQuantity: 0, error: 'Insufficient quantity in inventory' };
+  }
+
+  item.quantity -= count;
+  if (item.quantity <= 0) {
+    userInv.delete(itemSlug);
+  }
+  return { success: true, remainingQuantity: Math.max(0, item.quantity) };
+}
+
+/**
+ * 9. Reward Mars Credits to player wallet on mission completion
+ */
+export async function rewardPlayerCredits(
+  playerId: string,
+  credits: number
+): Promise<{ success: boolean; newBalance: number }> {
+  if (credits <= 0) return { success: true, newBalance: 0 };
+  const sql = await getSqlClient();
+
+  if (sql) {
+    const rows = await sql`
+      INSERT INTO player_wallets (player_id, credits_balance, updated_at)
+      VALUES (${playerId}, ${500 + credits}, NOW())
+      ON CONFLICT (player_id) DO UPDATE
+      SET credits_balance = player_wallets.credits_balance + ${credits},
+          updated_at = NOW()
+      RETURNING credits_balance;
+    `;
+    return { success: true, newBalance: rows[0].credits_balance };
+  }
+
+  const mem = getMemoryStore();
+  let wallet = mem.wallets.get(playerId);
+  if (!wallet) {
+    wallet = { playerId, creditsBalance: 500 + credits, updatedAt: new Date().toISOString() };
+    mem.wallets.set(playerId, wallet);
+  } else {
+    wallet.creditsBalance += credits;
+    wallet.updatedAt = new Date().toISOString();
+  }
+  return { success: true, newBalance: wallet.creditsBalance };
+}
