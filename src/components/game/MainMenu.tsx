@@ -10,6 +10,14 @@ import { useBattlePass } from '@/lib/battlePass';
 import { useGuild } from '@/lib/guildClient';
 import { SPECIALTY_METAS } from '@/lib/types';
 import type { GameState } from '@/lib/types';
+import {
+  type PlanetId,
+  ORDERED_PLANET_IDS,
+  getPlanetCartridge,
+  PLANET_CARTRIDGES,
+  isPlanetUnlocked,
+  unlockPlanetX,
+} from '@/lib/planetCartridges';
 
 // Lazy-loaded heavy modal dialogs to minimize initial bundle size
 const ProfileModal = dynamic(() => import('./ProfileModal'), { ssr: false });
@@ -64,6 +72,12 @@ export default function MainMenu() {
   const [isCrisisTimed, setIsCrisisTimed] = useState(false);
   const [activeSave, setActiveSave] = useState<GameState | null>(null);
 
+  // Solar System Planetary Cartridge State
+  const [selectedPlanet, setSelectedPlanet] = useState<PlanetId>('mars');
+  const [selectedSite, setSelectedSite] = useState<string>('jezero');
+  const [isPlanetXUnlocked, setIsPlanetXUnlocked] = useState<boolean>(false);
+  const [kuiperClicks, setKuiperClicks] = useState<number>(0);
+
   // Commander dynamic stats: Mars Credits, Rank, Pet
   const [walletCredits, setWalletCredits] = useState<number>(500);
   const [rankMeta, setRankMeta] = useState<RankMetaState>({
@@ -108,7 +122,36 @@ export default function MainMenu() {
     } catch {
       setActiveSave(null);
     }
+    if (typeof window !== 'undefined') {
+      setIsPlanetXUnlocked(isPlanetUnlocked('planet_x'));
+    }
   }, []);
+
+  const handleSelectPlanet = (planetId: PlanetId) => {
+    playClick();
+    if (planetId === 'planet_x' && !isPlanetXUnlocked) {
+      handleKuiperClick();
+      return;
+    }
+    setSelectedPlanet(planetId);
+    const cart = getPlanetCartridge(planetId);
+    if (cart.locations[0]) {
+      setSelectedSite(cart.locations[0].id);
+    }
+  };
+
+  const handleKuiperClick = () => {
+    playClick();
+    const next = kuiperClicks + 1;
+    setKuiperClicks(next);
+    if (next >= 5) {
+      unlockPlanetX();
+      setIsPlanetXUnlocked(true);
+      setSelectedPlanet('planet_x');
+      const cart = getPlanetCartridge('planet_x');
+      setSelectedSite(cart.locations[0].id);
+    }
+  };
 
   // Fetch Commander Profile (Rank & Pet) & Wallet Credits
   const fetchCommanderData = useCallback(async () => {
@@ -385,108 +428,267 @@ export default function MainMenu() {
           </div>
         )}
 
-        {/* ── 1. PRIMARY HERO LAUNCH PANEL (Standard Solo Mission) ── */}
-        <section className="bg-[#111827] rounded-3xl border border-slate-700/80 p-6 sm:p-8 md:p-10 shadow-xl relative overflow-hidden">
-          <div className="max-w-3xl mx-auto text-center space-y-6 relative z-10">
+        {/* ── 1. PRIMARY HERO LAUNCH PANEL: SOLAR SYSTEM CARTRIDGE SELECTOR ── */}
+        <section className="bg-[#111827] rounded-3xl border border-slate-700/80 p-5 sm:p-7 md:p-9 shadow-xl relative overflow-hidden space-y-6">
+          <div className="max-w-4xl mx-auto text-center space-y-3 relative z-10">
             {/* Category Pill */}
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-400/10 border border-cyan-400/40 text-cyan-300 text-xs font-mono uppercase tracking-widest font-bold">
-              <span>🚀</span>
-              <span>Primary Expedition Directive</span>
+              <span>🪐</span>
+              <span>Modular Planetary Cartridge System • 9 Worlds</span>
             </div>
 
             {/* Main Title & Description */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-heading font-black text-white tracking-wide">
-                Standard Solo Mission (30 Sols)
+                Solar System Cartridge Expedition
               </h2>
-              <p className="text-sm sm:text-base text-starlight/80 max-w-2xl mx-auto leading-relaxed">
-                Command your Mars habitat outpost against live NASA DONKI solar storm telemetry.
-                Balance Power, Oxygen, and Radiation Shielding across 30 grueling Martian Sols.
+              <p className="text-xs sm:text-sm text-starlight/80 max-w-2xl mx-auto leading-relaxed">
+                Slot an expedition cartridge into the trainer. Each world features unique atmospheric physics, custom 4th/5th telemetry gauges, distinct landing zones, and signature survival mechanics.
               </p>
             </div>
+          </div>
 
-            {/* Solo Pace Toggle */}
-            <div className="flex flex-col items-center gap-2 pt-1">
-              <div className="inline-flex p-1.5 rounded-2xl bg-[#090d20] border border-white/15 shadow-inner">
+          {/* 9 Planetary Cartridge Selector Strip */}
+          <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-2">
+            {ORDERED_PLANET_IDS.map((pid) => {
+              const pCart = PLANET_CARTRIDGES[pid];
+              const isSelected = selectedPlanet === pid;
+              const isSecret = pCart.secret;
+              const isLocked = isSecret && !isPlanetXUnlocked;
+
+              return (
                 <button
+                  key={pid}
                   type="button"
-                  onClick={() => {
-                    playClick();
-                    setIsCrisisTimed(false);
-                  }}
-                  className={`px-4 sm:px-6 py-2 rounded-xl text-xs sm:text-sm font-bold font-mono transition-all cursor-pointer flex items-center gap-2 ${
-                    !isCrisisTimed
-                      ? 'bg-[#22C55E] text-slate-950 shadow-md shadow-[#22C55E]/30 font-extrabold'
-                      : 'text-white/60 hover:text-white'
-                  }`}
+                  onClick={() => handleSelectPlanet(pid)}
+                  className={`
+                    p-2.5 rounded-2xl border text-center transition-all duration-200 flex flex-col items-center justify-between min-h-[90px] cursor-pointer relative
+                    ${
+                      isSelected
+                        ? `${pCart.theme.cardBg} ${pCart.theme.borderColor} ${pCart.theme.borderGlow} ring-2 ring-white/30 scale-105 z-10`
+                        : isLocked
+                        ? 'bg-[#0a0814]/80 border-fuchsia-900/40 text-fuchsia-400/60 hover:border-fuchsia-600/70'
+                        : 'bg-[#0f172a]/70 hover:bg-[#1a2444] border-slate-700/60 text-slate-300 hover:scale-102'
+                    }
+                  `}
+                  title={
+                    isLocked
+                      ? `Corrupted Kuiper Anomaly: Click 5 times to decrypt (${5 - kuiperClicks} remaining)`
+                      : `${pCart.name} (Level ${pCart.order}): ${pCart.subtitle}`
+                  }
                 >
-                  <span>🛡️</span>
-                  <span>Standard (Untimed)</span>
+                  <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-black/40 text-starlight/70">
+                    {isSecret ? 'LVL X' : `L${pCart.order}`}
+                  </span>
+                  <span className={`text-2xl my-0.5 ${isLocked ? 'animate-pulse' : ''}`}>
+                    {isLocked ? '🔒' : pid === 'mercury' ? '☿' : pid === 'venus' ? '♀' : pid === 'earth' ? '🌍' : pid === 'mars' ? '♂' : pid === 'jupiter' ? '♃' : pid === 'saturn' ? '🪐' : pid === 'uranus' ? '♅' : pid === 'neptune' ? '♆' : '👁️'}
+                  </span>
+                  <div className="leading-tight">
+                    <span className={`text-xs font-heading font-black block truncate ${isSelected ? 'text-white' : 'text-slate-300'}`}>
+                      {isLocked ? 'Planet X' : pCart.name}
+                    </span>
+                    <span className="text-[8px] font-mono text-cyan-300/80 block">
+                      {isLocked ? 'Classified' : pid.toUpperCase()}
+                    </span>
+                  </div>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    playClick();
-                    setIsCrisisTimed(true);
-                  }}
-                  className={`px-4 sm:px-6 py-2 rounded-xl text-xs sm:text-sm font-bold font-mono transition-all cursor-pointer flex items-center gap-2 ${
-                    isCrisisTimed
-                      ? 'bg-rose-500 text-white shadow-md shadow-rose-500/40 font-extrabold animate-pulse'
-                      : 'text-white/60 hover:text-white'
-                  }`}
-                >
-                  <span>⏱️</span>
-                  <span>Timed Crisis (15s)</span>
-                </button>
+              );
+            })}
+          </div>
+
+          {/* Active Planet Dossier & Landing Zones */}
+          {(() => {
+            const activeCart = getPlanetCartridge(selectedPlanet);
+            const activeLoc = activeCart.locations.find((l) => l.id === selectedSite) || activeCart.locations[0];
+
+            return (
+              <div className="p-4 sm:p-5 rounded-2xl bg-[#0B1026] border border-white/10 space-y-4 shadow-inner">
+                {/* Planet Dossier Header */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-black/60 border border-white/15 flex items-center justify-center text-3xl shadow-md">
+                      {selectedPlanet === 'mercury' ? '☿' : selectedPlanet === 'venus' ? '♀' : selectedPlanet === 'earth' ? '🌍' : selectedPlanet === 'mars' ? '♂' : selectedPlanet === 'jupiter' ? '♃' : selectedPlanet === 'saturn' ? '🪐' : selectedPlanet === 'uranus' ? '♅' : selectedPlanet === 'neptune' ? '♆' : '👁️'}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg sm:text-xl font-heading font-black text-white">
+                          {activeCart.name}
+                        </h3>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 font-bold uppercase">
+                          {activeCart.tagline}
+                        </span>
+                      </div>
+                      <p className="text-xs text-starlight/75 mt-0.5">
+                        {activeCart.description}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono">
+                    <span className="px-2.5 py-1 rounded-lg bg-black/50 border border-white/10 text-cyan-300">
+                      Gauge 1: {activeCart.customMetrics[0]?.name} ({activeCart.customMetrics[0]?.unit})
+                    </span>
+                    <span className="px-2.5 py-1 rounded-lg bg-black/50 border border-white/10 text-amber-300">
+                      Gauge 2: {activeCart.customMetrics[1]?.name} ({activeCart.customMetrics[1]?.unit})
+                    </span>
+                  </div>
+                </div>
+
+                {/* Signature Planetary Hazard Alert Strip */}
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2 text-xs font-mono text-amber-200">
+                  <span className="text-base select-none">⚠️</span>
+                  <span>
+                    <strong>SIGNATURE MECHANIC ({activeCart.signatureMechanic.name}):</strong> {activeCart.signatureMechanic.hazardAlert}
+                  </span>
+                </div>
+
+                {/* 3 Landing Sites Selection Grid */}
+                <div className="space-y-2">
+                  <span className="text-xs font-mono font-bold text-starlight/60 uppercase tracking-widest block">
+                    Choose Touchdown Location ({activeCart.locations.length} Sites Available):
+                  </span>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {activeCart.locations.map((loc) => {
+                      const isLocSelected = selectedSite === loc.id;
+                      const bonuses: string[] = [];
+                      if (loc.bonusStats.power) bonuses.push(`+${loc.bonusStats.power}% Power`);
+                      if (loc.bonusStats.oxygen) bonuses.push(`+${loc.bonusStats.oxygen}% O₂`);
+                      if (loc.bonusStats.shielding) bonuses.push(`+${loc.bonusStats.shielding}% Shield`);
+
+                      return (
+                        <button
+                          key={loc.id}
+                          type="button"
+                          onClick={() => {
+                            playClick();
+                            setSelectedSite(loc.id);
+                          }}
+                          className={`
+                            p-3 rounded-xl border text-left transition-all duration-200 cursor-pointer flex flex-col justify-between min-h-[110px]
+                            ${
+                              isLocSelected
+                                ? 'bg-cyan-950/60 border-cyan-400 text-white shadow-[0_0_15px_rgba(34,211,238,0.2)] ring-2 ring-cyan-400/40'
+                                : 'bg-[#141b3d]/60 hover:bg-[#1a234f] border-white/10 text-slate-300'
+                            }
+                          `}
+                        >
+                          <div>
+                            <div className="flex items-center justify-between gap-1 mb-1">
+                              <span className="font-heading font-black text-xs text-white flex items-center gap-1.5">
+                                <span>{loc.icon}</span>
+                                <span>{loc.name}</span>
+                              </span>
+                              {isLocSelected && (
+                                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-400 text-slate-950 font-bold">
+                                  SELECTED
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-cyan-300/80 font-mono block">
+                              {loc.tagline}
+                            </span>
+                            <p className="text-[10px] text-starlight/70 line-clamp-2 mt-1">
+                              {loc.description}
+                            </p>
+                          </div>
+                          <div className="mt-2 pt-1.5 border-t border-white/10 flex items-center justify-between text-[10px] font-mono">
+                            <span className="text-emerald-300 font-bold">{bonuses.join(' • ') || 'Standard Baseline'}</span>
+                            <span className="text-starlight/50">{loc.perksSummary}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Solo Pace Toggle & Main Launch CTA */}
+                <div className="pt-3 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  {/* Pace Selector */}
+                  <div className="inline-flex p-1 rounded-xl bg-[#090d20] border border-white/15">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        playClick();
+                        setIsCrisisTimed(false);
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer flex items-center gap-1.5 ${
+                        !isCrisisTimed
+                          ? 'bg-[#22C55E] text-slate-950 shadow-md font-extrabold'
+                          : 'text-white/60 hover:text-white'
+                      }`}
+                    >
+                      <span>🛡️</span>
+                      <span>Standard (Untimed)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        playClick();
+                        setIsCrisisTimed(true);
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer flex items-center gap-1.5 ${
+                        isCrisisTimed
+                          ? 'bg-rose-500 text-white shadow-md font-extrabold animate-pulse'
+                          : 'text-white/60 hover:text-white'
+                      }`}
+                    >
+                      <span>⏱️</span>
+                      <span>Timed Crisis (15s)</span>
+                    </button>
+                  </div>
+
+                  {/* Launch Expedition Button */}
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <Link
+                      href={`/game?planet=${selectedPlanet}&site=${selectedSite}${isCrisisTimed ? '&timed=true' : ''}`}
+                      onClick={playClick}
+                      className="
+                        w-full sm:w-auto px-8 py-3.5 rounded-2xl
+                        bg-cyan-400 hover:bg-cyan-300 border border-cyan-200
+                        text-slate-950 font-heading font-extrabold text-sm sm:text-base tracking-wider
+                        hover:scale-[1.03] active:scale-95 transition-all shadow-md
+                        flex items-center justify-center gap-2.5 cursor-pointer min-h-[50px]
+                      "
+                    >
+                      <span>🚀</span>
+                      <span>LAUNCH EXPEDITION TO {activeCart.name.toUpperCase()}</span>
+                      <span className="text-lg">→</span>
+                    </Link>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        playClick();
+                        setIsGameModesOpen(true);
+                      }}
+                      className="
+                        hidden md:flex px-5 py-3.5 rounded-2xl
+                        bg-slate-800/90 hover:bg-slate-700 border border-slate-300/25
+                        text-slate-100 font-heading font-extrabold text-sm tracking-wider
+                        hover:scale-[1.03] active:scale-95 transition-all cursor-pointer min-h-[50px]
+                        items-center gap-2
+                      "
+                    >
+                      <span>🌌</span>
+                      <span>GAME MODES</span>
+                    </button>
+                  </div>
+                </div>
               </div>
-              <p className="text-[11px] sm:text-xs font-mono text-starlight/60">
-                {isCrisisTimed
-                  ? '⚡ Crisis Pace: 15-second per-Sol countdown with instant loss on timeout & rapid response score bonus.'
-                  : '💡 Standard Pace: Strategic, untimed decision-making per Sol.'}
-              </p>
-            </div>
+            );
+          })()}
 
-            {/* Main Dual CTAs */}
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
-              {/* Launch Solo Mission CTA */}
-              <Link
-                href={isCrisisTimed ? '/game?timed=true' : '/game'}
-                onClick={playClick}
-                className="
-                  w-full sm:w-auto px-8 py-4 rounded-2xl
-                  bg-cyan-400 hover:bg-cyan-300 border border-cyan-200
-                  text-slate-950 font-heading font-extrabold text-base sm:text-lg tracking-wider
-                  hover:scale-[1.03] active:scale-95 transition-all shadow-sm
-                  flex items-center justify-center gap-3 cursor-pointer min-h-[56px]
-                "
-              >
-                <span>🚀</span>
-                <span>LAUNCH SOLO MISSION</span>
-                <span className="text-xl">→</span>
-              </Link>
-
-              {/* Other Game Modes Hub CTA */}
-              <button
-                type="button"
-                onClick={() => {
-                  playClick();
-                  setIsGameModesOpen(true);
-                }}
-                className="
-                  w-full sm:w-auto px-6 py-4 rounded-2xl
-                  bg-slate-800/90 hover:bg-slate-700 border border-slate-300/25 hover:border-slate-300/50
-                  text-slate-100 font-heading font-extrabold text-base tracking-wider
-                  hover:scale-[1.03] active:scale-95 transition-all shadow-sm
-                  flex items-center justify-center gap-2.5 cursor-pointer min-h-[56px]
-                "
-              >
-                <span>🌌</span>
-                <span>GAME MODES HUB</span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-300 border border-cyan-400/30 uppercase">
-                  Squad • BR • Tournaments
-                </span>
-              </button>
-            </div>
+          {/* Encrypted Kuiper Telemetry Scan Bar (Unlocks secret Planet X) */}
+          <div
+            onClick={handleKuiperClick}
+            className="p-2.5 rounded-xl bg-black/60 border border-fuchsia-500/30 hover:border-fuchsia-400 text-center font-mono text-[11px] text-fuchsia-300 cursor-pointer hover:bg-fuchsia-950/30 transition-all select-none shadow-sm flex items-center justify-center gap-2"
+          >
+            <span>📡</span>
+            <span>
+              KUIPER CLIFF DEEP TELEMETRY FREQUENCY // 0x9F_ANOMALY:{' '}
+              {isPlanetXUnlocked
+                ? '✅ QUANTUM ANCHOR DECRYPTED (PLANET X EXPEDITION UNLOCKED)'
+                : `[TAP 5x TO DECRYPT SECRET SIGNAL (${kuiperClicks}/5 CLICKS)]`}
+            </span>
           </div>
         </section>
 

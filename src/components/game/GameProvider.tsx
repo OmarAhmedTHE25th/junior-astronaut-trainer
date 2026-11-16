@@ -11,7 +11,7 @@ import React, {
   useRef,
   type ReactNode,
 } from 'react';
-import type { GameState, GameAction, Difficulty, CadetSpecialty, LandingSiteId, BoostSlug } from '@/lib/types';
+import type { GameState, GameAction, Difficulty, CadetSpecialty, LandingSiteId, BoostSlug, PlanetId } from '@/lib/types';
 import { PET_CATALOG } from '@/lib/battleRoyaleTypes';
 import { gameReducer, createInitialState } from '@/lib/gameEngine';
 import { TIMED_CRISIS_SOL_SECONDS, TIMEOUT_FALLBACK_ACTION } from '@/lib/constants';
@@ -72,6 +72,7 @@ interface GameProviderProps {
   weatherSeed?: number;
   initialState?: GameState;
   isTimedMode?: boolean;
+  planetId?: PlanetId;
   tournament?: {
     tournamentId?: string;
     matchId?: string;
@@ -91,6 +92,7 @@ export function GameProvider({
   weatherSeed,
   initialState,
   isTimedMode,
+  planetId = 'mars',
   tournament,
 }: GameProviderProps) {
   const [state, rawDispatch] = useReducer(
@@ -116,7 +118,8 @@ export function GameProvider({
                 retriesRemaining: getBattlePassState().isFiveStarGeneral ? 3 : 0,
               }
             : undefined,
-          typeof window !== 'undefined' ? getStoredGuild() : undefined
+          typeof window !== 'undefined' ? getStoredGuild() : undefined,
+          planetId
         )
   );
   const [factIndex, setFactIndex] = useState(0);

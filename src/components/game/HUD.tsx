@@ -14,6 +14,7 @@ import { useSound } from '@/lib/sound';
 import { useProfile } from '@/lib/profile';
 import { useBattlePass } from '@/lib/battlePass';
 import { useGuild } from '@/lib/guildClient';
+import { getPlanetCartridge } from '@/lib/planetCartridges';
 import { SPECIALTY_METAS } from '@/lib/types';
 import type { SquadCadetState } from '@/lib/types';
 
@@ -121,6 +122,8 @@ export default function HUD({ onOpenMenu }: HUDProps) {
   const isEmpJammed = Boolean(state.activeDebuffs && state.activeDebuffs.empJammedSols > 0);
   const isSolarBlinded = Boolean(state.activeDebuffs && state.activeDebuffs.solarBlindedSols > 0);
 
+  const cartridge = getPlanetCartridge(state.planetId || 'mars');
+
   // Poll Squad Standings if in Squad Race with in-flight deduplication and visibility pausing
   useEffect(() => {
     if (!state.squadCode) return;
@@ -223,6 +226,41 @@ export default function HUD({ onOpenMenu }: HUDProps) {
         </div>
       )}
 
+      {/* Atmospheric Weather Overlay */}
+      <div className="pointer-events-none fixed inset-0 z-10 overflow-hidden select-none" aria-hidden="true">
+        {cartridge.theme.weatherEffect === 'dust' && (
+          <div className="absolute inset-0 bg-amber-600/10 mix-blend-color-dodge animate-pulse duration-1000">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/15 via-transparent to-transparent" />
+          </div>
+        )}
+        {cartridge.theme.weatherEffect === 'debris' && (
+          <div className="absolute inset-0 opacity-40 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:24px_24px] animate-pulse" />
+        )}
+        {cartridge.theme.weatherEffect === 'acid' && (
+          <div className="absolute inset-0 bg-yellow-500/10 mix-blend-overlay">
+            <div className="absolute inset-0 bg-gradient-to-b from-yellow-400/15 via-transparent to-amber-900/20 animate-pulse duration-700" />
+          </div>
+        )}
+        {cartridge.theme.weatherEffect === 'solar_flare' && (
+          <div className="absolute inset-0 bg-amber-500/10 animate-ping duration-1000 opacity-20" />
+        )}
+        {cartridge.theme.weatherEffect === 'lightning' && (
+          <div className="absolute inset-0 bg-cyan-400/5 mix-blend-color-dodge animate-pulse duration-300" />
+        )}
+        {cartridge.theme.weatherEffect === 'rings' && (
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-200/5 to-transparent [transform:rotate(-15deg)] pointer-events-none" />
+        )}
+        {cartridge.theme.weatherEffect === 'frost' && (
+          <div className="absolute inset-0 border-[8px] border-cyan-400/20 shadow-[inset_0_0_30px_rgba(56,189,248,0.25)] pointer-events-none" />
+        )}
+        {cartridge.theme.weatherEffect === 'supersonic' && (
+          <div className="absolute inset-0 bg-blue-600/10 [background:repeating-linear-gradient(90deg,transparent,transparent_40px,rgba(56,189,248,0.08)_40px,rgba(56,189,248,0.08)_80px)] animate-pulse" />
+        )}
+        {cartridge.theme.weatherEffect === 'glitch' && (
+          <div className="absolute inset-0 bg-fuchsia-950/20 [background:repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(217,70,239,0.1)_2px,rgba(217,70,239,0.1)_4px)] animate-pulse" />
+        )}
+      </div>
+
       <header
         className="w-full bg-[#0B1026]/95 border-b border-white/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3 z-30"
         role="banner"
@@ -233,10 +271,19 @@ export default function HUD({ onOpenMenu }: HUDProps) {
         <div className="flex items-center gap-2">
           <span className="text-2xl" aria-hidden="true">🪐</span>
           <div className="flex flex-col">
-            <span className="text-xs text-[#F8FAFC]/60 uppercase tracking-widest">
-              Sol
-            </span>
-            <span className="text-2xl font-bold text-[#E87040] tabular-nums leading-none">
+            <div className="flex items-center gap-1.5 leading-none">
+              <span className="text-[10px] text-[#F8FAFC]/60 uppercase tracking-widest font-mono">
+                Sol
+              </span>
+              <span className={`text-[10px] font-mono px-1 rounded font-extrabold uppercase border ${
+                state.isGlitchedEntropy
+                  ? 'text-fuchsia-300 bg-fuchsia-950/80 border-fuchsia-400/50 animate-pulse'
+                  : 'text-amber-300 bg-black/40 border-white/10'
+              }`}>
+                {state.isGlitchedEntropy ? 'CORRUPT://X' : cartridge.name}
+              </span>
+            </div>
+            <span className="text-2xl font-bold text-[#E87040] tabular-nums leading-none mt-0.5">
               {state.sol}
               <span className="text-sm text-[#F8FAFC]/40 font-normal">
                 /{state.maxSol}
@@ -322,15 +369,15 @@ export default function HUD({ onOpenMenu }: HUDProps) {
             ))}
       </div>
 
-      {/* Center: Resource bars */}
-      <div className="flex flex-wrap items-center gap-4 flex-1 justify-center min-w-0">
+      {/* Center: Resource bars & Planetary Custom Telemetry Gauges */}
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4 flex-1 justify-center min-w-0">
         <ProgressBar
           value={state.power}
           label="Power"
           icon="⚡"
           color="orange"
           showWarning
-          isGlitching={isEmpJammed}
+          isGlitching={isEmpJammed || state.isGlitchedEntropy}
         />
         <ProgressBar
           value={state.oxygen}
@@ -338,15 +385,67 @@ export default function HUD({ onOpenMenu }: HUDProps) {
           icon="🫁"
           color="blue"
           showWarning
-          isGlitching={isEmpJammed}
+          isGlitching={isEmpJammed || state.isGlitchedEntropy}
         />
+        {/* Custom Planetary Telemetry Metric 1 */}
+        {cartridge.customMetrics[0] && (
+          <ProgressBar
+            value={
+              cartridge.customMetrics[0].max === 100
+                ? (state.planetMetrics?.[cartridge.customMetrics[0].key] ?? cartridge.customMetrics[0].defaultValue)
+                : Math.max(0, Math.min(100, (((state.planetMetrics?.[cartridge.customMetrics[0].key] ?? cartridge.customMetrics[0].defaultValue) - cartridge.customMetrics[0].min) / (cartridge.customMetrics[0].max - cartridge.customMetrics[0].min)) * 100))
+            }
+            label={cartridge.customMetrics[0].name}
+            icon={cartridge.customMetrics[0].icon}
+            color={
+              cartridge.customMetrics[0].color.includes('purple') || cartridge.customMetrics[0].color.includes('fuchsia')
+                ? 'purple'
+                : cartridge.customMetrics[0].color.includes('rose') || cartridge.customMetrics[0].color.includes('red')
+                ? 'red'
+                : cartridge.customMetrics[0].color.includes('amber') || cartridge.customMetrics[0].color.includes('orange') || cartridge.customMetrics[0].color.includes('yellow')
+                ? 'orange'
+                : cartridge.customMetrics[0].color.includes('emerald') || cartridge.customMetrics[0].color.includes('green')
+                ? 'green'
+                : 'blue'
+            }
+            displayOverride={`${Math.round(state.planetMetrics?.[cartridge.customMetrics[0].key] ?? cartridge.customMetrics[0].defaultValue)}${cartridge.customMetrics[0].unit}`}
+            showWarning={false}
+            isGlitching={state.isGlitchedEntropy}
+          />
+        )}
+        {/* Custom Planetary Telemetry Metric 2 */}
+        {cartridge.customMetrics[1] && (
+          <ProgressBar
+            value={
+              cartridge.customMetrics[1].max === 100
+                ? (state.planetMetrics?.[cartridge.customMetrics[1].key] ?? cartridge.customMetrics[1].defaultValue)
+                : Math.max(0, Math.min(100, (((state.planetMetrics?.[cartridge.customMetrics[1].key] ?? cartridge.customMetrics[1].defaultValue) - cartridge.customMetrics[1].min) / (cartridge.customMetrics[1].max - cartridge.customMetrics[1].min)) * 100))
+            }
+            label={cartridge.customMetrics[1].name}
+            icon={cartridge.customMetrics[1].icon}
+            color={
+              cartridge.customMetrics[1].color.includes('purple') || cartridge.customMetrics[1].color.includes('fuchsia')
+                ? 'purple'
+                : cartridge.customMetrics[1].color.includes('rose') || cartridge.customMetrics[1].color.includes('red')
+                ? 'red'
+                : cartridge.customMetrics[1].color.includes('amber') || cartridge.customMetrics[1].color.includes('orange') || cartridge.customMetrics[1].color.includes('yellow')
+                ? 'orange'
+                : cartridge.customMetrics[1].color.includes('emerald') || cartridge.customMetrics[1].color.includes('green')
+                ? 'green'
+                : 'blue'
+            }
+            displayOverride={`${Math.round(state.planetMetrics?.[cartridge.customMetrics[1].key] ?? cartridge.customMetrics[1].defaultValue)}${cartridge.customMetrics[1].unit}`}
+            showWarning={false}
+            isGlitching={state.isGlitchedEntropy}
+          />
+        )}
         <ProgressBar
           value={state.shielding}
           label="Shielding"
           icon="🛡️"
           color="green"
           showWarning
-          isGlitching={isEmpJammed}
+          isGlitching={isEmpJammed || state.isGlitchedEntropy}
         />
       </div>
 

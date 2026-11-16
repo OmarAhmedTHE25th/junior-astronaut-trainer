@@ -4,6 +4,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { useGame } from './GameProvider';
 import { useSound } from '@/lib/sound';
 import { useProfile } from '@/lib/profile';
+import { getPlanetCartridge, type PlanetExclusiveAction } from '@/lib/planetCartridges';
 import {
   OPERATIONS_CATALOG,
   drawSolOperations,
@@ -194,6 +195,17 @@ export default function OperationsDeck() {
   const totalSuppliesCount = Object.values(combatInventory).reduce(
     (sum, q) => sum + (typeof q === 'number' && q > 0 ? q : 0),
     0
+  );
+
+  const cartridge = useMemo(() => getPlanetCartridge(state.planetId || 'mars'), [state.planetId]);
+
+  const handleExecutePlanetAction = useCallback(
+    (actionId: string) => {
+      if (isDisabled) return;
+      playAction();
+      dispatch({ type: 'EXECUTE_PLANET_ACTION', actionId });
+    },
+    [isDisabled, playAction, dispatch]
   );
 
   return (
@@ -602,6 +614,146 @@ export default function OperationsDeck() {
             </button>
           );
         })}
+      </div>
+
+      {/* ── 3. EXCLUSIVE PLANETARY CARTRIDGE OPERATIONS DECK ── */}
+      <div className="pt-3 space-y-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 rounded-2xl bg-[#0e162e] border border-white/10">
+          <div className="flex items-center gap-2">
+            <span className="text-xl p-1 rounded-lg bg-black/40 border border-white/10">
+              {cartridge.order === 'X' ? '👁️' : '🪐'}
+            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-heading font-black text-sm text-white tracking-wide">
+                  {cartridge.name.toUpperCase()} SIGNATURE PROTOCOLS
+                </h3>
+                <span className="text-[10px] font-mono px-2 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
+                  Level {cartridge.order} Cartridge
+                </span>
+              </div>
+              <p className="text-[10px] text-starlight/70 leading-none mt-0.5">
+                {cartridge.signatureMechanic.description}
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-mono text-amber-300 bg-amber-500/15 px-2 py-1 rounded-lg border border-amber-500/30">
+            ⚠️ Hazard: {cartridge.signatureMechanic.hazardAlert}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {cartridge.actions.map((act) => {
+            const isFrozen = Boolean(state.frozenActions?.includes(act.id));
+            const cooldownUntil = state.operationCooldowns?.[act.id] || 0;
+            const isOnCooldown = cooldownUntil > state.sol;
+            const cooldownRemaining = cooldownUntil - state.sol;
+
+            // Check resource costs
+            const costs = act.resourceCosts || {};
+            const metrics = state.planetMetrics || {};
+            let hasEnoughResources =
+              state.power >= (costs.power ?? 0) &&
+              state.oxygen >= (costs.oxygen ?? 0) &&
+              state.shielding >= (costs.shielding ?? 0);
+
+            if (costs.customMetricCost) {
+              for (const [mKey, mCost] of Object.entries(costs.customMetricCost)) {
+                if ((metrics[mKey] ?? 0) < mCost) {
+                  hasEnoughResources = false;
+                  break;
+                }
+              }
+            }
+
+            const canExecute = !isDisabled && !isFrozen && !isOnCooldown && hasEnoughResources;
+
+            const costBadges: string[] = [];
+            if (costs.power) costBadges.push(`-${costs.power}⚡`);
+            if (costs.oxygen) costBadges.push(`-${costs.oxygen}🫁`);
+            if (costs.shielding) costBadges.push(`-${costs.shielding}🛡️`);
+            if (costs.customMetricCost) {
+              for (const [k, v] of Object.entries(costs.customMetricCost)) {
+                costBadges.push(`-${v} ${k.slice(0, 5)}`);
+              }
+            }
+
+            const gainBadges: string[] = [];
+            const eff = act.guaranteedEffects;
+            if (eff.power) gainBadges.push(`+${eff.power}⚡`);
+            if (eff.oxygen) gainBadges.push(`+${eff.oxygen}🫁`);
+            if (eff.shielding) gainBadges.push(`+${eff.shielding}🛡️`);
+            if (eff.morale) gainBadges.push(`+${eff.morale} Morale`);
+            if (eff.score) gainBadges.push(`+${eff.score} Score`);
+            if (eff.customMetricDelta) {
+              for (const [k, v] of Object.entries(eff.customMetricDelta)) {
+                gainBadges.push(`${v > 0 ? `+${v}` : v} ${k.slice(0, 5)}`);
+              }
+            }
+
+            return (
+              <button
+                key={act.id}
+                type="button"
+                disabled={!canExecute}
+                onClick={() => handleExecutePlanetAction(act.id)}
+                className={`
+                  p-3 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer min-h-[160px] relative overflow-hidden
+                  ${
+                    isFrozen
+                      ? 'bg-cyan-950/40 border-cyan-400 text-cyan-200 ring-2 ring-cyan-400/40 opacity-80 cursor-not-allowed'
+                      : isOnCooldown
+                      ? 'bg-slate-900/60 border-slate-700/60 text-slate-400 opacity-60 cursor-not-allowed'
+                      : !hasEnoughResources
+                      ? 'bg-[#10142b]/80 border-rose-500/30 text-rose-200/80 opacity-70 cursor-not-allowed'
+                      : 'bg-[#111736] hover:bg-[#1a2350] border-cyan-500/40 hover:border-cyan-300 text-white hover:scale-[1.02] active:scale-98 shadow-md'
+                  }
+                `}
+              >
+                {/* Status Badges */}
+                {isFrozen && (
+                  <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-cyan-500/30 text-cyan-200 border border-cyan-400/50 text-[9px] font-black animate-pulse">
+                    ❄️ FROZEN
+                  </div>
+                )}
+                {isOnCooldown && !isFrozen && (
+                  <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-400/40 text-[9px] font-mono">
+                    ⏳ {cooldownRemaining}s
+                  </div>
+                )}
+
+                <div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-2xl p-1.5 rounded-xl bg-black/40 border border-white/10">
+                      {act.icon}
+                    </span>
+                    <div className="leading-tight">
+                      <span className="font-heading font-bold text-xs text-white block">
+                        {act.title}
+                      </span>
+                      <span className="text-[9px] text-cyan-300/80 block">
+                        {act.subtitle}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-starlight/75 line-clamp-2 mt-1">
+                    {act.description}
+                  </p>
+                </div>
+
+                <div className="mt-3 pt-2 border-t border-white/10 space-y-1.5 text-[10px]">
+                  <div className="flex items-center justify-between font-mono">
+                    <span className="text-rose-300">{costBadges.length > 0 ? costBadges.join(' ') : 'Cost: 0'}</span>
+                    <span className="text-emerald-300 font-bold">{gainBadges.join(' ')}</span>
+                  </div>
+                  <div className="w-full py-1 rounded-lg bg-white/10 text-center font-bold text-[10px] text-white">
+                    {isFrozen ? '❄️ Thaw Hydraulics' : isOnCooldown ? `Cooldown (${cooldownRemaining} Sols)` : 'Execute Protocol →'}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

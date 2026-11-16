@@ -13,6 +13,11 @@ import type {
   ResourceType,
 } from './types';
 import {
+  type PlanetId,
+  getPlanetCartridge,
+  PLANET_CARTRIDGES,
+} from './planetCartridges';
+import {
   INITIAL_RESOURCES,
   SOL_DEPLETION,
   MISSION_LENGTH,
@@ -89,14 +94,26 @@ export function createInitialState(
     tag?: string;
     buffLevel?: number;
     name?: string;
-  } | null
+  } | null,
+  planetId: PlanetId = 'mars'
 ): GameState {
   const isEndless = Boolean(tournament?.tournamentId);
+  const cartridge = getPlanetCartridge(planetId);
+  const location = cartridge.locations.find((l) => l.id === landingSite) || cartridge.locations[0];
 
-  let startPower: number = INITIAL_RESOURCES.power;
-  let startOxygen: number = INITIAL_RESOURCES.oxygen;
-  let startShielding: number = INITIAL_RESOURCES.shielding;
+  let startPower: number = INITIAL_RESOURCES.power + (location?.bonusStats?.power ?? 0);
+  let startOxygen: number = INITIAL_RESOURCES.oxygen + (location?.bonusStats?.oxygen ?? 0);
+  let startShielding: number = INITIAL_RESOURCES.shielding + (location?.bonusStats?.shielding ?? 0);
   let startMorale: number = INITIAL_RESOURCES.morale;
+
+  const initialPlanetMetrics: Record<string, number> = {};
+  for (const m of cartridge.customMetrics) {
+    let val = m.defaultValue;
+    if (location?.bonusStats?.metricBonus?.[m.key] !== undefined) {
+      val = Math.max(m.min, Math.min(m.max, val + (location.bonusStats.metricBonus[m.key] ?? 0)));
+    }
+    initialPlanetMetrics[m.key] = val;
+  }
 
   const buffLevel = guild?.buffLevel || 0;
   if (buffLevel === 1) {
@@ -206,6 +223,10 @@ export function createInitialState(
     sabotageCooldowns: {},
     isFiveStarGeneral: battlePass?.isFiveStarGeneral,
     retriesRemaining: battlePass?.retriesRemaining ?? (battlePass?.isFiveStarGeneral ? 3 : 0),
+    planetId,
+    planetMetrics: initialPlanetMetrics,
+    frozenActions: [],
+    isGlitchedEntropy: false,
   };
 }
 
@@ -373,6 +394,256 @@ function applySolDepletion(state: GameState): GameState {
   return { ...newState, log: [...newState.log, logEntry] };
 }
 
+// ── Planetary Signature Mechanics (Per-World Environmental Dynamics) ──
+
+export function applyPlanetarySignatureMechanic(state: GameState): GameState {
+  const planetId = state.planetId || 'mars';
+  const cartridge = getPlanetCartridge(planetId);
+  const metrics = { ...(state.planetMetrics || {}) };
+  const logs: LogEntry[] = [];
+  let nextPower = state.power;
+  let nextOxygen = state.oxygen;
+  let nextShielding = state.shielding;
+  let nextMorale = state.morale;
+  let frozenActions = [...(state.frozenActions || [])];
+  let isGlitchedEntropy = state.isGlitchedEntropy || false;
+
+  switch (planetId) {
+    case 'mars': {
+      // Dust storm buildup (5-8% per sol)
+      const currentDust = metrics['dustAccumulation'] ?? 15;
+      const nextDust = Math.min(100, currentDust + 6);
+      metrics['dustAccumulation'] = nextDust;
+      if (nextDust > 75) {
+        nextPower = clamp(nextPower - 6);
+        logs.push({
+          sol: state.sol,
+          type: 'depletion',
+          title: '🌪️ Martian Dust Storm Choking Solar Arrays',
+          description: `Severe regolith accumulation (${nextDust}%). Solar intake choked (-6 Power). Deploy Dust Scrubber!`,
+          resourceChanges: { power: -6 },
+          icon: '🌪️',
+        });
+      }
+      break;
+    }
+    case 'earth': {
+      // Orbital debris & radar lock
+      const debris = Math.min(100, (metrics['orbitalDebris'] ?? 25) + 4);
+      metrics['orbitalDebris'] = debris;
+      if (debris > 75) {
+        nextShielding = clamp(nextShielding - 8);
+        logs.push({
+          sol: state.sol,
+          type: 'depletion',
+          title: '🛰️ Low Earth Orbit Debris Collision',
+          description: `Dense debris belt (${debris}%) impact on orbital hull (-8 Shielding).`,
+          resourceChanges: { shielding: -8 },
+          icon: '🛰️',
+        });
+      }
+      const radar = Math.min(100, (metrics['radarLock'] ?? 10) + 3);
+      metrics['radarLock'] = radar;
+      if (radar > 80) {
+        logs.push({
+          sol: state.sol,
+          type: 'system',
+          title: '📡 Ground Station Radar Lock Active',
+          description: `Telemetry jammed by orbital tracking radar (${radar}%). Electronic countermeasures advised.`,
+          resourceChanges: {},
+          icon: '📡',
+        });
+      }
+      break;
+    }
+    case 'venus': {
+      // Aerostat altitude drift (base 52 km) & sulfuric acid corrosion
+      const drift = Math.sin(state.sol) * 3;
+      const currentAlt = metrics['altitude'] ?? 52;
+      const nextAlt = Math.max(10, Math.min(90, Math.round(currentAlt + drift)));
+      metrics['altitude'] = nextAlt;
+
+      const corrosion = Math.min(100, (metrics['acidCorrosion'] ?? 10) + 3);
+      metrics['acidCorrosion'] = corrosion;
+
+      if (nextAlt < 35) {
+        nextShielding = clamp(nextShielding - 12);
+        logs.push({
+          sol: state.sol,
+          type: 'depletion',
+          title: '☁️ Venus Crushing Atmospheric Pressure',
+          description: `Aerostat dropped to ${nextAlt} km! 90 atm sulfuric pressure crushing habitat envelope (-12 Shielding).`,
+          resourceChanges: { shielding: -12 },
+          icon: '☁️',
+        });
+      } else if (nextAlt > 65) {
+        nextOxygen = clamp(nextOxygen - 8);
+        logs.push({
+          sol: state.sol,
+          type: 'depletion',
+          title: '☀️ Upper Venusian Ionosphere Degradation',
+          description: `Aerostat rose to ${nextAlt} km. Extreme solar UV and solar winds scouring envelope (-8 O₂).`,
+          resourceChanges: { oxygen: -8 },
+          icon: '☀️',
+        });
+      }
+
+      if (corrosion > 60) {
+        nextShielding = clamp(nextShielding - 5);
+        logs.push({
+          sol: state.sol,
+          type: 'depletion',
+          title: '🧪 Sulfuric Acid Aerosol Pitting',
+          description: `Atmospheric acid corrosion at ${corrosion}%. Eating outer heat shielding (-5 Shielding).`,
+          resourceChanges: { shielding: -5 },
+          icon: '🧪',
+        });
+      }
+      break;
+    }
+    case 'mercury': {
+      // Day/Night thermal swing: crawlerOffset stabilizes temperature
+      const offset = metrics['crawlerOffset'] ?? 50;
+      const driftFactor = (offset - 50) / 10;
+      const temp = Math.max(0, Math.min(100, (metrics['coreTemp'] ?? 45) + driftFactor));
+      metrics['coreTemp'] = Math.round(temp);
+
+      if (temp > 80) {
+        nextPower = clamp(nextPower - 10);
+        logs.push({
+          sol: state.sol,
+          type: 'depletion',
+          title: '🔥 Mercury Daylight Overheat Wave',
+          description: `Core radiator temperature hit ${temp}°C! Conduits melting in direct solar radiation (-10 Power).`,
+          resourceChanges: { power: -10 },
+          icon: '🔥',
+        });
+      } else if (temp < 20) {
+        nextOxygen = clamp(nextOxygen - 10);
+        logs.push({
+          sol: state.sol,
+          type: 'depletion',
+          title: '❄️ Mercury Deep Shadow Freeze',
+          description: `Core radiator temperature dropped to ${temp}°C! Liquid oxygen valves freezing solid (-10 O₂).`,
+          resourceChanges: { oxygen: -10 },
+          icon: '❄️',
+        });
+      }
+      break;
+    }
+    case 'jupiter': {
+      // Flux voltage accumulation
+      const flux = Math.min(100, (metrics['fluxCharge'] ?? 20) + 10);
+      metrics['fluxCharge'] = flux;
+      if (flux > 85) {
+        nextPower = clamp(nextPower - 18);
+        nextShielding = clamp(nextShielding - 10);
+        metrics['fluxCharge'] = 25; // Discharged
+        logs.push({
+          sol: state.sol,
+          type: 'depletion',
+          title: '⚡ Jovian Megavolt Arc-Flash Discharge!',
+          description: `Jovian radiation belt overloaded capacitors! Explosive arc flash ripped through conduits (-18 Power, -10 Shielding).`,
+          resourceChanges: { power: -18, shielding: -10 },
+          icon: '⚡',
+        });
+      }
+      break;
+    }
+    case 'saturn': {
+      // Ring particle shear
+      const shear = Math.min(100, (metrics['ringShear'] ?? 20) + 6);
+      metrics['ringShear'] = shear;
+      if (shear > 80) {
+        nextShielding = clamp(nextShielding - 12);
+        logs.push({
+          sol: state.sol,
+          type: 'depletion',
+          title: '🪐 Saturn Ring Particle Shear Exceeded',
+          description: `Hypervelocity ring ice boulders gouging habitat radiators (${shear}% shear, -12 Shielding).`,
+          resourceChanges: { shielding: -12 },
+          icon: '🪐',
+        });
+      }
+      break;
+    }
+    case 'uranus': {
+      // Cryogenic hydraulics degradation
+      const hydro = Math.max(0, (metrics['hydraulics'] ?? 85) - 8);
+      metrics['hydraulics'] = hydro;
+      if (hydro < 30) {
+        const planetActions = cartridge.actions.map((a) => a.id);
+        const randomAction = planetActions[Math.floor(Math.random() * planetActions.length)];
+        if (!frozenActions.includes(randomAction)) {
+          frozenActions.push(randomAction);
+        }
+        logs.push({
+          sol: state.sol,
+          type: 'system',
+          title: '❄️ Cryogenic Hydraulic Lockout!',
+          description: `Hydraulic pressure fell to ${hydro}%. Actuator frozen! Control action locked until thawed.`,
+          resourceChanges: {},
+          icon: '❄️',
+        });
+      } else {
+        frozenActions = [];
+      }
+      break;
+    }
+    case 'neptune': {
+      // Supersonic wind shear
+      const gust = (state.sol * 7) % 25;
+      const shear = Math.min(100, Math.max(20, 45 + gust));
+      metrics['windShear'] = shear;
+      if (shear > 80) {
+        nextShielding = clamp(nextShielding - 12);
+        logs.push({
+          sol: state.sol,
+          type: 'depletion',
+          title: '🌪️ Supersonic 2,100 km/h Neptune Wind Shear',
+          description: `Violent wind shear (${shear}%) overstressing atmospheric anchor tether (-12 Shielding).`,
+          resourceChanges: { shielding: -12 },
+          icon: '🌪️',
+        });
+      }
+      break;
+    }
+    case 'planet_x': {
+      // Quantum decoherence / entropy
+      const entropy = Math.min(100, (metrics['entropy'] ?? 15) + 7);
+      metrics['entropy'] = entropy;
+      if (entropy > 70) {
+        isGlitchedEntropy = true;
+        nextMorale = clamp(nextMorale - 5);
+        logs.push({
+          sol: state.sol,
+          type: 'system',
+          title: '👁️ Quantum Decoherence Cascade (Entropy > 70%)',
+          description: `Spacetime coordinate collapse outside Kuiper Cliff! HUD telemetry scrambling. Pulse Quantum Anchor immediately!`,
+          resourceChanges: {},
+          moraleChange: -5,
+          icon: '👁️',
+        });
+      } else {
+        isGlitchedEntropy = false;
+      }
+      break;
+    }
+  }
+
+  return {
+    ...state,
+    power: nextPower,
+    oxygen: nextOxygen,
+    shielding: nextShielding,
+    morale: nextMorale,
+    planetMetrics: metrics,
+    frozenActions,
+    isGlitchedEntropy,
+    log: [...state.log, ...logs],
+  };
+}
+
 // ── The Pure Reducer ────────────────────────────────────────
 
 /**
@@ -394,7 +665,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         {
           isFiveStarGeneral: state.isFiveStarGeneral,
           retriesRemaining: state.retriesRemaining,
-        }
+        },
+        state.guild,
+        action.planetId || state.planetId || 'mars'
       );
       return { ...initial, phase: 'action' };
     }
@@ -409,6 +682,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       return {
         ...gs,
+        planetId: gs.planetId || 'mars',
+        planetMetrics: gs.planetMetrics || {},
+        frozenActions: gs.frozenActions || [],
+        isGlitchedEntropy: Boolean(gs.isGlitchedEntropy),
         activeHand,
         operationCooldowns: gs.operationCooldowns || {},
         commandOverrides: gs.commandOverrides ?? 1,
@@ -571,6 +848,129 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         ...newState,
         operationCooldowns: nextCooldowns,
         log: [...newState.log, logEntry],
+      };
+
+      if (checkGameOver(newState)) {
+        return applyRetryOrGameOver(newState, 'depletion');
+      }
+
+      return { ...newState, phase: 'result' };
+    }
+
+    // ── Execute an exclusive planetary signature action ────
+    case 'EXECUTE_PLANET_ACTION': {
+      if (state.phase !== 'action') return state;
+      const { actionId } = action;
+      const planetId = state.planetId || 'mars';
+      const cartridge = getPlanetCartridge(planetId);
+      const actionDef = cartridge.actions.find((a) => a.id === actionId);
+      if (!actionDef) return state;
+
+      // Check if action is frozen (e.g. by Uranus cryogenic hydraulics)
+      if (state.frozenActions?.includes(actionId)) return state;
+
+      // Check cooldown
+      const currentCooldown = state.operationCooldowns?.[actionId] || 0;
+      if (currentCooldown > state.sol) return state;
+
+      // Check resource costs
+      const costs = actionDef.resourceCosts || {};
+      if (costs.power && state.power < costs.power) return state;
+      if (costs.oxygen && state.oxygen < costs.oxygen) return state;
+      if (costs.shielding && state.shielding < costs.shielding) return state;
+
+      // Check custom metric costs
+      const metrics = { ...(state.planetMetrics || {}) };
+      if (costs.customMetricCost) {
+        for (const [mKey, mCost] of Object.entries(costs.customMetricCost)) {
+          if ((metrics[mKey] ?? 0) < mCost) return state;
+        }
+        for (const [mKey, mCost] of Object.entries(costs.customMetricCost)) {
+          metrics[mKey] -= mCost;
+        }
+      }
+
+      // Deduct costs
+      let nextPower = clamp(state.power - (costs.power ?? 0));
+      let nextOxygen = clamp(state.oxygen - (costs.oxygen ?? 0));
+      let nextShielding = clamp(state.shielding - (costs.shielding ?? 0));
+      let nextMorale = state.morale;
+      let nextScore = state.score;
+
+      // Apply guaranteed effects
+      const eff = actionDef.guaranteedEffects;
+      if (eff.power) nextPower = clamp(nextPower + eff.power);
+      if (eff.oxygen) nextOxygen = clamp(nextOxygen + eff.oxygen);
+      if (eff.shielding) nextShielding = clamp(nextShielding + eff.shielding);
+      if (eff.morale) nextMorale = clamp(nextMorale + eff.morale);
+      if (eff.score) nextScore = Math.max(0, nextScore + eff.score);
+
+      // Apply custom metric deltas
+      if (eff.customMetricDelta) {
+        for (const [mKey, delta] of Object.entries(eff.customMetricDelta)) {
+          const mDef = cartridge.customMetrics.find((m) => m.key === mKey);
+          const current = metrics[mKey] ?? (mDef ? mDef.defaultValue : 0);
+          const min = mDef ? mDef.min : 0;
+          const max = mDef ? mDef.max : 100;
+          metrics[mKey] = Math.max(min, Math.min(max, current + delta));
+        }
+      }
+
+      // Planetary specific mechanical overrides
+      let frozenActions = [...(state.frozenActions || [])];
+      let isGlitchedEntropy = state.isGlitchedEntropy;
+
+      if (actionId === 'uranus_cryo_thaw') {
+        metrics['hydraulics'] = 80;
+        frozenActions = [];
+      } else if (actionId === 'planet_x_quantum_anchor') {
+        metrics['entropy'] = 10;
+        metrics['anchorResonance'] = 90;
+        isGlitchedEntropy = false;
+      } else if (actionId === 'saturn_ice_processing') {
+        const iceCargo = metrics['iceCargo'] || 0;
+        if (iceCargo > 0) {
+          nextOxygen = clamp(nextOxygen + 25);
+          nextPower = clamp(nextPower + 20);
+          metrics['iceCargo'] = 0;
+        }
+      } else if (actionId === 'neptune_diamond_harvest') {
+        nextScore += 250;
+      }
+
+      // Multi-Sol Cooldown
+      const nextCooldowns = { ...(state.operationCooldowns || {}) };
+      if (actionDef.cooldownSols > 0) {
+        nextCooldowns[actionId] = state.sol + actionDef.cooldownSols;
+      }
+
+      const logEntry: LogEntry = {
+        sol: state.sol,
+        type: 'action',
+        title: `${actionDef.icon} ${actionDef.title}`,
+        description: actionDef.description + (actionDef.mechanicNote ? ` (${actionDef.mechanicNote})` : ''),
+        resourceChanges: {
+          power: (eff.power ?? 0) - (costs.power ?? 0),
+          oxygen: (eff.oxygen ?? 0) - (costs.oxygen ?? 0),
+          shielding: (eff.shielding ?? 0) - (costs.shielding ?? 0),
+        },
+        moraleChange: eff.morale,
+        scoreEffect: eff.score,
+        icon: actionDef.icon,
+      };
+
+      const newState: GameState = {
+        ...state,
+        power: nextPower,
+        oxygen: nextOxygen,
+        shielding: nextShielding,
+        morale: nextMorale,
+        score: nextScore,
+        planetMetrics: metrics,
+        frozenActions,
+        isGlitchedEntropy,
+        operationCooldowns: nextCooldowns,
+        log: [...state.log, logEntry],
       };
 
       if (checkGameOver(newState)) {
@@ -1120,14 +1520,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const updatedMorale = clamp(state.morale + moraleBonus);
       const updatedShielding = clamp(state.shielding + hullRepairBonus);
 
-      const newPoint: TelemetryPoint = {
-        sol: nextSol,
-        power: state.power,
-        oxygen: state.oxygen,
-        shielding: updatedShielding,
-        morale: updatedMorale,
-      };
-
       // Decrement Active Debuffs
       const currentEmp = state.activeDebuffs?.empJammedSols || 0;
       const currentBlind = state.activeDebuffs?.solarBlindedSols || 0;
@@ -1190,12 +1582,43 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         });
       }
 
-      // 3. Draw fresh 5 operations for nextSol
-      const candidateNextState: GameState = {
+      // 2b. Apply planetary signature mechanic
+      const stateWithPlanetMechanic = applyPlanetarySignatureMechanic({
         ...state,
         sol: nextSol,
         shielding: updatedShielding,
         morale: updatedMorale,
+      });
+
+      if (checkGameOver(stateWithPlanetMechanic)) {
+        return applyRetryOrGameOver(stateWithPlanetMechanic, 'depletion');
+      }
+
+      const mergedLogs = [...logs, ...stateWithPlanetMechanic.log.slice(state.log.length)];
+      const finalPower = stateWithPlanetMechanic.power;
+      const finalOxygen = stateWithPlanetMechanic.oxygen;
+      const finalShielding = stateWithPlanetMechanic.shielding;
+      const finalMorale = stateWithPlanetMechanic.morale;
+
+      const newPoint: TelemetryPoint = {
+        sol: nextSol,
+        power: finalPower,
+        oxygen: finalOxygen,
+        shielding: finalShielding,
+        morale: finalMorale,
+      };
+
+      // 3. Draw fresh 5 operations for nextSol
+      const candidateNextState: GameState = {
+        ...state,
+        sol: nextSol,
+        power: finalPower,
+        oxygen: finalOxygen,
+        shielding: finalShielding,
+        morale: finalMorale,
+        planetMetrics: stateWithPlanetMechanic.planetMetrics,
+        frozenActions: stateWithPlanetMechanic.frozenActions,
+        isGlitchedEntropy: stateWithPlanetMechanic.isGlitchedEntropy,
         operationCooldowns: nextCooldowns,
         activeBoostTimers: nextBoostTimers,
         equippedPet: nextEquippedPet,
@@ -1211,9 +1634,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         sol: nextSol,
-        shielding: updatedShielding,
-        morale: updatedMorale,
-        log: logs,
+        power: finalPower,
+        oxygen: finalOxygen,
+        shielding: finalShielding,
+        morale: finalMorale,
+        planetMetrics: stateWithPlanetMechanic.planetMetrics,
+        frozenActions: stateWithPlanetMechanic.frozenActions,
+        isGlitchedEntropy: stateWithPlanetMechanic.isGlitchedEntropy,
+        log: mergedLogs,
         telemetryHistory: [...(state.telemetryHistory || []), newPoint],
         phase: 'action',
         operationCooldowns: nextCooldowns,

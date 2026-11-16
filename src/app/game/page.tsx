@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { GameProvider } from "@/components/game/GameProvider";
 import GameBoard from "@/components/game/GameBoard";
 import type { Difficulty, GameState, LandingSiteId } from "@/lib/types";
+import { type PlanetId, getPlanetCartridge, ORDERED_PLANET_IDS } from "@/lib/planetCartridges";
 import { SPECIALTY_METAS } from "@/lib/types";
 import { useProfile, getOrCreateCadetProfile, DEFAULT_PROFILE } from "@/lib/profile";
 import { playClick, playAction } from "@/lib/sound";
@@ -34,6 +35,7 @@ export default function GamePage() {
   const { profile, isLoaded } = useProfile();
   const [launched, setLaunched] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty>("commander");
+  const [planetId, setPlanetId] = useState<PlanetId>("mars");
   const [landingSite, setLandingSite] = useState<LandingSiteId>("jezero");
   const [squadCode, setSquadCode] = useState<string | null>(null);
   const [matchId, setMatchId] = useState<string | null>(null);
@@ -66,6 +68,20 @@ export default function GamePage() {
 
       if (timedParam === "true" || timedParam === "1") {
         setIsTimedMode(true);
+      }
+
+      const planetParam = params.get("planet") as PlanetId | null;
+      const siteParam = params.get("site");
+      if (planetParam && ORDERED_PLANET_IDS.includes(planetParam)) {
+        setPlanetId(planetParam);
+        if (siteParam) {
+          setLandingSite(siteParam as LandingSiteId);
+        } else {
+          const cart = getPlanetCartridge(planetParam);
+          if (cart.locations[0]) {
+            setLandingSite(cart.locations[0].id as LandingSiteId);
+          }
+        }
       }
 
       if (tournamentIdParam) {
@@ -160,6 +176,9 @@ export default function GamePage() {
         } else {
           // Active, surviving mission
           setSavedRun(parsed);
+          if (parsed.planetId) {
+            setPlanetId(parsed.planetId);
+          }
           if (parsed.isTimedMode !== undefined) {
             setIsTimedMode(parsed.isTimedMode);
           }
@@ -415,6 +434,7 @@ export default function GamePage() {
       difficulty={difficulty}
       specialty={activeCadet.specialty}
       landingSite={landingSite}
+      planetId={planetId}
       cadet={{
         cadetId: activeCadet.cadetId,
         callsign: activeCadet.callsign,

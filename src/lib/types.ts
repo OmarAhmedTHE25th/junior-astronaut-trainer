@@ -1,5 +1,4 @@
-// ─── Junior Astronaut Mission Trainer – Type Definitions ───
-// Pure TypeScript types. No React, no DOM.
+import type { PlanetId } from './planetCartridges';
 
 // ── Resource & Phase Enums ──────────────────────────────────
 
@@ -184,8 +183,17 @@ export interface GameState {
   } | null;
   /** Whether emergency sponsor rations were consumed during this mission (max 1 use) */
   hasUsedSponsorRation?: boolean;
+  /** Active planetary cartridge */
+  planetId?: PlanetId;
+  /** Custom dynamic planetary metrics for slots 3 & 4 (e.g. altitude, coreTemp, radLoad, etc.) */
+  planetMetrics?: Record<string, number>;
+  /** Frozen action IDs (e.g. Uranus cryo-hydraulics freeze mechanic) */
+  frozenActions?: string[];
+  /** Whether HUD display text / metrics are glitched by high quantum entropy (Planet X) */
+  isGlitchedEntropy?: boolean;
 }
 
+export * from './planetCartridges';
 export * from './tournamentTypes';
 export * from './marketplaceTypes';
 export * from './battleRoyaleTypes';
@@ -199,12 +207,14 @@ export type GameAction =
       difficulty: Difficulty;
       specialty?: CadetSpecialty;
       landingSite?: LandingSiteId;
+      planetId?: PlanetId;
       cadet?: { cadetId?: string; callsign?: string; avatar?: string };
       squad?: { squadCode?: string; weatherSeed?: number };
       isTimedMode?: boolean;
     }
   | { type: 'LOAD_STATE'; state: GameState }
   | { type: 'PERFORM_ACTION'; action?: PlayerAction; payload?: PlayerAction }
+  | { type: 'EXECUTE_PLANET_ACTION'; actionId: string }
   | {
       type: 'PERFORM_OPERATION';
       operationId: string;
