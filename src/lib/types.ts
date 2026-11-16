@@ -271,7 +271,14 @@ export type GameAction =
   | { type: 'RESET' }
   | { type: 'RESTART' }
   | { type: 'ABORT_MISSION' }
-  | { type: 'APPLY_SPONSOR_RELIEF' };
+  | { type: 'APPLY_SPONSOR_RELIEF' }
+  | {
+      type: 'COMPLETE_MINIGAME';
+      victory: boolean;
+      score: number;
+      solsCompleted?: number;
+      summaryLog?: string;
+    };
 
 // ── Martian & Planetary Landing Sites ───────────────────────
 

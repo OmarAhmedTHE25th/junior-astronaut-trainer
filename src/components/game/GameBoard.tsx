@@ -12,6 +12,14 @@ import MarsView from './MarsView';
 import PauseMenu from './PauseMenu';
 import SquadMultiplayerHUD from './SquadMultiplayerHUD';
 import RivalTelemetryBar from './RivalTelemetryBar';
+import EarthImpactTriangulation from './minigames/EarthImpactTriangulation';
+import VenusAerostatSurf from './minigames/VenusAerostatSurf';
+import MercuryMeteorDefense from './minigames/MercuryMeteorDefense';
+import JupiterGravitySlingshot from './minigames/JupiterGravitySlingshot';
+import SaturnRingThreader from './minigames/SaturnRingThreader';
+import UranusDiamondHarvester from './minigames/UranusDiamondHarvester';
+import NeptuneJetstreamRunner from './minigames/NeptuneJetstreamRunner';
+import PlanetXAnomalyBoss from './minigames/PlanetXAnomalyBoss';
 import { startAmbientHum, stopAmbientHum } from '@/lib/sound';
 
 interface GameBoardProps {
@@ -111,34 +119,68 @@ export default function GameBoard({
         )}
         <HUD onOpenMenu={() => setIsPauseMenuOpen(true)} />
 
-        {/* Main content area */}
-        <main className="flex-1 flex flex-col lg:flex-row gap-2 p-2 sm:p-2.5 items-start">
-          {/* Center panel */}
-          <div className="flex-1 flex flex-col items-center justify-center gap-2 min-w-0">
-            {/* Phase-specific content */}
-            {state.phase === 'action' && !showFact && <OperationsDeck />}
+        {/* Main content area: Route dedicated mini-games per planet, preserving classic 30-sol survival for Mars */}
+        {state.planetId === 'earth' ? (
+          <main className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 w-full">
+            <EarthImpactTriangulation />
+          </main>
+        ) : state.planetId === 'venus' ? (
+          <main className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 w-full">
+            <VenusAerostatSurf />
+          </main>
+        ) : state.planetId === 'mercury' ? (
+          <main className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 w-full">
+            <MercuryMeteorDefense />
+          </main>
+        ) : state.planetId === 'jupiter' ? (
+          <main className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 w-full">
+            <JupiterGravitySlingshot />
+          </main>
+        ) : state.planetId === 'saturn' ? (
+          <main className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 w-full">
+            <SaturnRingThreader />
+          </main>
+        ) : state.planetId === 'uranus' ? (
+          <main className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 w-full">
+            <UranusDiamondHarvester />
+          </main>
+        ) : state.planetId === 'neptune' ? (
+          <main className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 w-full">
+            <NeptuneJetstreamRunner />
+          </main>
+        ) : state.planetId === 'planet_x' ? (
+          <main className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 w-full">
+            <PlanetXAnomalyBoss />
+          </main>
+        ) : (
+          <main className="flex-1 flex flex-col lg:flex-row gap-2 p-2 sm:p-2.5 items-start">
+            {/* Center panel: Classic Mars Card Survival */}
+            <div className="flex-1 flex flex-col items-center justify-center gap-2 min-w-0">
+              {/* Phase-specific content */}
+              {state.phase === 'action' && !showFact && <OperationsDeck />}
 
-            {state.phase === 'event' && <EventCard />}
+              {state.phase === 'event' && <EventCard />}
 
-            {state.phase === 'result' && (
-              <div
-                className="text-center animate-[fade-in_0.3s_ease-out] p-8"
-                role="status"
-                aria-live="polite"
-              >
-                <p className="text-2xl text-[#F8FAFC] font-bold mb-2">
-                  ⏳ Processing...
-                </p>
-                <p className="text-[#F8FAFC]/60">
-                  Advancing to next sol...
-                </p>
-              </div>
-            )}
-          </div>
+              {state.phase === 'result' && (
+                <div
+                  className="text-center animate-[fade-in_0.3s_ease-out] p-8"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <p className="text-2xl text-[#F8FAFC] font-bold mb-2">
+                    ⏳ Processing...
+                  </p>
+                  <p className="text-[#F8FAFC]/60">
+                    Advancing to next sol...
+                  </p>
+                </div>
+              )}
+            </div>
 
-          {/* Mission Log sidebar */}
-          <MissionLog />
-        </main>
+            {/* Mission Log sidebar */}
+            <MissionLog />
+          </main>
+        )}
       </div>
 
       {/* Pause & Command Menu */}

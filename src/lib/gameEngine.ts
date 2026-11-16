@@ -299,6 +299,10 @@ export function checkVictory(state: GameState): boolean {
  * Calculate the final score at mission end.
  */
 export function calculateScore(state: GameState): number {
+  if (state.planetId && state.planetId !== 'mars' && typeof state.score === 'number' && state.score > 0) {
+    return state.score;
+  }
+
   if (state.isEndlessTournament) {
     const hours = Math.floor((state.missionTimeSeconds || 0) / 3600) || Math.min(23, state.sol % 24);
     return calculateTournamentScore(state.sol, hours, {
@@ -1717,6 +1721,37 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         hasUsedSponsorRation: true,
         log: [logEntry, ...state.log],
         telemetryHistory: updatedHistory,
+      };
+    }
+
+    // ── Dedicated Non-Mars Mini-Game Completion ──────────────
+    case 'COMPLETE_MINIGAME': {
+      const finalSol = action.solsCompleted ?? state.maxSol;
+      const finalScore = Math.max(0, action.score);
+      const isVic = Boolean(action.victory);
+      const logEntry: LogEntry = {
+        sol: finalSol,
+        type: 'system',
+        title: isVic ? 'Mission Objective Cleared' : 'Mission Depletion: Abort',
+        description:
+          action.summaryLog ||
+          (isVic
+            ? 'Mini-game tactical objective cleared with full orbital honors!'
+            : 'Mission parameters compromised. Outpost systems offline.'),
+        resourceChanges: {},
+        icon: isVic ? '🏆' : '💀',
+      };
+
+      return {
+        ...state,
+        phase: isVic ? 'victory' : 'gameover',
+        gameOverReason: isVic ? undefined : 'depleted_resources',
+        score: finalScore,
+        sol: finalSol,
+        power: isVic ? Math.max(state.power, 65) : 0,
+        oxygen: isVic ? Math.max(state.oxygen, 65) : 0,
+        shielding: isVic ? Math.max(state.shielding, 65) : 0,
+        log: [logEntry, ...state.log],
       };
     }
 
