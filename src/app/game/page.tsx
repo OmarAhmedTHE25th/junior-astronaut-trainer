@@ -42,6 +42,7 @@ export default function GamePage() {
   const [savedRun, setSavedRun] = useState<GameState | null>(null);
   const [isResuming, setIsResuming] = useState<boolean>(false);
   const [isTimedMode, setIsTimedMode] = useState<boolean>(false);
+  const [launchNonce, setLaunchNonce] = useState<number>(0);
   const [tournamentMeta, setTournamentMeta] = useState<{
     tournamentId?: string;
     matchId?: string;
@@ -65,6 +66,18 @@ export default function GamePage() {
       const timedParam = params.get("timed");
       const tournamentIdParam = params.get("tournamentId");
       const autoLaunchParam = params.get("launch") === "true";
+      const planetParam = params.get("planet") as PlanetId | null;
+      const isExplicitLaunch = autoLaunchParam || Boolean(planetParam);
+
+      // Force fresh state on explicit launch
+      if (isExplicitLaunch) {
+        try {
+          localStorage.removeItem("jat_active_save_v1");
+        } catch {}
+        setSavedRun(null);
+        setIsResuming(false);
+        setLaunchNonce(Date.now());
+      }
 
       const diffParam = params.get("difficulty") as Difficulty | null;
       if (diffParam && ["cadet", "commander", "pioneer"].includes(diffParam)) {
@@ -82,7 +95,6 @@ export default function GamePage() {
         setIsTimedMode(true);
       }
 
-      const planetParam = params.get("planet") as PlanetId | null;
       const siteParam = params.get("site");
       if (planetParam && ORDERED_PLANET_IDS.includes(planetParam)) {
         setPlanetId(planetParam);
@@ -95,6 +107,12 @@ export default function GamePage() {
           }
         }
         if (autoLaunchParam || siteParam) {
+          try {
+            localStorage.removeItem("jat_active_save_v1");
+          } catch {}
+          setSavedRun(null);
+          setIsResuming(false);
+          setLaunchNonce(Date.now());
           setLaunched(true);
           return;
         }
@@ -115,6 +133,12 @@ export default function GamePage() {
         });
         setDifficulty("commander");
         setWeatherSeed(tSeed);
+        try {
+          localStorage.removeItem("jat_active_save_v1");
+        } catch {}
+        setSavedRun(null);
+        setIsResuming(false);
+        setLaunchNonce(Date.now());
         setLaunched(true);
         return;
       }
@@ -123,6 +147,12 @@ export default function GamePage() {
         const cleanMatch = matchParam.trim();
         setMatchId(cleanMatch);
         setDifficulty("commander");
+        try {
+          localStorage.removeItem("jat_active_save_v1");
+        } catch {}
+        setSavedRun(null);
+        setIsResuming(false);
+        setLaunchNonce(Date.now());
 
         fetch(`/api/match/${cleanMatch}/stream?poll=true`)
           .then((r) => r.json())
@@ -143,6 +173,12 @@ export default function GamePage() {
         const cleanSquad = squadParam.trim().toUpperCase();
         setSquadCode(cleanSquad);
         setDifficulty("commander");
+        try {
+          localStorage.removeItem("jat_active_save_v1");
+        } catch {}
+        setSavedRun(null);
+        setIsResuming(false);
+        setLaunchNonce(Date.now());
 
         fetch(`/api/squad/${cleanSquad}`)
           .then((r) => r.json())
@@ -162,52 +198,54 @@ export default function GamePage() {
         return;
       }
 
-      const raw = localStorage.getItem("jat_active_save_v1");
-      if (raw) {
-        const parsed = JSON.parse(raw) as GameState;
-        if (
-          !parsed ||
-          !parsed.sol ||
-          parsed.phase === "victory" ||
-          parsed.phase === "gameover" ||
-          parsed.power <= 0 ||
-          parsed.oxygen <= 0 ||
-          parsed.shielding <= 0
-        ) {
-          // Mission ended or flatlined: purge save immediately
-          try {
-            localStorage.removeItem("jat_active_save_v1");
-          } catch {}
-          const activeCadetId =
-            parsed?.cadetId ||
-            (typeof window !== "undefined" ? getOrCreateCadetProfile().cadetId : undefined);
-          if (activeCadetId) {
-            fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
-              method: "DELETE",
-              keepalive: true,
-            }).catch(() => {});
+      if (!isExplicitLaunch) {
+        const raw = localStorage.getItem("jat_active_save_v1");
+        if (raw) {
+          const parsed = JSON.parse(raw) as GameState;
+          if (
+            !parsed ||
+            !parsed.sol ||
+            parsed.phase === "victory" ||
+            parsed.phase === "gameover" ||
+            parsed.power <= 0 ||
+            parsed.oxygen <= 0 ||
+            parsed.shielding <= 0
+          ) {
+            // Mission ended or flatlined: purge save immediately
+            try {
+              localStorage.removeItem("jat_active_save_v1");
+            } catch {}
+            const activeCadetId =
+              parsed?.cadetId ||
+              (typeof window !== "undefined" ? getOrCreateCadetProfile().cadetId : undefined);
+            if (activeCadetId) {
+              fetch(`/api/save?cadetId=${encodeURIComponent(activeCadetId)}`, {
+                method: "DELETE",
+                keepalive: true,
+              }).catch(() => {});
+            }
+            setSavedRun(null);
+            setIsResuming(false);
+          } else {
+            // Active, surviving mission
+            setSavedRun(parsed);
+            if (parsed.planetId) {
+              setPlanetId(parsed.planetId);
+            }
+            if (parsed.isTimedMode !== undefined) {
+              setIsTimedMode(parsed.isTimedMode);
+            }
+            if (search.includes("resume=true")) {
+              setIsResuming(true);
+              setLaunched(true);
+            } else {
+              setIsResuming(false);
+            }
           }
+        } else {
           setSavedRun(null);
           setIsResuming(false);
-        } else {
-          // Active, surviving mission
-          setSavedRun(parsed);
-          if (parsed.planetId) {
-            setPlanetId(parsed.planetId);
-          }
-          if (parsed.isTimedMode !== undefined) {
-            setIsTimedMode(parsed.isTimedMode);
-          }
-          if (search.includes("resume=true")) {
-            setIsResuming(true);
-            setLaunched(true);
-          } else {
-            setIsResuming(false);
-          }
         }
-      } else {
-        setSavedRun(null);
-        setIsResuming(false);
       }
     } catch {}
   }, []);
@@ -413,6 +451,7 @@ export default function GamePage() {
                   } catch {}
                   setIsResuming(false);
                   setSavedRun(null); // Launch new mission
+                  setLaunchNonce(Date.now());
                   playAction();
                   setLaunched(true);
                 }}
@@ -439,6 +478,7 @@ export default function GamePage() {
 
   return (
     <GameProvider
+      key={`${planetId}-${landingSite}-${launchNonce}`}
       difficulty={difficulty}
       specialty={activeCadet.specialty}
       landingSite={landingSite}
@@ -474,6 +514,7 @@ export default function GamePage() {
           } catch {}
           setIsResuming(false);
           setSavedRun(null);
+          setLaunchNonce(Date.now());
           setLaunched(false);
         }}
       />

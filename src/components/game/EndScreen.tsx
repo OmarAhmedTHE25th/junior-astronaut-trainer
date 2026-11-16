@@ -261,13 +261,30 @@ export default function EndScreen() {
   const handlePlayAgain = () => {
     playClick();
     quitMission();
+    try {
+      localStorage.removeItem('jat_active_save_v1');
+    } catch {}
     dispatch({ type: 'RESTART' });
   };
 
   const handleReturnToCommandCenter = () => {
     playClick();
     quitMission();
+    try {
+      localStorage.removeItem('jat_active_save_v1');
+    } catch {}
+    dispatch({ type: 'RESTART' });
     window.location.assign('/');
+  };
+
+  const handleGoToCampaignMap = (targetUrl: string = '/planets') => {
+    playClick();
+    quitMission();
+    try {
+      localStorage.removeItem('jat_active_save_v1');
+    } catch {}
+    dispatch({ type: 'RESTART' });
+    router.push(targetUrl);
   };
 
   const handlePrint = () => {
@@ -710,13 +727,13 @@ export default function EndScreen() {
                   </p>
                 </div>
               </div>
-              <Link
-                href={`/planets/${unlockedNextCartridge.id}`}
-                onClick={playClick}
-                className="px-5 py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 border border-emerald-200 text-slate-950 font-bold text-xs uppercase tracking-wider hover:scale-105 active:scale-95 transition-all shadow-md flex-shrink-0 text-center"
+              <button
+                type="button"
+                onClick={() => handleGoToCampaignMap(`/planets/${unlockedNextCartridge.id}`)}
+                className="px-5 py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 border border-emerald-200 text-slate-950 font-bold text-xs uppercase tracking-wider hover:scale-105 active:scale-95 transition-all shadow-md flex-shrink-0 text-center cursor-pointer"
               >
                 Explore {unlockedNextCartridge.name} →
-              </Link>
+              </button>
             </div>
           )}
 
@@ -753,15 +770,15 @@ export default function EndScreen() {
             <Button variant="primary" size="lg" onClick={handlePlayAgain} className="w-full justify-center">
               🚀 Play Another Mission
             </Button>
-            <Link
-              href="/planets"
-              onClick={playClick}
+            <button
+              type="button"
+              onClick={() => handleGoToCampaignMap('/planets')}
               className="w-full py-3 rounded-2xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/50 text-cyan-200 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-98"
             >
               <span>🪐</span>
               <span>Solar System Campaign Map</span>
               <span>→</span>
-            </Link>
+            </button>
             <Button
               variant="secondary"
               size="md"

@@ -65,6 +65,7 @@ function PlanetBriefingContent() {
     if (gameMode === 'endless') {
       query.set('tournamentId', 'campaign-endless');
     }
+    query.set('nonce', Date.now().toString());
     try {
       localStorage.removeItem('jat_active_save_v1');
     } catch {}
