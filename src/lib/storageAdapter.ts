@@ -169,12 +169,18 @@ async function ensureSchema(sql: NeonQueryFunction<false, false>): Promise<void>
             badges JSONB DEFAULT '[]'::jsonb,
             updated_at TIMESTAMPTZ DEFAULT NOW()
           );
+        `;
+        await sql`
           ALTER TABLE cadet_profiles ADD COLUMN IF NOT EXISTS specialty TEXT DEFAULT 'commander';
+        `;
+        await sql`
           CREATE TABLE IF NOT EXISTS active_saves (
             cadet_id TEXT PRIMARY KEY,
             game_state JSONB NOT NULL,
             updated_at TIMESTAMPTZ DEFAULT NOW()
           );
+        `;
+        await sql`
           CREATE TABLE IF NOT EXISTS leaderboard_entries (
             id SERIAL PRIMARY KEY,
             cadet_id TEXT NOT NULL,
@@ -187,7 +193,11 @@ async function ensureSchema(sql: NeonQueryFunction<false, false>): Promise<void>
             badges_count INT DEFAULT 0,
             created_at TIMESTAMPTZ DEFAULT NOW()
           );
+        `;
+        await sql`
           CREATE INDEX IF NOT EXISTS idx_leaderboard_score_created ON leaderboard_entries (score DESC, created_at ASC);
+        `;
+        await sql`
           CREATE TABLE IF NOT EXISTS squad_rooms (
             room_code VARCHAR(6) PRIMARY KEY,
             landing_zone VARCHAR(32) NOT NULL,
@@ -197,7 +207,11 @@ async function ensureSchema(sql: NeonQueryFunction<false, false>): Promise<void>
             is_timed_mode BOOLEAN DEFAULT FALSE,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
           );
+        `;
+        await sql`
           ALTER TABLE squad_rooms ADD COLUMN IF NOT EXISTS is_timed_mode BOOLEAN DEFAULT FALSE;
+        `;
+        await sql`
           CREATE INDEX IF NOT EXISTS idx_squad_rooms_status ON squad_rooms (status, created_at DESC);
         `;
         globalThis.__jat_neon_schema_ready__ = true;

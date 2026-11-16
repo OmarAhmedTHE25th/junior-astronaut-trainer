@@ -90,9 +90,13 @@ export async function ensureMarketplaceSchema(sql: NeonQueryFunction<false, fals
             is_five_star_general BOOLEAN NOT NULL DEFAULT FALSE,
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
           );
+        `;
 
+        await sql`
           ALTER TABLE player_wallets ADD COLUMN IF NOT EXISTS is_five_star_general BOOLEAN NOT NULL DEFAULT FALSE;
+        `;
 
+        await sql`
           CREATE TABLE IF NOT EXISTS player_inventory (
             id VARCHAR(64) PRIMARY KEY,
             player_id VARCHAR(64) NOT NULL,
@@ -103,7 +107,9 @@ export async function ensureMarketplaceSchema(sql: NeonQueryFunction<false, fals
             metadata_json JSONB DEFAULT '{}'::jsonb,
             UNIQUE (player_id, item_slug)
           );
+        `;
 
+        await sql`
           CREATE TABLE IF NOT EXISTS market_listings (
             id VARCHAR(64) PRIMARY KEY,
             seller_id VARCHAR(64) NOT NULL,
@@ -119,7 +125,9 @@ export async function ensureMarketplaceSchema(sql: NeonQueryFunction<false, fals
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             expires_at TIMESTAMPTZ NOT NULL
           );
+        `;
 
+        await sql`
           CREATE TABLE IF NOT EXISTS market_transactions (
             id VARCHAR(64) PRIMARY KEY,
             listing_id VARCHAR(64) NOT NULL REFERENCES market_listings(id),
@@ -131,8 +139,13 @@ export async function ensureMarketplaceSchema(sql: NeonQueryFunction<false, fals
             market_tax_paid INT NOT NULL DEFAULT 0,
             executed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
           );
+        `;
 
+        await sql`
           CREATE INDEX IF NOT EXISTS idx_market_listings_status ON market_listings(status, category);
+        `;
+
+        await sql`
           CREATE INDEX IF NOT EXISTS idx_player_inventory_player ON player_inventory(player_id);
         `;
 

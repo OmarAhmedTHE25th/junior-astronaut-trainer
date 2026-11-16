@@ -140,6 +140,9 @@ export async function ensureTournamentSchema(sql: NeonQueryFunction<false, false
 
     await sql`
       CREATE INDEX IF NOT EXISTS idx_tournament_status ON tournaments(status);
+    `;
+
+    await sql`
       CREATE INDEX IF NOT EXISTS idx_tournament_matches ON tournament_bracket_matches(tournament_id, round_number);
     `;
 

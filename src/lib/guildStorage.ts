@@ -180,7 +180,9 @@ export async function ensureGuildSchema(sql: NeonQueryFunction<false, false>): P
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
           );
+        `;
 
+        await sql`
           CREATE TABLE IF NOT EXISTS guild_members (
             guild_id VARCHAR(64) NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
             cadet_id VARCHAR(64) NOT NULL UNIQUE,
