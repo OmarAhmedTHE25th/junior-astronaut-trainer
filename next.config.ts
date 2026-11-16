@@ -21,5 +21,5 @@ const nextConfig: NextConfig = {
     },
   },
 };
-
+/* Test addition */
 export default nextConfig;
