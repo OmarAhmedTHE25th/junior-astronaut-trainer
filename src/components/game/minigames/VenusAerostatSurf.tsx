@@ -41,6 +41,7 @@ export default function VenusAerostatSurf() {
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  const [gameState, setGameState] = useState<'briefing' | 'playing'>('briefing');
   const [hull, setHull] = useState<number>(() => (hasAegisHullMatrix ? 135 : 100));
   const [score, setScore] = useState<number>(0);
   const [timeRemaining, setTimeRemaining] = useState<number>(() => (isTimed ? 30 : 45) + (hasChronoStabilizer ? 10 : 0));
@@ -124,18 +125,18 @@ export default function VenusAerostatSurf() {
 
     const finalHull = hullRef.current;
     const baseScore = victory
-      ? scoreRef.current + finalHull * 25 + 2200
+      ? scoreRef.current + Math.round(finalHull * 2.5) + 350
       : scoreRef.current;
-    const finalScore = isTimed && victory ? Math.round(baseScore * 1.5) : baseScore;
+    const finalScore = isTimed && victory ? Math.min(1250, Math.round(baseScore * 1.3)) : Math.min(1050, baseScore);
 
     setTimeout(() => {
       dispatch({
         type: 'COMPLETE_MINIGAME',
         victory,
-        score: Math.max(300, finalScore),
+        score: Math.max(150, finalScore),
         solsCompleted: 30,
         summaryLog: victory
-          ? `HAVOC Aerostat successfully rode Venus's 400 km/h super-rotation wave! Hull maintained at ${finalHull}%${isTimed ? ' (Blitz 1.5x Multiplier Applied)' : ''}. Earned ${finalScore} PTS.`
+          ? `HAVOC Aerostat successfully rode Venus's 400 km/h super-rotation wave! Hull maintained at ${finalHull}%${isTimed ? ' (Blitz Multiplier Applied)' : ''}. Earned ${finalScore} PTS.`
           : `HAVOC Aerostat hull ruptured in supercritical sulfuric acid shear zone. Pressure hull failed.`,
       });
     }, 600);
@@ -168,6 +169,7 @@ export default function VenusAerostatSurf() {
 
   // Timer countdown
   useEffect(() => {
+    if (gameState !== 'playing') return;
     const timer = setInterval(() => {
       if (isGameOverRef.current) return;
 
@@ -182,7 +184,7 @@ export default function VenusAerostatSurf() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [finishGame, playSuccess]);
+  }, [finishGame, playSuccess, gameState]);
 
   // Main 60fps Canvas Loop
   useEffect(() => {
@@ -276,15 +278,16 @@ export default function VenusAerostatSurf() {
 
       // Passive score for smooth flying
       scoreTickTimer++;
-      if (scoreTickTimer >= 10 && !isGameOverRef.current) {
+      if (scoreTickTimer >= 15 && !isGameOverRef.current && gameState === 'playing') {
         scoreTickTimer = 0;
-        scoreRef.current += 10;
+        scoreRef.current += 3;
         setScore(scoreRef.current);
       }
 
       // ── 4. Spawn Obstacles & Telemetry Orbs ──
-      spawnTimer++;
-      if (spawnTimer >= 35 && !isGameOverRef.current) {
+      const isFinalStretch = timeRemaining <= 15;
+      spawnTimer += isFinalStretch ? 2 : 1;
+      if (spawnTimer >= 36 && !isGameOverRef.current && gameState === 'playing') {
         spawnTimer = 0;
 
         // Acid Cloud
@@ -294,7 +297,7 @@ export default function VenusAerostatSurf() {
           x: W + 40,
           y: cloudY,
           radius: Math.random() * 12 + 18,
-          speed: Math.random() * 1.5 + 4.2,
+          speed: (Math.random() * 1.5 + 4.2) * (isFinalStretch ? 1.35 : 1.0),
           alpha: 0.85,
         });
 
@@ -305,7 +308,7 @@ export default function VenusAerostatSurf() {
             x: W + 70,
             y: Math.random() * (safeBottom - safeTop - 40) + safeTop + 20,
             radius: 8,
-            speed: 4.8,
+            speed: 4.8 * (isFinalStretch ? 1.25 : 1.0),
             collected: false,
           });
         }
@@ -387,7 +390,7 @@ export default function VenusAerostatSurf() {
         const dist = Math.hypot(orb.x - aero.x, orb.y - aero.y);
         if (dist < orb.radius + aero.height) {
           telemetryOrbsRef.current.splice(i, 1);
-          scoreRef.current += 200;
+          scoreRef.current += 50;
           setScore(scoreRef.current);
           setOrbsCollected((prev) => prev + 1);
           playChimeSound();
@@ -477,10 +480,62 @@ export default function VenusAerostatSurf() {
 
     animId = requestAnimationFrame(gameLoop);
     return () => cancelAnimationFrame(animId);
-  }, [finishGame, playAlert, playChimeSound, playSizzleSound]);
+  }, [finishGame, playAlert, playChimeSound, playSizzleSound, gameState, timeRemaining]);
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col items-center gap-3 p-3 sm:p-5 rounded-3xl bg-[#140e04]/95 border-2 border-amber-500/50 shadow-[0_0_40px_rgba(245,158,11,0.25)] text-white font-mono animate-slide-up select-none">
+    <div className="relative w-full max-w-4xl mx-auto flex flex-col items-center gap-3 p-3 sm:p-5 rounded-3xl bg-[#140e04]/95 border-2 border-amber-500/50 shadow-[0_0_40px_rgba(245,158,11,0.25)] text-white font-mono animate-slide-up select-none overflow-hidden">
+      {/* ── PRE-GAME BRIEFING OVERLAY ── */}
+      {gameState === 'briefing' && (
+        <div className="absolute inset-0 z-50 bg-slate-950/92 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-[#1c1204] border-2 border-amber-400/70 rounded-3xl p-6 shadow-[0_0_40px_rgba(245,158,11,0.4)] space-y-4 text-white">
+            <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+              <span className="text-3xl">🎈</span>
+              <div>
+                <h3 className="font-heading font-black text-lg text-amber-300">
+                  Venus: Aerostat Surf
+                </h3>
+                <p className="text-xs text-starlight/70 font-mono">
+                  HAVOC Cloud-Deck Altitude Flight
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs font-sans">
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-1">
+                <span className="font-mono font-bold text-amber-400 block">🎯 OBJECTIVE:</span>
+                <span className="text-starlight/90 leading-snug block">
+                  Pilot the NASA HAVOC cloud platform inside the temperate 50–60 km altitude corridor for 45 seconds while avoiding toxic sulfuric acid clouds.
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-1">
+                <span className="font-mono font-bold text-cyan-400 block">🕹️ CONTROLS:</span>
+                <span className="text-starlight/90 leading-snug block">
+                  Hold Spacebar, Up Arrow, Click, or Touch &amp; Hold to fire buoyancy thermal heaters (ascend). Release to vent ballast and glide down.
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-1">
+                <span className="font-mono font-bold text-rose-400 block">⚠️ HOW YOU LOSE:</span>
+                <span className="text-starlight/90 leading-snug block">
+                  Hull drops to 0% from corrosive H₂SO₄ acid cloud impacts or leaving the safe green atmospheric corridor.
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setGameState('playing');
+              }}
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-heading font-black text-base shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+            >
+              START OPERATION 🚀
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── TOP HEADER / HUD ── */}
       <div className="w-full flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-amber-500/20">
         <div className="flex items-center gap-3">

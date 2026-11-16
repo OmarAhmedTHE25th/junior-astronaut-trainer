@@ -43,6 +43,7 @@ export default function NeptuneJetstreamRunner() {
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  const [gameState, setGameState] = useState<'briefing' | 'playing'>('briefing');
   const [shield, setShield] = useState<number>(() => (hasAegisHullMatrix ? 135 : 100));
   const [score, setScore] = useState<number>(0);
   const [timeRemaining, setTimeRemaining] = useState<number>(() => (isTimed ? 30 : 45) + (hasChronoStabilizer ? 10 : 0));
@@ -108,18 +109,18 @@ export default function NeptuneJetstreamRunner() {
 
     const finalShield = shieldRef.current;
     const baseScore = victory
-      ? scoreRef.current + finalShield * 40 + 3500
+      ? scoreRef.current + Math.round(finalShield * 2.5) + 400
       : scoreRef.current;
-    const finalScore = isTimed && victory ? Math.round(baseScore * 1.5) : baseScore;
+    const finalScore = isTimed && victory ? Math.min(1450, Math.round(baseScore * 1.3)) : Math.min(1250, baseScore);
 
     setTimeout(() => {
       dispatch({
         type: 'COMPLETE_MINIGAME',
         victory,
-        score: Math.max(400, finalScore),
+        score: Math.max(200, finalScore),
         solsCompleted: 30,
         summaryLog: victory
-          ? `Neptune Supersonic Jetstream run complete! Surfed 2,100 km/h winds with ${finalShield}% shield intact${isTimed ? ' (Blitz 1.5x Multiplier Applied)' : ''}. Unlocked Planet Nine clearance! Earned ${finalScore} PTS.`
+          ? `Neptune Supersonic Jetstream run complete! Surfed 2,100 km/h winds with ${finalShield}% shield intact${isTimed ? ' (Blitz Multiplier Applied)' : ''}. Unlocked Planet Nine clearance! Earned ${finalScore} PTS.`
           : `Probe torn apart in Great Dark Spot supersonic shear vortex. Telemetry lost.`,
       });
     }, 600);
@@ -127,13 +128,15 @@ export default function NeptuneJetstreamRunner() {
 
   // Lane switching
   const setLane = useCallback((targetLane: number) => {
+    if (gameState !== 'playing') return;
     const clamped = Math.max(0, Math.min(LANE_COUNT - 1, targetLane));
     activeLaneRef.current = clamped;
     setActiveLane(clamped);
-  }, []);
+  }, [gameState]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (gameState !== 'playing') return;
       if (e.key === 'ArrowUp' || e.key === 'w') {
         e.preventDefault();
         setLane(activeLaneRef.current - 1);
@@ -144,10 +147,11 @@ export default function NeptuneJetstreamRunner() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setLane]);
+  }, [setLane, gameState]);
 
   // Timer countdown
   useEffect(() => {
+    if (gameState !== 'playing') return;
     const timer = setInterval(() => {
       if (isGameOverRef.current) return;
 
@@ -162,7 +166,7 @@ export default function NeptuneJetstreamRunner() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [finishGame, playSuccess]);
+  }, [finishGame, playSuccess, gameState]);
 
   // Main 60fps Loop
   useEffect(() => {
@@ -214,15 +218,16 @@ export default function NeptuneJetstreamRunner() {
 
       // Passive points
       speedBonusTimer++;
-      if (speedBonusTimer >= 8 && !isGameOverRef.current) {
+      if (speedBonusTimer >= 12 && !isGameOverRef.current && gameState === 'playing') {
         speedBonusTimer = 0;
-        scoreRef.current += 20;
+        scoreRef.current += 3;
         setScore(scoreRef.current);
       }
 
       // ── 2. Spawn Vortexes & Slipstreams ──
-      spawnTimer++;
-      if (spawnTimer >= 26 && !isGameOverRef.current) {
+      const isFinalStretch = timeRemaining <= 15;
+      spawnTimer += isFinalStretch ? 2 : 1;
+      if (spawnTimer >= 28 && !isGameOverRef.current && gameState === 'playing') {
         spawnTimer = 0;
 
         // Choose 1-2 random lanes for vortexes
@@ -232,7 +237,7 @@ export default function NeptuneJetstreamRunner() {
           lane: chosenLane,
           x: W + 50,
           radius: 26,
-          speed: 6.8,
+          speed: 6.8 * (isFinalStretch ? 1.3 : 1.0),
         });
 
         // Spawn slipstream in another lane
@@ -241,7 +246,7 @@ export default function NeptuneJetstreamRunner() {
           id: nextEntityIdRef.current++,
           lane: slipLane,
           x: W + 70,
-          speed: 7.2,
+          speed: 7.2 * (isFinalStretch ? 1.25 : 1.0),
           collected: false,
         });
       }
@@ -270,7 +275,7 @@ export default function NeptuneJetstreamRunner() {
         const probeY = activeLaneRef.current * laneHeight + laneHeight / 2;
         if (!sl.collected && sl.lane === activeLaneRef.current && Math.abs(sl.x - probeX) < 32) {
           sl.collected = true;
-          scoreRef.current += 300;
+          scoreRef.current += 60;
           setScore(scoreRef.current);
           setSlipstreamStreak((prev) => prev + 1);
           playSlipstreamWhoosh();
@@ -422,10 +427,62 @@ export default function NeptuneJetstreamRunner() {
 
     animId = requestAnimationFrame(gameLoop);
     return () => cancelAnimationFrame(animId);
-  }, [finishGame, playAlert, playSlipstreamWhoosh, playVortexHitSound]);
+  }, [finishGame, playAlert, playSlipstreamWhoosh, playVortexHitSound, gameState, timeRemaining]);
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col items-center gap-3 p-3 sm:p-5 rounded-3xl bg-[#04081c]/95 border-2 border-blue-500/50 shadow-[0_0_40px_rgba(59,130,246,0.25)] text-white font-mono animate-slide-up select-none">
+    <div className="relative w-full max-w-4xl mx-auto flex flex-col items-center gap-3 p-3 sm:p-5 rounded-3xl bg-[#04081c]/95 border-2 border-blue-500/50 shadow-[0_0_40px_rgba(59,130,246,0.25)] text-white font-mono animate-slide-up select-none overflow-hidden">
+      {/* ── PRE-GAME BRIEFING OVERLAY ── */}
+      {gameState === 'briefing' && (
+        <div className="absolute inset-0 z-50 bg-slate-950/92 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-[#071333] border-2 border-blue-400/70 rounded-3xl p-6 shadow-[0_0_40px_rgba(59,130,246,0.4)] space-y-4 text-white">
+            <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+              <span className="text-3xl">🌪️</span>
+              <div>
+                <h3 className="font-heading font-black text-lg text-blue-300">
+                  Neptune: Jetstream Surfer
+                </h3>
+                <p className="text-xs text-starlight/70 font-mono">
+                  4-Lane Supersonic Storm Navigation
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs font-sans">
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-1">
+                <span className="font-mono font-bold text-amber-400 block">🎯 OBJECTIVE:</span>
+                <span className="text-starlight/90 leading-snug block">
+                  Surf the 2,100 km/h supersonic methane jet streams across 4 altitude lanes for 45 seconds, catching cyan slipstreams while dodging Great Dark Spot vortices.
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-1">
+                <span className="font-mono font-bold text-cyan-400 block">🕹️ CONTROLS:</span>
+                <span className="text-starlight/90 leading-snug block">
+                  Press Up/Down Arrow keys, W/S keys, or click/tap the lane selector buttons on the right to shift jetstream altitude lanes.
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-1">
+                <span className="font-mono font-bold text-rose-400 block">⚠️ HOW YOU LOSE:</span>
+                <span className="text-starlight/90 leading-snug block">
+                  Kinetic shield drops to 0% from high-speed collisions with Great Dark Spot cyclonic storm vortexes.
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setGameState('playing');
+              }}
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-slate-950 font-heading font-black text-base shadow-[0_0_20px_rgba(59,130,246,0.4)] transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+            >
+              START OPERATION 🚀
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── TOP HEADER / HUD ── */}
       <div className="w-full flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-blue-500/20">
         <div className="flex items-center gap-3">

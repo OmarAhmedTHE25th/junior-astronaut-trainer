@@ -10,6 +10,7 @@ import { useProfile } from '@/lib/profile';
 import {
   type PlanetId,
   PLANET_CARTRIDGES,
+  PLANET_MISSION_GUIDES,
   isPlanetUnlocked,
   getPlanetBestScores,
   getPlanetCartridge,
@@ -28,7 +29,7 @@ const ARCADE_OBJECTIVE_MAP: Record<string, {
     type: 'Orbital Reconnaissance & Seismic Grid',
     objective: 'Deploy TDRS-12 satellite radar pings to triangulate 3 kinetic bolide impact fragments before scan budget depletes.',
     parameters: [
-      { icon: '📡', label: 'Scan Budget', value: '10 Pings' },
+      { icon: '📡', label: 'Scan Budget', value: '8 Pings' },
       { icon: '🎯', label: 'Hidden Targets', value: '3 Impact Zones' },
       { icon: '🚨', label: 'Tactical Tool', value: 'Evacuation Beacon' },
       { icon: '🌡️', label: 'Sensor Grid', value: '8×8 Chebyshev Telemetry' },
@@ -200,6 +201,7 @@ function PlanetBriefingContent() {
   const cartridge = useMemo(() => getPlanetCartridge(planetParam), [planetParam]);
   const isMars = cartridge.id === 'mars';
   const arcadeObjective = ARCADE_OBJECTIVE_MAP[cartridge.id];
+  const missionGuide = useMemo(() => PLANET_MISSION_GUIDES[cartridge.id], [cartridge.id]);
   const planetFacts = useMemo(() => getPlanetFacts(cartridge.id), [cartridge.id]);
 
   const [mounted, setMounted] = useState<boolean>(false);
@@ -487,6 +489,93 @@ function PlanetBriefingContent() {
             </div>
           </div>
         </section>
+
+        {/* Mission Objective & Controls Briefing */}
+        {missionGuide && (
+          <section className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-[#0F172A]/95 via-[#1E1B4B]/90 to-[#0F172A]/95 border-2 border-cyan-400/50 shadow-2xl space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">{missionGuide.icon}</span>
+                <div>
+                  <h3 className="font-heading font-black text-base sm:text-lg text-white flex items-center gap-2">
+                    <span>{missionGuide.name}</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 uppercase">
+                      Tactical Briefing
+                    </span>
+                  </h3>
+                  <p className="text-xs text-starlight/70 font-mono">
+                    Essential flight parameters &amp; manual flight controls
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Objective & Win/Loss */}
+              <div className="p-4 rounded-2xl bg-black/50 border border-white/10 space-y-2.5">
+                <div>
+                  <div className="text-[10px] font-mono font-bold text-cyan-300 uppercase flex items-center gap-1.5 mb-1">
+                    <span>🎯</span>
+                    <span>Primary Objective</span>
+                  </div>
+                  <p className="text-xs text-starlight/90 leading-relaxed font-sans">
+                    {missionGuide.objective}
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-white/10">
+                  <div className="text-[10px] font-mono font-bold text-emerald-400 uppercase flex items-center gap-1 mb-0.5">
+                    <span>🏆</span>
+                    <span>Win Condition</span>
+                  </div>
+                  <p className="text-xs text-emerald-300/90 leading-tight">
+                    {missionGuide.winCondition}
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-white/10">
+                  <div className="text-[10px] font-mono font-bold text-rose-400 uppercase flex items-center gap-1 mb-0.5">
+                    <span>⚠️</span>
+                    <span>How You Lose</span>
+                  </div>
+                  <p className="text-xs text-rose-300/90 leading-tight">
+                    {missionGuide.lossCondition}
+                  </p>
+                </div>
+              </div>
+
+              {/* Controls */}
+              <div className="p-4 rounded-2xl bg-black/50 border border-white/10 space-y-2">
+                <div className="text-[10px] font-mono font-bold text-amber-300 uppercase flex items-center gap-1.5 mb-1">
+                  <span>🕹️</span>
+                  <span>Flight &amp; System Controls</span>
+                </div>
+                <ul className="space-y-1.5 text-xs text-starlight/90 font-mono">
+                  {missionGuide.controls.map((ctrl, idx) => (
+                    <li key={idx} className="flex items-start gap-2 bg-white/5 rounded-lg p-2 border border-white/5">
+                      <span className="text-cyan-400 font-bold shrink-0">▸</span>
+                      <span className="leading-snug">{ctrl}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Scoring & Pro-Tip */}
+              <div className="p-4 rounded-2xl bg-black/50 border border-white/10 flex flex-col justify-between space-y-2">
+                <div>
+                  <div className="text-[10px] font-mono font-bold text-purple-300 uppercase flex items-center gap-1.5 mb-1">
+                    <span>💡</span>
+                    <span>Scoring &amp; Multipliers</span>
+                  </div>
+                  <p className="text-xs text-starlight/90 leading-relaxed font-sans bg-purple-950/30 p-2.5 rounded-xl border border-purple-500/20">
+                    {missionGuide.scoringTip}
+                  </p>
+                </div>
+                <div className="p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-[10px] font-mono text-cyan-200">
+                  <span className="font-bold text-white">🚀 PRE-FLIGHT CHECK:</span> Controls and gameplay timers pause until you click &quot;START OPERATION&quot; on the active HUD.
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* NASA Planetary Science Telemetry & Fun Facts Card */}
         {planetFacts.length > 0 && (

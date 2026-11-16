@@ -45,6 +45,7 @@ export default function SaturnRingThreader() {
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  const [gameState, setGameState] = useState<'briefing' | 'playing'>('briefing');
   const [shield, setShield] = useState<number>(() => (hasAegisHullMatrix ? 135 : 100));
   const [score, setScore] = useState<number>(0);
   const [timeRemaining, setTimeRemaining] = useState<number>(() => (isTimed ? 30 : 45) + (hasChronoStabilizer ? 10 : 0));
@@ -111,18 +112,18 @@ export default function SaturnRingThreader() {
 
     const finalShield = shieldRef.current;
     const baseScore = victory
-      ? scoreRef.current + finalShield * 35 + 2800
+      ? scoreRef.current + Math.round(finalShield * 2.5) + 350
       : scoreRef.current;
-    const finalScore = isTimed && victory ? Math.round(baseScore * 1.5) : baseScore;
+    const finalScore = isTimed && victory ? Math.min(1300, Math.round(baseScore * 1.3)) : Math.min(1100, baseScore);
 
     setTimeout(() => {
       dispatch({
         type: 'COMPLETE_MINIGAME',
         victory,
-        score: Math.max(300, finalScore),
+        score: Math.max(150, finalScore),
         solsCompleted: 30,
         summaryLog: victory
-          ? `Cassini Division transit successful! Threaded Saturn's ring-plane at 70,000 km/h with ${finalShield}% shield intact${isTimed ? ' (Blitz 1.5x Multiplier Applied)' : ''}. Earned ${finalScore} PTS.`
+          ? `Cassini Division transit successful! Threaded Saturn's ring-plane at 70,000 km/h with ${finalShield}% shield intact${isTimed ? ' (Blitz Multiplier Applied)' : ''}. Earned ${finalScore} PTS.`
           : `Probe pulverized by dense water-ice ring-plane debris during Cassini Division crossing.`,
       });
     }, 600);
@@ -130,6 +131,7 @@ export default function SaturnRingThreader() {
 
   // Mouse / Touch Steering
   const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+    if (gameState !== 'playing') return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
@@ -138,6 +140,7 @@ export default function SaturnRingThreader() {
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLElement>) => {
+    if (gameState !== 'playing') return;
     const canvas = canvasRef.current;
     if (!canvas || !e.touches[0]) return;
     const rect = canvas.getBoundingClientRect();
@@ -148,6 +151,7 @@ export default function SaturnRingThreader() {
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (gameState !== 'playing') return;
       if (e.key === 'ArrowLeft' || e.key === 'a') {
         probePosRef.current.targetX = Math.max(30, probePosRef.current.targetX - 35);
       } else if (e.key === 'ArrowRight' || e.key === 'd') {
@@ -156,10 +160,11 @@ export default function SaturnRingThreader() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [gameState]);
 
   // Timer countdown
   useEffect(() => {
+    if (gameState !== 'playing') return;
     const timer = setInterval(() => {
       if (isGameOverRef.current) return;
 
@@ -174,7 +179,7 @@ export default function SaturnRingThreader() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [finishGame, playSuccess]);
+  }, [finishGame, playSuccess, gameState]);
 
   // Main 60fps Loop
   useEffect(() => {
@@ -222,15 +227,16 @@ export default function SaturnRingThreader() {
 
       // Passive score accrual
       scoreTimer++;
-      if (scoreTimer >= 8 && !isGameOverRef.current) {
+      if (scoreTimer >= 12 && !isGameOverRef.current && gameState === 'playing') {
         scoreTimer = 0;
-        scoreRef.current += 15;
+        scoreRef.current += 3;
         setScore(scoreRef.current);
       }
 
       // ── 3. Spawn Ring Boulders & Enceladus Plumes ──
-      spawnTimer++;
-      if (spawnTimer >= 18 && !isGameOverRef.current) {
+      const isFinalStretch = timeRemaining <= 15;
+      spawnTimer += isFinalStretch ? 2 : 1;
+      if (spawnTimer >= 20 && !isGameOverRef.current && gameState === 'playing') {
         spawnTimer = 0;
 
         // Ice/rock boulders in ring-plane
@@ -244,7 +250,7 @@ export default function SaturnRingThreader() {
               x: bx,
               y: -25,
               radius: Math.random() * 12 + 14,
-              speed: Math.random() * 2 + 5.5,
+              speed: (Math.random() * 2 + 5.5) * (isFinalStretch ? 1.35 : 1.0),
               rotation: Math.random() * Math.PI,
               rotSpeed: (Math.random() - 0.5) * 0.05,
               type: Math.random() > 0.3 ? 'ice' : 'rock',
@@ -291,7 +297,7 @@ export default function SaturnRingThreader() {
           pl.active = false;
           shieldRef.current = Math.min(100, shieldRef.current + 12);
           setShield(Math.round(shieldRef.current));
-          scoreRef.current += 300;
+          scoreRef.current += 60;
           setScore(scoreRef.current);
           setGeysersSkimmed((prev) => prev + 1);
           playGeyserBoostSound();
@@ -445,10 +451,62 @@ export default function SaturnRingThreader() {
 
     animId = requestAnimationFrame(gameLoop);
     return () => cancelAnimationFrame(animId);
-  }, [finishGame, playAlert, playGeyserBoostSound, playIceImpactSound]);
+  }, [finishGame, playAlert, playGeyserBoostSound, playIceImpactSound, gameState, timeRemaining]);
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col items-center gap-3 p-3 sm:p-5 rounded-3xl bg-[#080b18]/95 border-2 border-cyan-500/50 shadow-[0_0_40px_rgba(6,182,212,0.25)] text-white font-mono animate-slide-up select-none">
+    <div className="relative w-full max-w-4xl mx-auto flex flex-col items-center gap-3 p-3 sm:p-5 rounded-3xl bg-[#080b18]/95 border-2 border-cyan-500/50 shadow-[0_0_40px_rgba(6,182,212,0.25)] text-white font-mono animate-slide-up select-none overflow-hidden">
+      {/* ── PRE-GAME BRIEFING OVERLAY ── */}
+      {gameState === 'briefing' && (
+        <div className="absolute inset-0 z-50 bg-slate-950/92 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-[#0a1024] border-2 border-cyan-400/70 rounded-3xl p-6 shadow-[0_0_40px_rgba(6,182,212,0.4)] space-y-4 text-white">
+            <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+              <span className="text-3xl">🪐</span>
+              <div>
+                <h3 className="font-heading font-black text-lg text-cyan-300">
+                  Saturn: Ring Threader
+                </h3>
+                <p className="text-xs text-starlight/70 font-mono">
+                  Cassini Division Ice Navigation
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs font-sans">
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-1">
+                <span className="font-mono font-bold text-amber-400 block">🎯 OBJECTIVE:</span>
+                <span className="text-starlight/90 leading-snug block">
+                  Thread through the high-density Cassini Division ring plane for 40 seconds, avoiding water-ice boulders and skimming Enceladus plumes to recharge shields.
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-1">
+                <span className="font-mono font-bold text-cyan-400 block">🕹️ CONTROLS:</span>
+                <span className="text-starlight/90 leading-snug block">
+                  Move mouse, touch &amp; drag left/right, or use Left/Right Arrow keys or A/D to steer the probe through narrow gaps between boulders.
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-1">
+                <span className="font-mono font-bold text-rose-400 block">⚠️ HOW YOU LOSE:</span>
+                <span className="text-starlight/90 leading-snug block">
+                  Shield integrity collapses to 0% from high-velocity ring boulder collisions.
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setGameState('playing');
+              }}
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-heading font-black text-base shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+            >
+              START OPERATION 🚀
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── TOP HEADER / HUD ── */}
       <div className="w-full flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-cyan-500/20">
         <div className="flex items-center gap-3">

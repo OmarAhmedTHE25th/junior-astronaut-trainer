@@ -161,8 +161,8 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       'The secondary human proving ground. A dry, oxidized world where thin CO2 atmosphere, high UV radiation, and severe regolith dust storms demand constant life support calibration.',
     dayUnit: { singular: 'SOL', plural: 'SOLS' },
     image: '/planets/mars.png',
-    requiredPrevScore: 1000,
-    unlockTargetScore: 1500,
+    requiredPrevScore: 500,
+    unlockTargetScore: 650,
     prevPlanetId: 'earth',
     nextPlanetId: 'venus',
     theme: {
@@ -328,7 +328,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
     dayUnit: { singular: 'DAY', plural: 'DAYS' },
     image: '/planets/earth.png',
     requiredPrevScore: 0,
-    unlockTargetScore: 1000,
+    unlockTargetScore: 500,
     nextPlanetId: 'mars',
     theme: {
       bgGradient: 'from-blue-950 via-slate-950 to-emerald-950',
@@ -492,8 +492,8 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       'Beneath the yellow clouds lies a 465°C furnace. At 55 km altitude, pressure and temperature are Earth-like, but corrosive sulfuric rain never stops.',
     dayUnit: { singular: 'CYCLE', plural: 'CYCLES' },
     image: '/planets/venus.png',
-    requiredPrevScore: 1500,
-    unlockTargetScore: 2000,
+    requiredPrevScore: 650,
+    unlockTargetScore: 800,
     prevPlanetId: 'mars',
     nextPlanetId: 'mercury',
     theme: {
@@ -659,8 +659,8 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       'Airless, heavily cratered, and scorched by the sun. The outpost must ride heavy crawler treads, forever pacing the moving twilight terminator line.',
     dayUnit: { singular: 'SHIFT', plural: 'SHIFTS' },
     image: '/planets/mercury.png',
-    requiredPrevScore: 2000,
-    unlockTargetScore: 2500,
+    requiredPrevScore: 800,
+    unlockTargetScore: 950,
     prevPlanetId: 'venus',
     nextPlanetId: 'jupiter',
     theme: {
@@ -827,8 +827,8 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       'The king of planets. A churning colossus surrounded by million-gauss radiation belts and titanic megavolt lightning arcs capable of overloading any capacitor.',
     dayUnit: { singular: 'ROTATION', plural: 'ROTATIONS' },
     image: '/planets/jupiter.png',
-    requiredPrevScore: 2500,
-    unlockTargetScore: 3000,
+    requiredPrevScore: 950,
+    unlockTargetScore: 1100,
     prevPlanetId: 'mercury',
     nextPlanetId: 'saturn',
     theme: {
@@ -993,8 +993,8 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       'The jewel of the solar system. A ring skimmer outpost harvesting billions of tons of pristine water-ice boulders while navigating ring-shear turbulence.',
     dayUnit: { singular: 'ORBIT', plural: 'ORBITS' },
     image: '/planets/saturn.png',
-    requiredPrevScore: 3000,
-    unlockTargetScore: 3500,
+    requiredPrevScore: 1100,
+    unlockTargetScore: 1250,
     prevPlanetId: 'jupiter',
     nextPlanetId: 'uranus',
     theme: {
@@ -1158,8 +1158,8 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       'The coldest world in the solar system. A sideways-spinning ice giant shrouded in aquamarine clouds of methane, ammonia, and water slush.',
     dayUnit: { singular: 'WATCH', plural: 'WATCHES' },
     image: '/planets/uranus.png',
-    requiredPrevScore: 3500,
-    unlockTargetScore: 4000,
+    requiredPrevScore: 1250,
+    unlockTargetScore: 1400,
     prevPlanetId: 'saturn',
     nextPlanetId: 'neptune',
     theme: {
@@ -1324,8 +1324,8 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       'The farthest recognized planet. Raging with supersonic methane jet streams and crushing pressures that condense carbon into diamond hail showers.',
     dayUnit: { singular: 'TIDE', plural: 'TIDES' },
     image: '/planets/neptune.png',
-    requiredPrevScore: 4000,
-    unlockTargetScore: 4500,
+    requiredPrevScore: 1400,
+    unlockTargetScore: 1550,
     prevPlanetId: 'uranus',
     nextPlanetId: 'planet_x',
     theme: {
@@ -1490,8 +1490,8 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
     dayUnit: { singular: 'EPOCH', plural: 'EPOCHS' },
     image: '/planets/planet_x.png',
     secret: true,
-    requiredPrevScore: 4500,
-    unlockTargetScore: 5000,
+    requiredPrevScore: 1550,
+    unlockTargetScore: 1700,
     prevPlanetId: 'neptune',
     theme: {
       bgGradient: 'from-purple-950 via-black to-slate-950',
@@ -1747,10 +1747,10 @@ export function isPlanetUnlocked(
 
   const scores = bestScores || getPlanetBestScores();
 
-  // 3. Planet X requires >= 4,500 on Neptune OR the stealth Easter egg
+  // 3. Planet X requires >= 1,550 on Neptune OR the stealth Easter egg
   if (planetId === 'planet_x') {
     if (isEasterEggUnlocked()) return true;
-    return (scores.neptune || 0) >= 4500;
+    return (scores.neptune || 0) >= 1550;
   }
 
   // 4. Other planets require reaching unlockTargetScore on the preceding world
@@ -1810,11 +1810,148 @@ export function getHighestUnlockedSector(
     return PLANET_CARTRIDGES.planet_x;
   }
   const scores = bestScores || getPlanetBestScores();
-  for (let i = ORDERED_PLANET_IDS.length - 1; i >= 0; i--) {
-    const pid = ORDERED_PLANET_IDS[i];
-    if (isPlanetUnlocked(pid, isFiveStarGeneral, scores)) {
-      return PLANET_CARTRIDGES[pid];
-    }
-  }
   return PLANET_CARTRIDGES.earth;
 }
+
+/**
+ * Rollback all planet unlocks, best scores, and Easter eggs to base Earth-only progression.
+ * Used during cadet profile reset / purge.
+ */
+export function resetPlanetProgress(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem('jat_planet_best_scores_v1');
+    localStorage.removeItem('jat_planet_x_easter_egg_v1');
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('jat_planet_') || key.startsWith('jat_campaign_'))) {
+        localStorage.removeItem(key);
+      }
+    }
+    window.dispatchEvent(new Event('jat-planet-score-updated'));
+    window.dispatchEvent(new Event('jat-planet-unlocked'));
+  } catch {}
+}
+
+export interface PlanetMissionGuide {
+  id: PlanetId;
+  name: string;
+  icon: string;
+  gameType:
+    | 'card-survival'
+    | 'radar-triangulation'
+    | 'aerostat-flight'
+    | 'laser-turret'
+    | 'gravity-slingshot'
+    | 'asteroid-dodge'
+    | 'diamond-harvester'
+    | 'jetstream-runner'
+    | 'boss-battle';
+  objective: string;
+  winCondition: string;
+  lossCondition: string;
+  controls: string[];
+  scoringTip: string;
+}
+
+export const PLANET_MISSION_GUIDES: Record<PlanetId, PlanetMissionGuide> = {
+  earth: {
+    id: 'earth',
+    name: 'Earth: Impact Triangulation',
+    icon: '🌍',
+    gameType: 'radar-triangulation',
+    objective: 'Triangulate and pinpoint all incoming space debris & meteor impact points across the orbital radar grid.',
+    winCondition: 'Locate 3 impact targets within 8 radar scans or before time expires.',
+    lossCondition: 'Exhaust all 8 radar scans without finding the targets, or radar timer reaches zero.',
+    controls: ['Click/tap grid coordinates to ping radar pulse', 'Read distance rings to triangulate target epicenters'],
+    scoringTip: 'Fewer scans used and faster pinpointing yield maximum accuracy multipliers.',
+  },
+  mars: {
+    id: 'mars',
+    name: 'Mars: Outpost Jezero Survival',
+    icon: '🪐',
+    gameType: 'card-survival',
+    objective: 'Manage life support, energy, and habitat shielding across 30 grueling Martian Sols.',
+    winCondition: 'Survive through Sol 30 with all vitals (Power, O2, Shielding) above zero.',
+    lossCondition: 'Power, Oxygen, or Shielding depleted to 0%.',
+    controls: ['Click or tap decision cards each Sol', 'Use exclusive planetary tactical abilities', 'Equip colony store modules'],
+    scoringTip: 'Maintain high morale, low dust accumulation, and balanced resources for high bonus multipliers.',
+  },
+  venus: {
+    id: 'venus',
+    name: 'Venus: Aerostat Wave-Rider',
+    icon: '☁️',
+    gameType: 'aerostat-flight',
+    objective: 'Pilot a NASA HAVOC cloud platform inside the temperate 50-60 km atmospheric corridor.',
+    winCondition: 'Survive the full 45-second flight through sulfuric acid cloud layers.',
+    lossCondition: 'Hull integrity drops to 0% from acid clouds or drifting out of safe atmospheric altitude.',
+    controls: ['Hold Space / Click / Touch to fire buoyancy heaters (Ascend)', 'Release to vent ballast (Descend)'],
+    scoringTip: 'Collect golden solar wind telemetry orbs and stay centered in the green corridor for continuous score flow.',
+  },
+  mercury: {
+    id: 'mercury',
+    name: 'Mercury: Solar Flare Turret Defense',
+    icon: '☄️',
+    gameType: 'laser-turret',
+    objective: 'Defend the crawling outpost from incoming meteors and high-energy solar radiation clusters.',
+    winCondition: 'Survive 3 waves (45 seconds total) and eliminate 15+ meteor hazards.',
+    lossCondition: 'Outpost defense shield drops to 0% from unintercepted meteor strikes.',
+    controls: ['Aim with Mouse / Touch', 'Click / Tap to fire laser turret', 'Spacebar / Button for EMP Shockwave'],
+    scoringTip: 'Chain explosive meteor destructions without missing to build up a 3x combo multiplier.',
+  },
+  jupiter: {
+    id: 'jupiter',
+    name: 'Jupiter: Gravity-Slingshot Rodeo',
+    icon: '🛰️',
+    gameType: 'gravity-slingshot',
+    objective: "Time your orbital burn inside Jupiter's colossal gravity well to slingshot through target telemetry gates.",
+    winCondition: 'Successfully complete 4 slingshot telemetry gates without crashing.',
+    lossCondition: "Exhaust probe burn fuel, get swallowed by Jupiter's core, or fly off into deep space.",
+    controls: ['Click / Space / Tap to ignite retro & prograde thruster burns', 'Guide probe along gravitational orbital arcs'],
+    scoringTip: 'Threading close to the atmospheric radiation belt grants huge risk-reward proximity points.',
+  },
+  saturn: {
+    id: 'saturn',
+    name: 'Saturn: Cassini Ring Threader',
+    icon: '🪐',
+    gameType: 'asteroid-dodge',
+    objective: 'Thread through the hazardous Cassini Division ring plane, dodging high-density ice boulders.',
+    winCondition: 'Survive 40 seconds of high-speed ring particle navigation.',
+    lossCondition: 'Shield integrity reaches 0% from ice boulder collisions.',
+    controls: ['Left/Right Arrow keys, A/D, or Drag/Touch left & right to maneuver lateral thrusters'],
+    scoringTip: 'Grapple ice water chunks with precision to restore shields and score salvage points.',
+  },
+  uranus: {
+    id: 'uranus',
+    name: 'Uranus: Cryo-Diamond Harvester',
+    icon: '💎',
+    gameType: 'diamond-harvester',
+    objective: 'Deploy cryogenic magnetic harvesters to catch falling high-pressure diamond hail while dodging slush chunks.',
+    winCondition: 'Collect 12+ crystalline diamonds within 45 seconds.',
+    lossCondition: 'Harvester hull crushed by heavy cryo-methane slush blocks or failing quota.',
+    controls: ['Move Harvester Basket Left/Right via Arrow Keys, A/D, or Mouse / Touch Drag'],
+    scoringTip: 'Catching rare glowing cyan diamonds awards instant 2x multipliers.',
+  },
+  neptune: {
+    id: 'neptune',
+    name: 'Neptune: Supersonic Jetstream Runner',
+    icon: '🌪️',
+    gameType: 'jetstream-runner',
+    objective: 'Surf 2,100 km/h supersonic methane jet streams, shifting lanes to avoid violent atmospheric cyclonic vortices.',
+    winCondition: 'Survive the 45-second storm run and reach the Great Dark Spot core.',
+    lossCondition: 'Ship structural integrity buckles to 0% from cyclonic vortex impacts.',
+    controls: ['Up/Down or Left/Right Arrow keys, W/S, or Lane Buttons / Swipes to shift jetstream lanes'],
+    scoringTip: 'Ride the slipstream acceleration vectors to build supersonic burst speeds and rack up speed points.',
+  },
+  planet_x: {
+    id: 'planet_x',
+    name: 'Planet X: Singularity Anomaly Boss',
+    icon: '🕳️',
+    gameType: 'boss-battle',
+    objective: 'Neutralize the spacetime decoherence anomaly of the primordial micro-singularity.',
+    winCondition: "Deplete the Singularity Anomaly's 1,000 HP across 3 phase shifts.",
+    lossCondition: 'Ship Quantum Hull integrity collapses to 0% under gravitational tidal strikes.',
+    controls: ['Turn-based tactical commands: Quantum Cannon, Phase Shift Shield, Graviton Surge, Chrono Rewind'],
+    scoringTip: 'Time Phase Shift Shield during charge-up turns to absorb 90% damage and counter-charge your cannon.',
+  },
+};

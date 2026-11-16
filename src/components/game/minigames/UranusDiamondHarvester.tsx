@@ -52,6 +52,7 @@ export default function UranusDiamondHarvester() {
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  const [gameState, setGameState] = useState<'briefing' | 'playing'>('briefing');
   const [hull, setHull] = useState<number>(() => (hasAegisHullMatrix ? 135 : 100));
   const [score, setScore] = useState<number>(0);
   const [timeRemaining, setTimeRemaining] = useState<number>(() => (isTimed ? 30 : 40) + (hasChronoStabilizer ? 10 : 0));
@@ -123,18 +124,18 @@ export default function UranusDiamondHarvester() {
 
     const finalHull = hullRef.current;
     const baseScore = victory
-      ? scoreRef.current + diamondsRef.current * 200 + finalHull * 25 + 2600
+      ? scoreRef.current + diamondsRef.current * 25 + Math.round(finalHull * 2) + 350
       : scoreRef.current;
-    const finalScore = isTimed && victory ? Math.round(baseScore * 1.5) : baseScore;
+    const finalScore = isTimed && victory ? Math.min(1350, Math.round(baseScore * 1.3)) : Math.min(1150, baseScore);
 
     setTimeout(() => {
       dispatch({
         type: 'COMPLETE_MINIGAME',
         victory,
-        score: Math.max(300, finalScore),
+        score: Math.max(150, finalScore),
         solsCompleted: 30,
         summaryLog: victory
-          ? `Uranus Mantle Descent successful! Harvested ${diamondsRef.current} crystalline methane diamonds with ${finalHull}% tungsten scoop integrity${isTimed ? ' (Blitz 1.5x Multiplier Applied)' : ''}. Earned ${finalScore} PTS.`
+          ? `Uranus Mantle Descent successful! Harvested ${diamondsRef.current} crystalline methane diamonds with ${finalHull}% tungsten scoop integrity${isTimed ? ' (Blitz Multiplier Applied)' : ''}. Earned ${finalScore} PTS.`
           : `Tungsten scoop crushed by 98-degree magnetosphere lightning discharge in Uranus's lower mantle.`,
       });
     }, 600);
@@ -142,6 +143,7 @@ export default function UranusDiamondHarvester() {
 
   // Mouse / Touch Steering
   const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+    if (gameState !== 'playing') return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
@@ -150,6 +152,7 @@ export default function UranusDiamondHarvester() {
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLElement>) => {
+    if (gameState !== 'playing') return;
     const canvas = canvasRef.current;
     if (!canvas || !e.touches[0]) return;
     const rect = canvas.getBoundingClientRect();
@@ -160,6 +163,7 @@ export default function UranusDiamondHarvester() {
   // Keyboard
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (gameState !== 'playing') return;
       if (e.key === 'ArrowLeft' || e.key === 'a') {
         scoopPosRef.current.targetX = Math.max(40, scoopPosRef.current.targetX - 40);
       } else if (e.key === 'ArrowRight' || e.key === 'd') {
@@ -168,10 +172,11 @@ export default function UranusDiamondHarvester() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [gameState]);
 
   // Timer countdown
   useEffect(() => {
+    if (gameState !== 'playing') return;
     const timer = setInterval(() => {
       if (isGameOverRef.current) return;
 
@@ -186,7 +191,7 @@ export default function UranusDiamondHarvester() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [finishGame, playSuccess]);
+  }, [finishGame, playSuccess, gameState]);
 
   // Main 60fps Loop
   useEffect(() => {
@@ -238,7 +243,7 @@ export default function UranusDiamondHarvester() {
           speed: Math.random() * 2 + 4.2,
           rotation: 0,
           rotSpeed: (Math.random() - 0.5) * 0.08,
-          value: 150,
+          value: 30,
         });
 
         // Static corkscrew bursts
@@ -471,10 +476,62 @@ export default function UranusDiamondHarvester() {
 
     animId = requestAnimationFrame(gameLoop);
     return () => cancelAnimationFrame(animId);
-  }, [finishGame, playAlert, playDiamondDing, playLightningZap, playSuccess]);
+  }, [finishGame, playAlert, playDiamondDing, playLightningZap, playSuccess, gameState, timeRemaining]);
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col items-center gap-3 p-3 sm:p-5 rounded-3xl bg-[#031c22]/95 border-2 border-cyan-400/50 shadow-[0_0_40px_rgba(34,211,238,0.25)] text-white font-mono animate-slide-up select-none">
+    <div className="relative w-full max-w-4xl mx-auto flex flex-col items-center gap-3 p-3 sm:p-5 rounded-3xl bg-[#031c22]/95 border-2 border-cyan-400/50 shadow-[0_0_40px_rgba(34,211,238,0.25)] text-white font-mono animate-slide-up select-none overflow-hidden">
+      {/* ── PRE-GAME BRIEFING OVERLAY ── */}
+      {gameState === 'briefing' && (
+        <div className="absolute inset-0 z-50 bg-slate-950/92 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-[#04242c] border-2 border-cyan-400/70 rounded-3xl p-6 shadow-[0_0_40px_rgba(34,211,238,0.4)] space-y-4 text-white">
+            <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+              <span className="text-3xl">💎</span>
+              <div>
+                <h3 className="font-heading font-black text-lg text-cyan-300">
+                  Uranus: Diamond Harvester
+                </h3>
+                <p className="text-xs text-starlight/70 font-mono">
+                  Mantle Atmospheric Catch &amp; Dodge
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs font-sans">
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-1">
+                <span className="font-mono font-bold text-amber-400 block">🎯 OBJECTIVE:</span>
+                <span className="text-starlight/90 leading-snug block">
+                  Catch falling crystalline methane diamonds with the tungsten scoop (collect 12+ or survive 40 seconds) while avoiding sideways lightning arcs.
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-1">
+                <span className="font-mono font-bold text-cyan-400 block">🕹️ CONTROLS:</span>
+                <span className="text-starlight/90 leading-snug block">
+                  Move mouse, touch &amp; drag left/right, or use Left/Right Arrow keys or A/D to position the collection basket under falling diamonds.
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-1">
+                <span className="font-mono font-bold text-rose-400 block">⚠️ HOW YOU LOSE:</span>
+                <span className="text-starlight/90 leading-snug block">
+                  Tungsten scoop hull drops to 0% from 98-degree sideways magnetosphere lightning discharges or static corkscrews.
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setGameState('playing');
+              }}
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-400 to-teal-500 hover:from-cyan-300 hover:to-teal-400 text-slate-950 font-heading font-black text-base shadow-[0_0_20px_rgba(34,211,238,0.4)] transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+            >
+              START OPERATION 🚀
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── TOP HEADER / HUD ── */}
       <div className="w-full flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-cyan-400/20">
         <div className="flex items-center gap-3">

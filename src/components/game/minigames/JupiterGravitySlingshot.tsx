@@ -29,6 +29,7 @@ export default function JupiterGravitySlingshot() {
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  const [gameState, setGameState] = useState<'briefing' | 'playing'>('briefing');
   const [shield, setShield] = useState<number>(() => (hasAegisHullMatrix ? 135 : 100));
   const [score, setScore] = useState<number>(0);
   const [passCount, setPassCount] = useState<number>(1);
@@ -140,18 +141,18 @@ export default function JupiterGravitySlingshot() {
 
     const finalShield = shieldRef.current;
     const baseScore = victory
-      ? scoreRef.current + finalShield * 30 + 2500
+      ? scoreRef.current + Math.round(finalShield * 2.5) + 350
       : scoreRef.current;
-    const finalScore = isTimed && victory ? Math.round(baseScore * 1.5) : baseScore;
+    const finalScore = isTimed && victory ? Math.min(1300, Math.round(baseScore * 1.3)) : Math.min(1100, baseScore);
 
     setTimeout(() => {
       dispatch({
         type: 'COMPLETE_MINIGAME',
         victory,
-        score: Math.max(300, finalScore),
+        score: Math.max(150, finalScore),
         solsCompleted: 30,
         summaryLog: victory
-          ? `Juno-style gravity assist complete! 5 perijove passes survived with ${finalShield}% radiation shielding intact${isTimed ? ' (Blitz 1.5x Multiplier Applied)' : ''}. Earned ${finalScore} PTS.`
+          ? `Juno-style gravity assist complete! 5 perijove passes survived with ${finalShield}% radiation shielding intact${isTimed ? ' (Blitz Multiplier Applied)' : ''}. Earned ${finalScore} PTS.`
           : `Probe titanium radiation vault breached during Jovian magnetosphere perijove pass. Telemetry lost.`,
       });
     }, 600);
@@ -159,7 +160,7 @@ export default function JupiterGravitySlingshot() {
 
   // Click / Space perijove burn: toggles between high altitude & tight low perijove skim
   const handleThrusterBurn = useCallback(() => {
-    if (isGameOverRef.current) return;
+    if (gameState !== 'playing' || isGameOverRef.current) return;
     playThrusterSound();
 
     const p = probeRef.current;
@@ -312,7 +313,9 @@ export default function JupiterGravitySlingshot() {
       // ── 6. Probe Orbit Physics & Motion ──
       const p = probeRef.current;
       const prevAngle = p.angle;
-      p.angle += p.angularVelocity;
+      if (gameState === 'playing' && !isGameOverRef.current) {
+        p.angle += p.angularVelocity;
+      }
 
       // Elliptical perijove radius variation
       p.radius = p.baseRadius * (1 - p.eccentricity * Math.cos(p.angle));
@@ -325,7 +328,7 @@ export default function JupiterGravitySlingshot() {
       setPerijoveDist(currentAltitude);
 
       // Check Lap (Pass) Completion (when crossing 2*PI boundary)
-      if (prevAngle < Math.PI * 2 && p.angle >= Math.PI * 2) {
+      if (gameState === 'playing' && prevAngle < Math.PI * 2 && p.angle >= Math.PI * 2) {
         p.angle %= (Math.PI * 2);
         const nextPass = passCountRef.current + 1;
         if (nextPass > 5) {
@@ -335,7 +338,7 @@ export default function JupiterGravitySlingshot() {
         } else {
           passCountRef.current = nextPass;
           setPassCount(nextPass);
-          scoreRef.current += 500;
+          scoreRef.current += 100;
           setScore(scoreRef.current);
           playChimeSound();
 
@@ -347,36 +350,37 @@ export default function JupiterGravitySlingshot() {
       }
 
       // ── 7. Radiation Collision Checks ──
-      // Check Io Torus proximity
-      const distFromCenter = p.radius;
-      if (Math.abs(distFromCenter - ioTorusRadius) < 14) {
-        // In Io radiation torus!
-        shieldRef.current = Math.max(0, shieldRef.current - 0.35);
-        setShield(Math.round(shieldRef.current));
-        if (Math.random() < 0.15) playRadiationSound();
-        if (shieldRef.current <= 0) finishGame(false);
-      }
+      if (gameState === 'playing' && !isGameOverRef.current) {
+        // Check Io Torus proximity
+        const distFromCenter = p.radius;
+        if (Math.abs(distFromCenter - ioTorusRadius) < 14) {
+          // In Io radiation torus!
+          shieldRef.current = Math.max(0, shieldRef.current - 0.35);
+          setShield(Math.round(shieldRef.current));
+          if (Math.random() < 0.15) playRadiationSound();
+          if (shieldRef.current <= 0) finishGame(false);
+        }
 
-      // Check proximity to Io moon itself
-      const distToIo = Math.hypot(px - iox, py - ioy);
-      if (distToIo < 16) {
-        shieldRef.current = Math.max(0, shieldRef.current - 1.2);
-        setShield(Math.round(shieldRef.current));
-        playAlert(2);
-        if (shieldRef.current <= 0) finishGame(false);
-      }
+        // Check proximity to Io moon itself
+        const distToIo = Math.hypot(px - iox, py - ioy);
+        if (distToIo < 16) {
+          shieldRef.current = Math.max(0, shieldRef.current - 1.2);
+          setShield(Math.round(shieldRef.current));
+          playAlert(2);
+          if (shieldRef.current <= 0) finishGame(false);
+        }
 
-      // Check Science Data Node Collection
-      for (const node of scienceRingsRef.current) {
-        if (!node.collected) {
-          const nx = cx + Math.cos(node.angle) * node.radius;
-          const ny = cy + Math.sin(node.angle) * node.radius;
-          if (Math.hypot(px - nx, py - ny) < 14) {
-            node.collected = true;
-            scoreRef.current += 150;
-            setScore(scoreRef.current);
-            setScienceCollected((prev) => prev + 1);
-            playChimeSound();
+        // Check Science Data Node Collection
+        for (const node of scienceRingsRef.current) {
+          if (!node.collected) {
+            const nx = cx + Math.cos(node.angle) * node.radius;
+            const ny = cy + Math.sin(node.angle) * node.radius;
+            if (Math.hypot(px - nx, py - ny) < 14) {
+              node.collected = true;
+              scoreRef.current += 30;
+              setScore(scoreRef.current);
+              setScienceCollected((prev) => prev + 1);
+              playChimeSound();
 
             for (let i = 0; i < 6; i++) {
               particlesRef.current.push({
@@ -392,6 +396,7 @@ export default function JupiterGravitySlingshot() {
           }
         }
       }
+    }
 
       // ── 8. Draw Juno Probe ──
       ctx.save();
@@ -450,10 +455,62 @@ export default function JupiterGravitySlingshot() {
 
     animId = requestAnimationFrame(gameLoop);
     return () => cancelAnimationFrame(animId);
-  }, [finishGame, playAlert, playChimeSound, playRadiationSound, playSuccess]);
+  }, [finishGame, playAlert, playChimeSound, playRadiationSound, playSuccess, gameState]);
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col items-center gap-3 p-3 sm:p-5 rounded-3xl bg-[#0a0705]/95 border-2 border-amber-600/50 shadow-[0_0_40px_rgba(217,119,6,0.25)] text-white font-mono animate-slide-up select-none">
+    <div className="relative w-full max-w-4xl mx-auto flex flex-col items-center gap-3 p-3 sm:p-5 rounded-3xl bg-[#0a0705]/95 border-2 border-amber-600/50 shadow-[0_0_40px_rgba(217,119,6,0.25)] text-white font-mono animate-slide-up select-none overflow-hidden">
+      {/* ── PRE-GAME BRIEFING OVERLAY ── */}
+      {gameState === 'briefing' && (
+        <div className="absolute inset-0 z-50 bg-slate-950/92 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-[#170a04] border-2 border-amber-500/70 rounded-3xl p-6 shadow-[0_0_40px_rgba(217,119,6,0.4)] space-y-4 text-white">
+            <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+              <span className="text-3xl">🛰️</span>
+              <div>
+                <h3 className="font-heading font-black text-lg text-amber-300">
+                  Jupiter: Gravity Slingshot
+                </h3>
+                <p className="text-xs text-starlight/70 font-mono">
+                  Jovian Perijove Orbital Science
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs font-sans">
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-1">
+                <span className="font-mono font-bold text-amber-400 block">🎯 OBJECTIVE:</span>
+                <span className="text-starlight/90 leading-snug block">
+                  Complete 5 high-speed orbital perijove passes around Jupiter while collecting scientific data nodes from the outer radiation torus.
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-1">
+                <span className="font-mono font-bold text-cyan-400 block">🕹️ CONTROLS:</span>
+                <span className="text-starlight/90 leading-snug block">
+                  Click, tap, or press Spacebar to fire thrusters, toggling between high-altitude safe orbits and tight, high-science perijove cloud skims.
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-1">
+                <span className="font-mono font-bold text-rose-400 block">⚠️ HOW YOU LOSE:</span>
+                <span className="text-starlight/90 leading-snug block">
+                  Radiation shield drops to 0% from lingering inside Io&apos;s volcanic radiation torus or colliding with moon Io.
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setGameState('playing');
+              }}
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-heading font-black text-base shadow-[0_0_20px_rgba(217,119,6,0.4)] transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+            >
+              START OPERATION 🚀
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── TOP HEADER / HUD ── */}
       <div className="w-full flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-amber-600/20">
         <div className="flex items-center gap-3">

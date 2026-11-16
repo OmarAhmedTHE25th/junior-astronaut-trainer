@@ -69,6 +69,9 @@ export default function MercuryMeteorDefense() {
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  // Briefing vs Active state
+  const [gameState, setGameState] = useState<'briefing' | 'playing'>('briefing');
+
   // Game status states for HUD
   const [shield, setShield] = useState<number>(() => (hasAegisHullMatrix ? 135 : 100));
   const [score, setScore] = useState<number>(0);
@@ -168,18 +171,18 @@ export default function MercuryMeteorDefense() {
 
     const finalShield = shieldRef.current;
     const baseScore = victory
-      ? scoreRef.current + finalShield * 15 + 1200
+      ? scoreRef.current + Math.round(finalShield * 2.5) + 400
       : scoreRef.current;
-    const finalScore = isTimed && victory ? Math.round(baseScore * 1.5) : baseScore;
+    const finalScore = isTimed && victory ? Math.min(1300, Math.round(baseScore * 1.3)) : Math.min(1100, baseScore);
 
     setTimeout(() => {
       dispatch({
         type: 'COMPLETE_MINIGAME',
         victory,
-        score: Math.max(250, finalScore),
+        score: Math.max(150, finalScore),
         solsCompleted: victory ? 30 : waveRef.current * 8,
         summaryLog: victory
-          ? `Mercury Polar Outpost defended against 3 sungrazing meteor waves! Shield held at ${finalShield}%${isTimed ? ' (Blitz 1.5x Multiplier Applied)' : ''}. Earned ${finalScore} PTS.`
+          ? `Mercury Polar Outpost defended against 3 sungrazing meteor waves! Shield held at ${finalShield}%${isTimed ? ' (Blitz Multiplier Applied)' : ''}. Earned ${finalScore} PTS.`
           : `Mercury Outpost shield collapsed under sustained meteor impacts during Wave ${waveRef.current}.`,
       });
     }, 600);
@@ -187,7 +190,7 @@ export default function MercuryMeteorDefense() {
 
   // Click to fire interceptor
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (isGameOverRef.current || shieldRef.current <= 0) return;
+    if (gameState !== 'playing' || isGameOverRef.current || shieldRef.current <= 0) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
@@ -226,6 +229,7 @@ export default function MercuryMeteorDefense() {
 
   // Wave advancement timer (3 waves * 15s = 45s total)
   useEffect(() => {
+    if (gameState !== 'playing') return;
     const waveTimer = setInterval(() => {
       if (isGameOverRef.current) return;
 
@@ -243,7 +247,7 @@ export default function MercuryMeteorDefense() {
             const nextW = currentW + 1;
             waveRef.current = nextW;
             setWave(nextW);
-            scoreRef.current += 500; // Wave clear bonus
+            scoreRef.current += 150; // Wave clear bonus
             setScore(scoreRef.current);
 
             // Floating banner
@@ -265,7 +269,7 @@ export default function MercuryMeteorDefense() {
     }, 1000);
 
     return () => clearInterval(waveTimer);
-  }, [finishGame, playSuccess, isTimed]);
+  }, [finishGame, playSuccess, isTimed, gameState]);
 
   // Main 60fps Game Loop
   useEffect(() => {
@@ -334,11 +338,11 @@ export default function MercuryMeteorDefense() {
 
       // Spawn Meteors based on current wave intensity
       meteorSpawnTimer++;
-      const spawnInterval = waveRef.current === 1 ? 55 : waveRef.current === 2 ? 38 : 24;
-      if (meteorSpawnTimer >= spawnInterval && !isGameOverRef.current) {
+      const spawnInterval = waveRef.current === 1 ? 50 : waveRef.current === 2 ? 32 : 18;
+      if (meteorSpawnTimer >= spawnInterval && !isGameOverRef.current && gameState === 'playing') {
         meteorSpawnTimer = 0;
         const w = waveRef.current;
-        const speed = w === 1 ? 1.6 : w === 2 ? 2.4 : 3.2;
+        const speed = w === 1 ? 1.7 : w === 2 ? 2.6 : 3.8;
         const r = Math.random() * 6 + 9; // radius 9 to 15
         const startX = Math.random() * (canvas.width - 80) + 40;
         const targetX = Math.random() * (canvas.width - 60) + 30;
@@ -500,7 +504,7 @@ export default function MercuryMeteorDefense() {
 
               // Update combo multiplier
               const currentCombo = comboRef.current;
-              const pointsEarned = 100 * currentCombo;
+              const pointsEarned = 25 * currentCombo;
               scoreRef.current += pointsEarned;
               setScore(scoreRef.current);
 
@@ -602,10 +606,62 @@ export default function MercuryMeteorDefense() {
 
     animId = requestAnimationFrame(gameLoop);
     return () => cancelAnimationFrame(animId);
-  }, [finishGame, playAlert, playExplosionSound, playShieldDamageSound]);
+  }, [finishGame, playAlert, playExplosionSound, playShieldDamageSound, gameState]);
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col items-center gap-3 p-3 sm:p-5 rounded-3xl bg-[#090b14]/95 border-2 border-amber-500/50 shadow-[0_0_40px_rgba(245,158,11,0.25)] text-white font-mono animate-slide-up">
+    <div className="relative w-full max-w-4xl mx-auto flex flex-col items-center gap-3 p-3 sm:p-5 rounded-3xl bg-[#090b14]/95 border-2 border-amber-500/50 shadow-[0_0_40px_rgba(245,158,11,0.25)] text-white font-mono animate-slide-up overflow-hidden">
+      {/* ── PRE-GAME BRIEFING OVERLAY ── */}
+      {gameState === 'briefing' && (
+        <div className="absolute inset-0 z-50 bg-slate-950/92 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-[#130d06] border-2 border-amber-400/70 rounded-3xl p-6 shadow-[0_0_40px_rgba(245,158,11,0.4)] space-y-4 text-white">
+            <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+              <span className="text-3xl">☄️</span>
+              <div>
+                <h3 className="font-heading font-black text-lg text-amber-300">
+                  Mercury: Meteor Intercept
+                </h3>
+                <p className="text-xs text-starlight/70 font-mono">
+                  Polar Outpost Kinetic Defense
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs font-sans">
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-1">
+                <span className="font-mono font-bold text-amber-400 block">🎯 OBJECTIVE:</span>
+                <span className="text-starlight/90 leading-snug block">
+                  Defend the crawling polar outpost from falling sungrazing meteor clusters across 3 escalating waves (45 seconds total).
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-1">
+                <span className="font-mono font-bold text-cyan-400 block">🕹️ CONTROLS:</span>
+                <span className="text-starlight/90 leading-snug block">
+                  Aim with mouse cursor or touch drag. Click or tap anywhere in the sky to fire kinetic interceptor missiles that detonate into defensive shockwaves.
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-1">
+                <span className="font-mono font-bold text-rose-400 block">⚠️ HOW YOU LOSE:</span>
+                <span className="text-starlight/90 leading-snug block">
+                  Outpost shield drops to 0% from unintercepted meteor strikes hitting the surface.
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setGameState('playing');
+              }}
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-heading font-black text-base shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+            >
+              START OPERATION 🚀
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── TOP HEADER / HUD ── */}
       <div className="w-full flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-amber-500/20">
         <div className="flex items-center gap-3">

@@ -24,7 +24,7 @@ type CellStatus = {
 };
 
 const GRID_SIZE = 8;
-const INITIAL_SCANS = 10;
+const INITIAL_SCANS = 8;
 const COLS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
 // Play synthetic Web Audio tones for rich radar feedback
@@ -93,6 +93,7 @@ export default function EarthImpactTriangulation() {
   const hasQuantumScanner = state.equippedTacticalItem === 'quantum-scanner';
   const hasChronoStabilizer = state.equippedTacticalItem === 'chrono-stabilizer';
 
+  const [gameState, setGameState] = useState<'briefing' | 'playing'>('briefing');
   const [scansRemaining, setScansRemaining] = useState(INITIAL_SCANS + (hasQuantumScanner ? 3 : 0));
   const [mode, setMode] = useState<'scan' | 'beacon'>('scan');
   const [beaconBonus, setBeaconBonus] = useState(0);
@@ -104,7 +105,7 @@ export default function EarthImpactTriangulation() {
 
   // Blitz Countdown Timer
   useEffect(() => {
-    if (!isTimed) return;
+    if (!isTimed || gameState !== 'playing') return;
     const interval = setInterval(() => {
       if (isGameOverRef.current) return;
       setBlitzSeconds((prev) => {
@@ -126,7 +127,7 @@ export default function EarthImpactTriangulation() {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [isTimed, dispatch]);
+  }, [isTimed, gameState, dispatch]);
 
   // Generate 3 unique impact sites on mount
   const [sites, setSites] = useState<ImpactSite[]>(() => {
@@ -201,6 +202,7 @@ export default function EarthImpactTriangulation() {
 
   // Handle cell click in Scan or Beacon mode
   const handleCellClick = (r: number, c: number) => {
+    if (gameState !== 'playing') return;
     const cell = grid[r][c];
     if (cell.scanned || cell.isImpact) return; // Already revealed
 
@@ -335,15 +337,15 @@ export default function EarthImpactTriangulation() {
     if (foundAll) {
       isGameOverRef.current = true;
       playSyntheticRadarTone('win');
-      const baseScore = 1800 + currentScans * 250 + currentBonus;
-      const earnedScore = isTimed ? Math.round(baseScore * 1.5) : baseScore;
+      const baseScore = 550 + currentScans * 50 + Math.min(200, currentBonus);
+      const earnedScore = isTimed ? Math.min(1100, Math.round(baseScore * 1.3)) : Math.min(950, baseScore);
       setTimeout(() => {
         dispatch({
           type: 'COMPLETE_MINIGAME',
           victory: true,
           score: earnedScore,
           solsCompleted: 30,
-          summaryLog: `TDRS Orbital Triangulation success! All 3 kinetic impact fragments located. Evacuation routes cleared with ${currentScans} scans remaining${isTimed ? ' (Blitz 1.5x Multiplier Applied)' : ''}. Earned ${earnedScore} PTS.`,
+          summaryLog: `TDRS Orbital Triangulation success! All 3 kinetic impact fragments located. Evacuation routes cleared with ${currentScans} scans remaining${isTimed ? ' (Blitz Multiplier Applied)' : ''}. Earned ${earnedScore} PTS.`,
         });
       }, 700);
       return;
@@ -354,7 +356,7 @@ export default function EarthImpactTriangulation() {
       isGameOverRef.current = true;
       playSyntheticRadarTone('error');
       const unfoundCount = currentSites.filter((s) => !s.found).length;
-      const partialScore = currentSites.filter((s) => s.found).length * 400;
+      const partialScore = currentSites.filter((s) => s.found).length * 100;
       setTimeout(() => {
         dispatch({
           type: 'COMPLETE_MINIGAME',
@@ -368,7 +370,59 @@ export default function EarthImpactTriangulation() {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col items-center gap-3 p-3 sm:p-5 rounded-3xl bg-[#091124]/95 border-2 border-cyan-500/40 shadow-[0_0_40px_rgba(6,182,212,0.25)] text-white font-mono animate-slide-up">
+    <div className="relative w-full max-w-4xl mx-auto flex flex-col items-center gap-3 p-3 sm:p-5 rounded-3xl bg-[#091124]/95 border-2 border-cyan-500/40 shadow-[0_0_40px_rgba(6,182,212,0.25)] text-white font-mono animate-slide-up overflow-hidden">
+      {/* ── PRE-GAME BRIEFING OVERLAY ── */}
+      {gameState === 'briefing' && (
+        <div className="absolute inset-0 z-50 bg-slate-950/92 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-[#0d1527] border-2 border-cyan-400/70 rounded-3xl p-6 shadow-[0_0_40px_rgba(6,182,212,0.4)] space-y-4 text-white">
+            <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+              <span className="text-3xl">🌍</span>
+              <div>
+                <h3 className="font-heading font-black text-lg text-cyan-300">
+                  Earth: Impact Triangulation
+                </h3>
+                <p className="text-xs text-starlight/70 font-mono">
+                  Orbital Reconnaissance Protocol
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs font-sans">
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-1">
+                <span className="font-mono font-bold text-cyan-400 block">🎯 OBJECTIVE:</span>
+                <span className="text-starlight/90 leading-snug block">
+                  Triangulate and locate all 3 kinetic bolide impact fragments on the 8×8 orbital grid before your scan budget runs out.
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-1">
+                <span className="font-mono font-bold text-amber-400 block">🕹️ CONTROLS:</span>
+                <span className="text-starlight/90 leading-snug block">
+                  Click/tap grid coordinates to ping radar pulse. Read HOT/WARM/COLD thermal distance indicators to zero in on targets. Switch to Beacon mode to lock direct evacuation coordinates.
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-1">
+                <span className="font-mono font-bold text-rose-400 block">⚠️ HOW YOU LOSE:</span>
+                <span className="text-starlight/90 leading-snug block">
+                  Exhaust all 8 radar scans without finding all 3 fragments, or run out of time in Timed Blitz mode.
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setGameState('playing');
+              }}
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-heading font-black text-base shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+            >
+              START OPERATION 🚀
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── TOP HEADER / MISSION BANNER ── */}
       <div className="w-full flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-cyan-500/20">
         <div className="flex items-center gap-3">

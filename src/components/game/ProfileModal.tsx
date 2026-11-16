@@ -5,6 +5,7 @@ import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import { useProfile, AVATAR_OPTIONS, validateCallsign } from '@/lib/profile';
 import { resetBattlePassState } from '@/lib/battlePass';
+import { resetPlanetProgress } from '@/lib/planetCartridges';
 import { playClick, playSuccess, playAlert } from '@/lib/sound';
 import type { CadetSpecialty } from '@/lib/types';
 
@@ -74,6 +75,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     playAlert();
     setDeleteStatusMsg(null);
     resetBattlePassState();
+    resetPlanetProgress();
     try {
       localStorage.removeItem('jat_active_save_v1');
       localStorage.removeItem('jat_equipped_pet_v1');

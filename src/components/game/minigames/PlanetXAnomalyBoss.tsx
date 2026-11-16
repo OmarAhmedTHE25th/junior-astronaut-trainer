@@ -15,28 +15,28 @@ interface BossIntent {
 const BOSS_INTENTS: BossIntent[] = [
   {
     title: 'Gravitational Lensing Crush',
-    damage: 35,
+    damage: 38,
     description: 'Compressing spacetime metric around the vessel. Massive tidal stress incoming.',
     icon: '🌀',
     type: 'crush',
   },
   {
     title: 'Inner Oort Comet Shower',
-    damage: 42,
+    damage: 48,
     description: 'Hurling a localized cluster of cryo-frozen cometary fragments at 120 km/s.',
     icon: '☄️',
     type: 'comets',
   },
   {
     title: 'Tidal Spacetime Shear',
-    damage: 28,
+    damage: 34,
     description: 'Micro-singularity resonance disrupting structural hull harmonics.',
     icon: '⚡',
     type: 'shear',
   },
   {
     title: 'Oort Void Graviton Pulse',
-    damage: 32,
+    damage: 42,
     description: 'Super-Earth core gravitational pulse radiating through dark matter filaments.',
     icon: '🌌',
     type: 'glitch',
@@ -49,6 +49,7 @@ export default function PlanetXAnomalyBoss() {
   const isTimed = Boolean(state.isTimedMode);
   const hasAegisHullMatrix = state.equippedTacticalItem === 'aegis-hull-matrix';
 
+  const [gameState, setGameState] = useState<'briefing' | 'playing'>('briefing');
   // Core Combat Stats
   const [hull, setHull] = useState<number>(() => (hasAegisHullMatrix ? 135 : 100));
   const [driveCharge, setDriveCharge] = useState<number>(0);
@@ -143,7 +144,7 @@ export default function PlanetXAnomalyBoss() {
 
   // Execute Turn Sequence
   const handleExecuteTurn = () => {
-    if (isResolving || energyAvailable < 0) return;
+    if (gameState !== 'playing' || isResolving || energyAvailable < 0) return;
     setIsResolving(true);
 
     // 1. Calculate Drive Gain
@@ -159,8 +160,8 @@ export default function PlanetXAnomalyBoss() {
 
     const newHull = Math.max(0, hull - netDamage);
 
-    // Score earned
-    const turnPoints = (driveAllocations * 500) + (counterWaveAllocations * 400) + (netDamage === 0 ? 300 : 100);
+    // Score earned (rebalanced: 75/60/50 pts per turn)
+    const turnPoints = (driveAllocations * 75) + (counterWaveAllocations * 60) + (netDamage === 0 ? 50 : 20);
     const newScore = score + turnPoints;
 
     setScore(newScore);
@@ -190,14 +191,14 @@ export default function PlanetXAnomalyBoss() {
       if (newDrive >= 100) {
         // VICTORY! Alcubierre Warp Jump Initiated
         playSuccess();
-        const baseScore = newScore + newHull * 40 + 6000;
-        const finalScore = isTimed ? Math.round(baseScore * 1.5) : baseScore;
+        const baseScore = newScore + Math.round(newHull * 3) + 500;
+        const finalScore = isTimed ? Math.min(1600, Math.round(baseScore * 1.3)) : Math.min(1400, baseScore);
         dispatch({
           type: 'COMPLETE_MINIGAME',
           victory: true,
           score: finalScore,
           solsCompleted: 30,
-          summaryLog: `ALCUBIERRE WARP SUCCESSFUL! Escaped Planet Nine's gravitational well at 600 AU with ${newHull}% hull intact${isTimed ? ' (Blitz 1.5x Multiplier Applied)' : ''}. Earned ${finalScore} PTS!`,
+          summaryLog: `ALCUBIERRE WARP SUCCESSFUL! Escaped Planet Nine's gravitational well at 600 AU with ${newHull}% hull intact${isTimed ? ' (Blitz Multiplier Applied)' : ''}. Earned ${finalScore} PTS!`,
         });
         return;
       }
@@ -237,7 +238,59 @@ export default function PlanetXAnomalyBoss() {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col items-center gap-3 p-3 sm:p-5 rounded-3xl bg-[#090514]/95 border-2 border-purple-500/50 shadow-[0_0_50px_rgba(168,85,247,0.3)] text-white font-mono animate-slide-up select-none">
+    <div className="relative w-full max-w-4xl mx-auto flex flex-col items-center gap-3 p-3 sm:p-5 rounded-3xl bg-[#090514]/95 border-2 border-purple-500/50 shadow-[0_0_50px_rgba(168,85,247,0.3)] text-white font-mono animate-slide-up select-none overflow-hidden">
+      {/* ── PRE-GAME BRIEFING OVERLAY ── */}
+      {gameState === 'briefing' && (
+        <div className="absolute inset-0 z-50 bg-slate-950/92 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-[#110524] border-2 border-purple-400/70 rounded-3xl p-6 shadow-[0_0_40px_rgba(168,85,247,0.4)] space-y-4 text-white">
+            <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+              <span className="text-3xl">🕳️</span>
+              <div>
+                <h3 className="font-heading font-black text-lg text-purple-300">
+                  Planet X: Singularity Anomaly
+                </h3>
+                <p className="text-xs text-starlight/70 font-mono">
+                  Trans-Neptunian Boss Encounter // 600 AU
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs font-sans">
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-1">
+                <span className="font-mono font-bold text-amber-400 block">🎯 OBJECTIVE:</span>
+                <span className="text-starlight/90 leading-snug block">
+                  Survive the primordial singularity&apos;s tidal strikes while allocating reactor energy across consoles to charge your Alcubierre Warp Drive to 100%.
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-1">
+                <span className="font-mono font-bold text-cyan-400 block">🕹️ CONTROLS:</span>
+                <span className="text-starlight/90 leading-snug block">
+                  Allocate your 3 Reactor Energy units each turn between Warp Drive (+charge), Gravity Shield (absorb damage), and Graviton Pulse (stagger anomaly). Then click &quot;EXECUTE TURN SEQUENCE&quot;.
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-1">
+                <span className="font-mono font-bold text-rose-400 block">⚠️ HOW YOU LOSE:</span>
+                <span className="text-starlight/90 leading-snug block">
+                  Ship hull integrity drops to 0% from unshielded gravitational tidal strikes, or turn limit expires in Blitz mode.
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setGameState('playing');
+              }}
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white font-heading font-black text-base shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+            >
+              START OPERATION 🚀
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── TOP HEADER / HUD ── */}
       <div className="w-full flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-purple-500/20">
         <div className="flex items-center gap-3">

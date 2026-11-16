@@ -96,12 +96,14 @@ export default function EndScreen() {
     : rawCallsign;
 
   const { earnedCredits, bpXpEarned, petXpToAward, stars, starDisplay } = useMemo(() => {
-    const baseCredits = Math.max(25, Math.round(finalScore * 0.25) + (state.sol - 1) * 10);
+    // Rebalanced economy: 25 to 350 Galaxy Coins capped per standard mission run
+    const baseCredits = Math.min(350, Math.max(25, Math.round(finalScore * 0.12)));
     const vipCredits = isFiveStar ? Math.round(baseCredits * 1.25) : baseCredits;
     const earned = Math.round(vipCredits * guildCreditsMultiplier);
-    const bpXp = Math.max(100, Math.round(finalScore * 0.5) + state.sol * 15);
+    // Rebalanced Battle Pass progression: 60 to 450 XP per run + 150 XP victory bonus
+    const bpXp = Math.min(450, Math.max(60, Math.round(finalScore * 0.15))) + (isVictory ? 150 : 0);
     const petXp = (state.petXpEarned || 0) + (isVictory ? 100 : 0);
-    const starCount = Math.min(5, Math.max(1, Math.ceil(finalScore / 200)));
+    const starCount = Math.min(5, Math.max(1, Math.ceil(finalScore / 300)));
     const starsStr = '⭐'.repeat(starCount) + '☆'.repeat(5 - starCount);
     return {
       earnedCredits: earned,
@@ -110,7 +112,7 @@ export default function EndScreen() {
       stars: starCount,
       starDisplay: starsStr,
     };
-  }, [finalScore, state.sol, state.petXpEarned, isFiveStar, guildCreditsMultiplier, isVictory]);
+  }, [finalScore, state.petXpEarned, isFiveStar, guildCreditsMultiplier, isVictory]);
 
   const activeSpecialty = SPECIALTY_METAS.find(
     (s) => s.id === (state.specialty || activeCadet.specialty || 'commander')
