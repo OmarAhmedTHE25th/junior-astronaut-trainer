@@ -315,7 +315,7 @@ export default function HUD({ onOpenMenu }: HUDProps) {
           <div className="flex items-center gap-2">
             <span className="text-base animate-bounce">🐛</span>
             <span>
-              TARDIGRADE BIO-SENSOR WARNING: Incoming severe NASA DONKI solar storm / CME detected in next Sol! Reinforce radiation shielding.
+              TARDIGRADE BIO-SENSOR WARNING: Incoming severe NASA DONKI solar storm / CME detected in next {cartridge.dayUnit?.singular || 'Sol'}! Reinforce radiation shielding.
             </span>
           </div>
           <span className="px-2 py-0.5 rounded bg-black/50 text-[10px] uppercase border border-white/20">
@@ -330,7 +330,7 @@ export default function HUD({ onOpenMenu }: HUDProps) {
           <div className="flex items-center gap-2">
             <span className="text-base animate-spin">⚡</span>
             <span className="text-amber-300">
-              🚨 HOSTILE EMP TELEMETRY JAM ACTIVE ({state.activeDebuffs?.empJammedSols} Sols remaining): Telemetry gauges scrambled by microwave static. Command Override re-roll locked!
+              🚨 HOSTILE EMP TELEMETRY JAM ACTIVE ({state.activeDebuffs?.empJammedSols} {state.activeDebuffs?.empJammedSols === 1 ? (cartridge.dayUnit?.singular || 'Sol') : (cartridge.dayUnit?.plural || 'Sols')} remaining): Telemetry gauges scrambled by microwave static. Command Override re-roll locked!
             </span>
           </div>
           <span className="px-2 py-0.5 rounded bg-black/60 text-[10px] text-purple-300 uppercase border border-purple-400/40 font-bold">
@@ -345,7 +345,7 @@ export default function HUD({ onOpenMenu }: HUDProps) {
           <div className="flex items-center gap-2">
             <span className="text-base">🌪️</span>
             <span>
-              HOSTILE REGOLITH DUST BLIND ({state.activeDebuffs?.solarBlindedSols} Sols remaining): Solar collectors blanketed in abrasive dust. Power operation output reduced by -35%!
+              HOSTILE REGOLITH DUST BLIND ({state.activeDebuffs?.solarBlindedSols} {state.activeDebuffs?.solarBlindedSols === 1 ? (cartridge.dayUnit?.singular || 'Sol') : (cartridge.dayUnit?.plural || 'Sols')} remaining): Solar collectors blanketed in abrasive dust. Power operation output reduced by -35%!
             </span>
           </div>
           <span className="text-[10px] bg-black/50 px-2 py-0.5 rounded text-amber-400 border border-amber-500/40 font-bold">
@@ -403,7 +403,7 @@ export default function HUD({ onOpenMenu }: HUDProps) {
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5 leading-none">
               <span className="text-[10px] text-[#F8FAFC]/60 uppercase tracking-widest font-mono">
-                Sol
+                {cartridge.dayUnit?.singular || 'SOL'}
               </span>
               <span className={`text-[10px] font-mono px-1 rounded font-extrabold uppercase border ${
                 state.isGlitchedEntropy
@@ -746,7 +746,7 @@ export default function HUD({ onOpenMenu }: HUDProps) {
                   statusText = 'CRITICAL';
                   statusBg = 'bg-amber-500/20 text-amber-300 border-amber-500/30 animate-pulse';
                 } else if (cadet.sol >= 30) {
-                  statusText = 'SOL 30';
+                  statusText = `${cartridge.dayUnit?.singular || 'SOL'} 30`;
                   statusBg = 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30';
                 }
 
@@ -772,7 +772,7 @@ export default function HUD({ onOpenMenu }: HUDProps) {
                       {isLocal && <span className="text-[#E87040] ml-1 text-[9px]">(YOU)</span>}
                     </span>
                     <span className="text-white/60 font-mono text-[10px]">
-                      Sol {Math.min(cadet.sol, 30)}
+                      {cartridge.dayUnit?.singular || 'Sol'} {Math.min(cadet.sol, 30)}
                     </span>
 
                     {/* Average Vitals Mini Bar */}

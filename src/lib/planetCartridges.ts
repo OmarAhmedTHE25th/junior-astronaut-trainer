@@ -103,6 +103,11 @@ export interface PlanetTheme {
   skyHue: string;
 }
 
+export interface PlanetDayUnit {
+  singular: string;
+  plural: string;
+}
+
 export interface PlanetCartridge {
   id: PlanetId;
   order: number | 'X';
@@ -111,6 +116,7 @@ export interface PlanetCartridge {
   tagline: string;
   subtitle: string;
   description: string;
+  dayUnit: PlanetDayUnit;
   image: string;
   requiredPrevScore: number;
   unlockTargetScore: number;
@@ -144,6 +150,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
     subtitle: 'Cold Desert & Global Dust Storms',
     description:
       'The secondary human proving ground. A dry, oxidized world where thin CO2 atmosphere, high UV radiation, and severe regolith dust storms demand constant life support calibration.',
+    dayUnit: { singular: 'SOL', plural: 'SOLS' },
     image: '/planets/mars.png',
     requiredPrevScore: 1000,
     unlockTargetScore: 1500,
@@ -307,6 +314,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
     subtitle: 'Worst-Case Scenario: Planetary Crisis',
     description:
       'Humankinds cradle and the essential proving ground. Surrounded by a swirling halo of dead satellites, rocket stages, and hypervelocity shrapnel that threatens total orbital lockout.',
+    dayUnit: { singular: 'DAY', plural: 'DAYS' },
     image: '/planets/earth.png',
     requiredPrevScore: 0,
     unlockTargetScore: 1000,
@@ -454,7 +462,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
     ],
     signatureMechanic: {
       name: 'Kessler Shrapnel & ASAT Radar Escalation',
-      description: 'Debris density and ground radar tracking escalate every sol unless purged by flak or evasive burns.',
+      description: 'Debris density and ground radar tracking escalate every day unless purged by flak or evasive burns.',
       hazardAlert: 'RADAR LOCK DETECTED: Surface missile guidance tracking active!',
     },
   },
@@ -469,6 +477,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
     subtitle: 'Supercritical Pressure & Sulfuric Haze',
     description:
       'Beneath the yellow clouds lies a 465°C furnace. At 55 km altitude, pressure and temperature are Earth-like, but corrosive sulfuric rain never stops.',
+    dayUnit: { singular: 'CYCLE', plural: 'CYCLES' },
     image: '/planets/venus.png',
     requiredPrevScore: 1500,
     unlockTargetScore: 2000,
@@ -633,6 +642,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
     subtitle: 'Thermal Extremes: 430°C Day / -180°C Night',
     description:
       'Airless, heavily cratered, and scorched by the sun. The outpost must ride heavy crawler treads, forever pacing the moving twilight terminator line.',
+    dayUnit: { singular: 'SHIFT', plural: 'SHIFTS' },
     image: '/planets/mercury.png',
     requiredPrevScore: 2000,
     unlockTargetScore: 2500,
@@ -776,8 +786,8 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
         name: 'Titanium Bogie Tread Pin',
         icon: '🔧',
         priceCredits: 125,
-        description: 'Reinforced track pins that double crawler repositioning distance for 3 sols.',
-        tacticalEffect: '2x Crawler Reposition Distance for 3 Sols',
+        description: 'Reinforced track pins that double crawler repositioning distance for 3 shifts.',
+        tacticalEffect: '2x Crawler Reposition Distance for 3 Shifts',
         category: 'consumable',
       },
     ],
@@ -798,6 +808,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
     subtitle: 'Radiation Belts & Megavolt Lightning',
     description:
       'The king of planets. A churning colossus surrounded by million-gauss radiation belts and titanic megavolt lightning arcs capable of overloading any capacitor.',
+    dayUnit: { singular: 'ROTATION', plural: 'ROTATIONS' },
     image: '/planets/jupiter.png',
     requiredPrevScore: 2500,
     unlockTargetScore: 3000,
@@ -930,8 +941,8 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
         name: 'Superconducting Faraday Shunt',
         icon: '🧲',
         priceCredits: 160,
-        description: 'Automated breaker that prevents capacitor arc-flash damage for 3 sols.',
-        tacticalEffect: 'Immunity to Arc-Flash Damage for 3 Sols',
+        description: 'Automated breaker that prevents capacitor arc-flash damage for 3 rotations.',
+        tacticalEffect: 'Immunity to Arc-Flash Damage for 3 Rotations',
         category: 'tech',
       },
       {
@@ -961,6 +972,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
     subtitle: 'Ring Particles & Cryogenic Plumes',
     description:
       'The jewel of the solar system. A ring skimmer outpost harvesting billions of tons of pristine water-ice boulders while navigating ring-shear turbulence.',
+    dayUnit: { singular: 'ORBIT', plural: 'ORBITS' },
     image: '/planets/saturn.png',
     requiredPrevScore: 3000,
     unlockTargetScore: 3500,
@@ -1101,8 +1113,8 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
         name: 'Cryogenic Deflector Crystal',
         icon: '💎',
         priceCredits: 175,
-        description: 'Amplifies particle deflectors, halving all Ring Shear accumulation for 4 sols.',
-        tacticalEffect: 'Halves Ring Shear for 4 Sols',
+        description: 'Amplifies particle deflectors, halving all Ring Shear accumulation for 4 orbits.',
+        tacticalEffect: 'Halves Ring Shear for 4 Orbits',
         category: 'tech',
       },
     ],
@@ -1123,6 +1135,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
     subtitle: '98° Axial Tilt • -224°C Cryogenic Deep',
     description:
       'The coldest world in the solar system. A sideways-spinning ice giant shrouded in aquamarine clouds of methane, ammonia, and water slush.',
+    dayUnit: { singular: 'WATCH', plural: 'WATCHES' },
     image: '/planets/uranus.png',
     requiredPrevScore: 3500,
     unlockTargetScore: 4000,
@@ -1183,7 +1196,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
         dangerLow: 30,
         color: 'text-cyan-400',
         barColor: 'bg-cyan-500',
-        description: 'Pressure of anti-freeze fluid. Below 30% freezes action controls each sol until thawed.',
+        description: 'Pressure of anti-freeze fluid. Below 30% freezes action controls each watch until thawed.',
       },
       {
         key: 'methaneMix',
@@ -1264,8 +1277,8 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
         name: 'Catalytic Methane Heater',
         icon: '🔥',
         priceCredits: 165,
-        description: 'Provides continuous thermal heating (+15 Power/Sol) for 3 sols.',
-        tacticalEffect: '+15 Power per Sol for 3 Sols',
+        description: 'Provides continuous thermal heating (+15 Power/Watch) for 3 watches.',
+        tacticalEffect: '+15 Power per Watch for 3 Watches',
         category: 'tech',
       },
     ],
@@ -1286,6 +1299,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
     subtitle: '2,100 km/h Supersonic Winds • Diamond Hail',
     description:
       'The farthest recognized planet. Raging with supersonic methane jet streams and crushing pressures that condense carbon into diamond hail showers.',
+    dayUnit: { singular: 'TIDE', plural: 'TIDES' },
     image: '/planets/neptune.png',
     requiredPrevScore: 4000,
     unlockTargetScore: 4500,
@@ -1417,8 +1431,8 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
         name: 'Titanium-Kevlar Drogue Anchor',
         icon: '🪂',
         priceCredits: 150,
-        description: 'Stabilizes wind shear at safe levels for 3 consecutive sols.',
-        tacticalEffect: 'Wind Shear Capped at Safe Levels for 3 Sols',
+        description: 'Stabilizes wind shear at safe levels for 3 consecutive tides.',
+        tacticalEffect: 'Wind Shear Capped at Safe Levels for 3 Tides',
         category: 'tech',
       },
       {
@@ -1448,6 +1462,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
     subtitle: 'Cosmic Anomaly • Spacetime Distortion',
     description:
       'A mythical primordial black hole or rogue dark-matter world lurking 600 AU out in the frozen Kuiper cliff. Spacetime bends, and quantum decoherence scrambles reality.',
+    dayUnit: { singular: 'EPOCH', plural: 'EPOCHS' },
     image: '/planets/planet_x.png',
     secret: true,
     requiredPrevScore: 4500,
@@ -1564,7 +1579,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       {
         id: 'chrono_rewind',
         title: 'Tachyonic Temporal Rewind',
-        subtitle: 'Reverse previous sol attrition',
+        subtitle: 'Reverse previous epoch attrition',
         description: 'Channel tachyons to invert local timeline and recover lost oxygen and power.',
         category: 'special',
         icon: '⏳',
@@ -1580,8 +1595,8 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
         name: 'Tachyonic Reality Anchor',
         icon: '🌀',
         priceCredits: 200,
-        description: 'Freezes Quantum Decoherence at 0% for 3 consecutive sols.',
-        tacticalEffect: 'Freezes Entropy at 0% for 3 Sols',
+        description: 'Freezes Quantum Decoherence at 0% for 3 consecutive epochs.',
+        tacticalEffect: 'Freezes Entropy at 0% for 3 Epochs',
         category: 'tech',
       },
       {
@@ -1620,6 +1635,12 @@ export function getPlanetCartridge(planetId?: PlanetId | string): PlanetCartridg
     return PLANET_CARTRIDGES[planetId as PlanetId];
   }
   return PLANET_CARTRIDGES.earth;
+}
+
+/** Retrieve localized day unit (singular/plural) for a planet with Earth/Mars fallback */
+export function getPlanetDayUnit(planetId?: PlanetId | string): PlanetDayUnit {
+  const cartridge = getPlanetCartridge(planetId);
+  return cartridge.dayUnit || { singular: 'SOL', plural: 'SOLS' };
 }
 
 /** Retrieve all saved best scores from localStorage */

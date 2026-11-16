@@ -15,6 +15,7 @@ import { useBattlePass, addBattlePassXP } from '@/lib/battlePass';
 import {
   savePlanetBestScore,
   PLANET_CARTRIDGES,
+  getPlanetCartridge,
   type PlanetCartridge,
 } from '@/lib/planetCartridges';
 import {
@@ -77,6 +78,8 @@ export default function EndScreen() {
   const isFiveStar = Boolean(state.isFiveStarGeneral || bpState.isFiveStarGeneral);
   const isVictory = state.phase === 'victory';
   const finalScore = useMemo(() => calculateScore(state), [state]);
+  const cartridge = useMemo(() => getPlanetCartridge(state.planetId), [state.planetId]);
+  const dayUnit = cartridge.dayUnit || { singular: 'SOL', plural: 'SOLS' };
 
   const activeGuild = state.guild || (typeof window !== 'undefined' ? getStoredGuild() : null);
   const guildTag = activeGuild?.tag;
@@ -357,10 +360,10 @@ export default function EndScreen() {
 
           <p className="text-sm text-[#F8FAFC]/70 mb-4">
             {isVictory
-              ? `Commander ${displayCallsign}, you successfully survived all ${state.maxSol} sols on Mars!`
+              ? `Commander ${displayCallsign}, you successfully survived all ${state.maxSol} ${dayUnit.plural.toLowerCase()} on ${cartridge.name}!`
               : state.gameOverReason === 'timeout'
-              ? `Commander ${displayCallsign}, life-support collapsed on Sol ${state.sol} after failing to commit countermeasures before the 15s timer expired.`
-              : `Commander ${displayCallsign}, your outpost sustained operations for ${state.sol} sols before mission abort.`}
+              ? `Commander ${displayCallsign}, life-support collapsed on ${dayUnit.singular} ${state.sol} after failing to commit countermeasures before the 15s timer expired.`
+              : `Commander ${displayCallsign}, your outpost sustained operations for ${state.sol} ${dayUnit.plural.toLowerCase()} before mission abort.`}
           </p>
 
           {/* Stars & Score */}
@@ -504,10 +507,10 @@ export default function EndScreen() {
                               )}
                             </div>
                             <div className="text-[10px] text-white/50 flex items-center gap-2">
-                              <span>Sol {cadet.sol}/30</span>
+                              <span>{dayUnit.singular} {cadet.sol}/30</span>
                               <span>•</span>
                               <span className={cadet.alive ? 'text-emerald-400' : 'text-rose-400 font-bold'}>
-                                {cadet.alive ? (cadet.sol >= 30 ? 'SOL 30 REACHED' : 'ACTIVE') : 'FLATLINED'}
+                                {cadet.alive ? (cadet.sol >= 30 ? `${dayUnit.singular} 30 REACHED` : 'ACTIVE') : 'FLATLINED'}
                               </span>
                             </div>
                           </div>
@@ -536,10 +539,10 @@ export default function EndScreen() {
           <div className="mb-6 text-left">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-mono font-extrabold text-[#38BDF8] uppercase tracking-wider flex items-center gap-1.5">
-                <span>📊</span> Outpost Sol Telemetry Analysis
+                <span>📊</span> Outpost {dayUnit.singular} Telemetry Analysis
               </span>
               <span className="text-[10px] font-mono text-white/50">
-                {state.telemetryHistory?.length || 0} Sols Logged
+                {state.telemetryHistory?.length || 0} {dayUnit.plural} Logged
               </span>
             </div>
             <TelemetryChart history={state.telemetryHistory ?? []} maxSol={state.maxSol} />
@@ -585,7 +588,7 @@ export default function EndScreen() {
                   </div>
                   <div className="text-right">
                     <span className="text-xs font-mono font-bold text-[#22C55E] block">
-                      SOL 30 VERIFIED
+                      {dayUnit.singular} 30 VERIFIED
                     </span>
                     <span className="text-[10px] text-white/50">{currentDateFormatted}</span>
                   </div>
@@ -624,7 +627,7 @@ export default function EndScreen() {
 
                 {/* Body Text */}
                 <p className="text-xs text-white/80 text-center my-3 leading-relaxed max-w-md mx-auto">
-                  For outstanding courage, resource management, and scientific resilience demonstrated during the 30-Sol Mars Outpost Expedition under NASA DONKI solar event conditions.
+                  For outstanding courage, resource management, and scientific resilience demonstrated during the 30-{dayUnit.singular} {cartridge.name} Outpost Expedition under NASA DONKI solar event conditions.
                 </p>
 
                 {/* Earned Badges & Rank on Certificate */}
@@ -720,7 +723,7 @@ export default function EndScreen() {
           {/* Outpost Telemetry Stats */}
           <div className="grid grid-cols-2 gap-2.5 mb-6 text-xs sm:text-sm">
             <div className="bg-[#0B1026]/70 rounded-xl p-3 border border-white/5">
-              <div className="text-[#F8FAFC]/50 text-[11px]">Sols Survived</div>
+              <div className="text-[#F8FAFC]/50 text-[11px]">{dayUnit.plural} Survived</div>
               <div className="text-lg font-extrabold text-[#F8FAFC] tabular-nums">
                 {isVictory ? state.maxSol : state.sol} / {state.maxSol}
               </div>

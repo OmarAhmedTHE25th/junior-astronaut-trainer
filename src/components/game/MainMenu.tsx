@@ -9,7 +9,7 @@ import { useProfile, getOrCreateCadetProfile, DEFAULT_PROFILE } from '@/lib/prof
 import { useBattlePass } from '@/lib/battlePass';
 import { useWallet } from '@/context/WalletContext';
 import { useGuild } from '@/lib/guildClient';
-import { SPECIALTY_METAS } from '@/lib/types';
+import { SPECIALTY_METAS, type Difficulty } from '@/lib/types';
 import type { GameState } from '@/lib/types';
 import {
   type PlanetId,
@@ -25,7 +25,6 @@ import {
 // Lazy-loaded heavy modal dialogs to minimize initial bundle size
 const ProfileModal = dynamic(() => import('./ProfileModal'), { ssr: false });
 const LeaderboardModal = dynamic(() => import('./LeaderboardModal'), { ssr: false });
-const RoverGalleryModal = dynamic(() => import('./RoverGalleryModal'), { ssr: false });
 const FieldManualModal = dynamic(() => import('./FieldManualModal'), { ssr: false });
 const SquadRaceModal = dynamic(() => import('./SquadRaceModal'), { ssr: false });
 const SquadMatchmakingModal = dynamic(() => import('./SquadMatchmakingModal'), { ssr: false });
@@ -48,6 +47,27 @@ interface EquippedPetState {
   level: number;
 }
 
+const difficulties: { value: Difficulty; label: string; emoji: string; desc: string }[] = [
+  {
+    value: 'cadet',
+    label: 'Cadet',
+    emoji: '🌟',
+    desc: 'Gentler hazards & more supplies.',
+  },
+  {
+    value: 'commander',
+    label: 'Commander',
+    emoji: '🎖️',
+    desc: 'Balanced NASA solar events.',
+  },
+  {
+    value: 'pioneer',
+    label: 'Pioneer',
+    emoji: '🔥',
+    desc: 'Intense storms & tight reserves.',
+  },
+];
+
 export default function MainMenu() {
   const { isMuted, toggleSound, playClick } = useSound();
   const { profile, isLoaded } = useProfile();
@@ -56,7 +76,6 @@ export default function MainMenu() {
   const isFiveStar = walletIsFiveStar || bpState.isFiveStarGeneral;
 
   // Modals state
-  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isManualOpen, setIsManualOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
@@ -72,8 +91,8 @@ export default function MainMenu() {
   // Private squad code passed from GameModesModal
   const [privateRoomCode, setPrivateRoomCode] = useState<string>('');
 
-  // Solo Crisis pace toggle
-  const [isCrisisTimed, setIsCrisisTimed] = useState(false);
+  // Flight difficulty state
+  const [difficulty, setDifficulty] = useState<Difficulty>('commander');
   const [activeSave, setActiveSave] = useState<GameState | null>(null);
 
   // Solar System Planetary Cartridge State
@@ -122,6 +141,12 @@ export default function MainMenu() {
     } catch {
       setActiveSave(null);
     }
+    try {
+      const savedDiff = localStorage.getItem('jat_mission_difficulty_v1') as Difficulty | null;
+      if (savedDiff && ['cadet', 'commander', 'pioneer'].includes(savedDiff)) {
+        setDifficulty(savedDiff);
+      }
+    } catch {}
     const updateSector = () => {
       const s = getHighestUnlockedSector(isFiveStar);
       setHighestSector({ sector: s.sector, name: s.name });
@@ -192,6 +217,14 @@ export default function MainMenu() {
       window.removeEventListener('jat-wallet-updated', handleWalletUpdated);
     };
   }, [fetchCommanderData, isLoaded, profile?.cadetId]);
+
+  const handleSelectDifficulty = (diff: Difficulty) => {
+    playClick();
+    setDifficulty(diff);
+    try {
+      localStorage.setItem('jat_mission_difficulty_v1', diff);
+    } catch {}
+  };
 
   // Find specialty icon/title
   const specialtyMeta = SPECIALTY_METAS.find((s) => s.id === (activeCadet.specialty || 'commander'));
@@ -437,45 +470,35 @@ export default function MainMenu() {
               )}
             </div>
 
-            {/* Solo Crisis Pace Toggle */}
-            <div className="flex flex-col items-center gap-2 pt-1">
-              <div className="inline-flex p-1.5 rounded-2xl bg-[#090d20] border border-white/15 shadow-inner">
-                <button
-                  type="button"
-                  onClick={() => {
-                    playClick();
-                    setIsCrisisTimed(false);
-                  }}
-                  className={`px-4 sm:px-6 py-2 rounded-xl text-xs sm:text-sm font-bold font-mono transition-all cursor-pointer flex items-center gap-2 ${
-                    !isCrisisTimed
-                      ? 'bg-[#22C55E] text-slate-950 shadow-md shadow-[#22C55E]/30 font-extrabold'
-                      : 'text-white/60 hover:text-white'
-                  }`}
-                >
-                  <span>🛡️</span>
-                  <span>Standard (Untimed)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    playClick();
-                    setIsCrisisTimed(true);
-                  }}
-                  className={`px-4 sm:px-6 py-2 rounded-xl text-xs sm:text-sm font-bold font-mono transition-all cursor-pointer flex items-center gap-2 ${
-                    isCrisisTimed
-                      ? 'bg-rose-500 text-white shadow-md shadow-rose-500/40 font-extrabold animate-pulse'
-                      : 'text-white/60 hover:text-white'
-                  }`}
-                >
-                  <span>⏱️</span>
-                  <span>Timed Crisis (15s)</span>
-                </button>
+            {/* Flight Difficulty Selector */}
+            <div className="flex flex-col items-center gap-2 pt-1 max-w-xl mx-auto w-full">
+              <span className="text-xs font-mono font-extrabold uppercase tracking-widest text-[#E87040] block">
+                Select Mission Difficulty
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full">
+                {difficulties.map((d) => {
+                  const selected = difficulty === d.value;
+                  return (
+                    <button
+                      key={d.value}
+                      type="button"
+                      onClick={() => handleSelectDifficulty(d.value)}
+                      className={`
+                        p-3 rounded-2xl border transition-all cursor-pointer flex flex-col items-center text-center gap-1
+                        ${
+                          selected
+                            ? 'bg-[#1e293b] border-cyan-400 ring-2 ring-cyan-400/30 shadow-md'
+                            : 'bg-[#090d20]/80 border-white/10 hover:border-white/20 opacity-75'
+                        }
+                      `}
+                    >
+                      <span className="text-2xl">{d.emoji}</span>
+                      <span className="font-heading font-bold text-sm text-white">{d.label}</span>
+                      <span className="text-[10px] text-starlight/60 leading-tight">{d.desc}</span>
+                    </button>
+                  );
+                })}
               </div>
-              <p className="text-[11px] sm:text-xs font-mono text-starlight/60">
-                {isCrisisTimed
-                  ? '⚡ Crisis Pace: 15-second per-Sol countdown with instant loss on timeout & rapid response score bonus.'
-                  : '💡 Standard Pace: Strategic, untimed decision-making per Sol — official campaign score progression.'}
-              </p>
             </div>
 
             {/* Main Dual CTAs */}
@@ -519,22 +542,10 @@ export default function MainMenu() {
                 </span>
               </button>
             </div>
-
-            {/* Quick-play directly to Sector 01 */}
-            <div className="pt-1">
-              <Link
-                href={isCrisisTimed ? '/game?planet=earth&site=iss_zenith&timed=true' : '/game?planet=earth&site=iss_zenith'}
-                onClick={playClick}
-                className="text-xs font-mono text-cyan-400/80 hover:text-cyan-300 underline underline-offset-4 cursor-pointer inline-flex items-center gap-1"
-              >
-                <span>⚡ Quick-Deploy directly to Sector 01 (Earth Orbital Defense)</span>
-                <span>→</span>
-              </Link>
-            </div>
           </div>
         </section>
 
-        {/* ── 2. SECONDARY UTILITY ROW (Clean 3-Card Grid: Leaderboard, Rover Gallery, Field Manual) ── */}
+        {/* ── 2. SECONDARY UTILITY ROW (Clean 3-Card Grid: Leaderboard, 9-World Gallery, Field Manual) ── */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           {/* Card 1: Global Leaderboard */}
           <button
@@ -568,13 +579,10 @@ export default function MainMenu() {
             </div>
           </button>
 
-          {/* Card 2: NASA Rover & Science Gallery */}
-          <button
-            type="button"
-            onClick={() => {
-              playClick();
-              setIsGalleryOpen(true);
-            }}
+          {/* Card 2: 9-World Planetary Reconnaissance Gallery */}
+          <Link
+            href="/gallery"
+            onClick={playClick}
             className="
               group p-6 rounded-2xl bg-[#141b3d]/70 hover:bg-[#1a234f]/90
               border border-blue-500/30 hover:border-blue-400/80
@@ -587,18 +595,18 @@ export default function MainMenu() {
                 🔭
               </span>
               <span className="text-xs font-mono text-blue-400/90 font-bold uppercase tracking-wider">
-                17 Photos →
+                9 Worlds →
               </span>
             </div>
             <div>
               <h3 className="font-heading font-extrabold text-base sm:text-lg text-white group-hover:text-blue-300 transition-colors">
-                Rover & Science Gallery
+                Planetary Reconnaissance Gallery
               </h3>
               <p className="text-xs text-starlight/70 mt-1 leading-relaxed">
-                Inspect real NASA Mars rover telemetry, Curiosity/Perseverance imagery, and RadLab sensors.
+                Explore authentic NASA deep-space imagery, Mars rover photography, and planetary telemetry across all 9 worlds.
               </p>
             </div>
-          </button>
+          </Link>
 
           {/* Card 3: Astronaut Field Manual */}
           <button
@@ -674,11 +682,6 @@ export default function MainMenu() {
       <LeaderboardModal
         isOpen={isLeaderboardOpen}
         onClose={() => setIsLeaderboardOpen(false)}
-      />
-
-      <RoverGalleryModal
-        isOpen={isGalleryOpen}
-        onClose={() => setIsGalleryOpen(false)}
       />
 
       <FieldManualModal

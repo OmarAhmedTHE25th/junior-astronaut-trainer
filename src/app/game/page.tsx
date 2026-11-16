@@ -8,7 +8,6 @@ import { type PlanetId, getPlanetCartridge, ORDERED_PLANET_IDS } from "@/lib/pla
 import { SPECIALTY_METAS } from "@/lib/types";
 import { useProfile, getOrCreateCadetProfile, DEFAULT_PROFILE } from "@/lib/profile";
 import { playClick, playAction } from "@/lib/sound";
-import MarsGlobeSelector from "@/components/game/MarsGlobeSelector";
 
 const difficulties: { value: Difficulty; label: string; emoji: string; desc: string }[] = [
   {
@@ -65,6 +64,19 @@ export default function GamePage() {
       const matchParam = params.get("matchId");
       const timedParam = params.get("timed");
       const tournamentIdParam = params.get("tournamentId");
+      const autoLaunchParam = params.get("launch") === "true";
+
+      const diffParam = params.get("difficulty") as Difficulty | null;
+      if (diffParam && ["cadet", "commander", "pioneer"].includes(diffParam)) {
+        setDifficulty(diffParam);
+      } else {
+        try {
+          const savedDiff = localStorage.getItem("jat_mission_difficulty_v1") as Difficulty | null;
+          if (savedDiff && ["cadet", "commander", "pioneer"].includes(savedDiff)) {
+            setDifficulty(savedDiff);
+          }
+        } catch {}
+      }
 
       if (timedParam === "true" || timedParam === "1") {
         setIsTimedMode(true);
@@ -81,6 +93,10 @@ export default function GamePage() {
           if (cart.locations[0]) {
             setLandingSite(cart.locations[0].id as LandingSiteId);
           }
+        }
+        if (autoLaunchParam || siteParam) {
+          setLaunched(true);
+          return;
         }
       }
 
@@ -276,14 +292,6 @@ export default function GamePage() {
                 </button>
               </div>
             )}
-
-            {/* 3D Martian Globe Landing Zone Selector */}
-            <div className="mb-8">
-              <MarsGlobeSelector
-                selectedSite={landingSite}
-                onSelectSite={setLandingSite}
-              />
-            </div>
 
             {/* Difficulty selector */}
             <fieldset className="mb-8">

@@ -379,14 +379,16 @@ function applySolDepletion(state: GameState): GameState {
   }
 
   const newState = applyEffects(state, depletionEffects, -1); // morale ticks down slightly
+  const cartridge = getPlanetCartridge(state.planetId);
+  const dayUnit = cartridge.dayUnit?.singular || 'Sol';
 
   const logEntry: LogEntry = {
     sol: state.sol,
     type: 'depletion',
-    title: state.isEndlessTournament && state.sol > 30 ? '⚠️ Escalating Endless Decay' : 'Sol Depletion',
+    title: state.isEndlessTournament && state.sol > 30 ? '⚠️ Escalating Endless Decay' : `${dayUnit} Depletion`,
     description: state.isEndlessTournament && state.sol > 30
       ? `Compounding environmental degradation (${endlessMultiplier.toFixed(2)}x rate) stresses outpost life support.`
-      : `Mars atmospheric conditions at ${site.name} take their toll.`,
+      : `${cartridge.name} atmospheric conditions at ${site.name} take their toll.`,
     resourceChanges: depletionEffects,
     moraleChange: -1,
   };
@@ -1446,6 +1448,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
       // Mission Commander perk: +2 morale boost every 5 sols survived
+      const planetCart = getPlanetCartridge(state.planetId);
+      const planetDaySingular = planetCart.dayUnit?.singular || 'Sol';
       let moraleBonus = 0;
       let logs = [...state.log];
       if (state.specialty === 'commander' && (nextSol - 1) % 5 === 0 && (nextSol - 1) > 0) {
@@ -1454,7 +1458,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           sol: nextSol,
           type: 'system',
           title: '🎖️ Commander Leadership',
-          description: `Sol ${nextSol - 1} milestone reached! Commander leadership rallied crew (+2 Morale).`,
+          description: `${planetDaySingular} ${nextSol - 1} milestone reached! Commander leadership rallied crew (+2 Morale).`,
           resourceChanges: {},
           moraleChange: 2,
           icon: '🎖️',
@@ -1469,7 +1473,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           sol: nextSol,
           type: 'system',
           title: `🦎 Pet Autorepair: ${state.equippedPet.name || 'Cryo-Gecko'}`,
-          description: `Martian bio-sealant foam auto-patched habitat micro-fractures (+${hullRepairBonus} Shielding).`,
+          description: `${planetCart.name} bio-sealant foam auto-patched habitat micro-fractures (+${hullRepairBonus} Shielding).`,
           resourceChanges: { shielding: hullRepairBonus },
           icon: state.equippedPet.avatar || '🦎',
         });
@@ -1485,7 +1489,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             sol: nextSol,
             type: 'system',
             title: `🐛 Tardigrade Bio-Sensor Warning`,
-            description: `Severe NASA DONKI solar storm / CME detected incoming at Sol ${nextSol + 1}! Prepare shields.`,
+            description: `Severe NASA DONKI solar storm / CME detected incoming at ${planetDaySingular} ${nextSol + 1}! Prepare shields.`,
             resourceChanges: {},
             icon: '🐛',
           });
@@ -1576,7 +1580,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           sol: nextSol,
           type: 'system',
           title: '🔄 Command Override Granted',
-          description: `Sol ${nextSol} milestone unlocked +1 tactical operations deck re-roll.`,
+          description: `${planetDaySingular} ${nextSol} milestone unlocked +1 tactical operations deck re-roll.`,
           resourceChanges: {},
           icon: '🔄',
         });

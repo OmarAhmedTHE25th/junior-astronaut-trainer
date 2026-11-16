@@ -18,16 +18,9 @@ import { TIMED_CRISIS_SOL_SECONDS, TIMEOUT_FALLBACK_ACTION } from '@/lib/constan
 import { getOrCreateCadetProfile } from '@/lib/profile';
 import { getBattlePassState } from '@/lib/battlePass';
 import { getStoredGuild } from '@/lib/guildClient';
-import nasaFacts from '@/data/nasa-facts.json';
+import { type PlanetFact, getPlanetFacts } from '@/lib/planetFacts';
 
-interface NASAFact {
-  id: string;
-  category: string;
-  title: string;
-  fact: string;
-  nasaSource: string;
-  funRating: number;
-}
+export type NASAFact = PlanetFact;
 
 interface GameContextType {
   state: GameState;
@@ -324,9 +317,10 @@ export function GameProvider({
     }
   }, [state.phase, state.missionTimeSeconds]);
 
-  const facts = nasaFacts as NASAFact[];
+  const facts = useMemo(() => getPlanetFacts(state.planetId), [state.planetId]);
 
   const rotateFact = useCallback(() => {
+    if (facts.length === 0) return;
     setFactIndex((prev) => (prev + 1) % facts.length);
   }, [facts.length]);
 

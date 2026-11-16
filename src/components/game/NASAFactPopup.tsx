@@ -1,17 +1,34 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import Button from '@/components/ui/Button';
 import { useGame } from './GameProvider';
 import { playSuccess, playClick } from '@/lib/sound';
+import { getPlanetCartridge } from '@/lib/planetCartridges';
 
 const categoryIcons: Record<string, string> = {
   mars: '🔴',
+  earth: '🌍',
+  venus: '🟡',
+  mercury: '⚪',
+  jupiter: '🪐',
+  saturn: '🪐',
+  uranus: '❄️',
+  neptune: '🌊',
+  planet_x: '👁️',
   radiation: '☢️',
+  debris: '🛰️',
+  atmosphere: '🌫️',
+  thermal: '🔥',
+  rings: '💫',
+  winds: '🌪️',
+  water: '💧',
+  geology: '🌋',
   life_support: '🌬️',
-  food: '🥕',
-  power: '⚡',
   exploration: '🔭',
+  corrupted_telemetry: '⚠️',
+  gravitational_anomaly: '🕳️',
+  primordial_black_hole: '🌌',
 };
 
 interface NASAFactPopupProps {
@@ -19,7 +36,8 @@ interface NASAFactPopupProps {
 }
 
 export default function NASAFactPopup({ onDismiss }: NASAFactPopupProps) {
-  const { currentFact } = useGame();
+  const { currentFact, state } = useGame();
+  const cartridge = useMemo(() => getPlanetCartridge(state.planetId), [state.planetId]);
 
   useEffect(() => {
     if (currentFact) {
@@ -34,7 +52,8 @@ export default function NASAFactPopup({ onDismiss }: NASAFactPopupProps) {
     onDismiss();
   };
 
-  const icon = categoryIcons[currentFact.category] || '🌟';
+  const isPlanetX = cartridge.id === 'planet_x';
+  const icon = categoryIcons[currentFact.category] || categoryIcons[cartridge.id] || '🌟';
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4 animate-[fade-in_0.3s_ease-out]">
@@ -47,25 +66,25 @@ export default function NASAFactPopup({ onDismiss }: NASAFactPopupProps) {
 
       {/* Card */}
       <div
-        className="relative z-10 w-full max-w-sm
+        className={`relative z-10 w-full max-w-sm
                    bg-[#111827]
-                   rounded-2xl border border-cyan-400/50
+                   rounded-2xl border ${isPlanetX ? 'border-fuchsia-500/70 shadow-fuchsia-500/20' : 'border-cyan-400/50'}
                    shadow-2xl
                    animate-[slide-up_0.4s_ease-out]
-                   overflow-hidden"
+                   overflow-hidden`}
         role="dialog"
         aria-label={`NASA Fact: ${currentFact.title}`}
       >
         {/* Decorative top bar */}
-        <div className="h-1 bg-cyan-400" />
+        <div className={`h-1 ${isPlanetX ? 'bg-fuchsia-500' : 'bg-cyan-400'}`} />
 
         <div className="p-5 space-y-4">
           {/* Category & icon */}
           <div className="flex items-center gap-2">
             <span className="text-3xl" aria-hidden="true">{icon}</span>
             <div>
-              <span className="text-xs text-cyan-400 font-semibold uppercase tracking-widest">
-                NASA Fact
+              <span className={`text-[10px] font-mono font-bold uppercase tracking-widest ${isPlanetX ? 'text-fuchsia-400' : 'text-cyan-400'}`}>
+                {isPlanetX ? 'CLASSIFIED TELEMETRY DECK' : `${cartridge.name.toUpperCase()} SCIENCE BRIEFING`}
               </span>
               <h3 className="text-lg font-bold text-[#F8FAFC] leading-snug">
                 {currentFact.title}
@@ -79,14 +98,14 @@ export default function NASAFactPopup({ onDismiss }: NASAFactPopupProps) {
           </p>
 
           {/* Source */}
-          <p className="text-xs text-[#F8FAFC]/40 italic flex items-center gap-1">
+          <p className="text-xs text-[#F8FAFC]/40 italic flex items-center gap-1 font-mono">
             <span aria-hidden="true">📡</span>
             {currentFact.nasaSource}
           </p>
 
           {/* Fun rating */}
           <div className="text-sm text-[#E87040]" aria-label={`Fun rating: ${currentFact.funRating} out of 5`}>
-            {'🚀'.repeat(currentFact.funRating)}
+            {isPlanetX ? '👁️'.repeat(currentFact.funRating) : '🚀'.repeat(currentFact.funRating)}
           </div>
 
           {/* Dismiss */}
@@ -95,9 +114,9 @@ export default function NASAFactPopup({ onDismiss }: NASAFactPopupProps) {
             size="md"
             onClick={handleDismiss}
             className="w-full"
-            ariaLabel="Continue to next sol"
+            ariaLabel={`Continue to next ${cartridge.dayUnit.singular.toLowerCase()}`}
           >
-            Got it! 👍
+            Acknowledge &amp; Proceed to {cartridge.dayUnit.singular} {state.sol} →
           </Button>
         </div>
       </div>

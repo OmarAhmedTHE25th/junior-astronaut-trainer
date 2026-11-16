@@ -56,12 +56,18 @@ function PlanetBriefingContent() {
     const query = new URLSearchParams();
     query.set('planet', cartridge.id);
     query.set('site', selectedSite);
+    query.set('launch', 'true');
+    const savedDiff = typeof window !== 'undefined' ? localStorage.getItem('jat_mission_difficulty_v1') || 'commander' : 'commander';
+    query.set('difficulty', savedDiff);
     if (gameMode === 'timed') {
       query.set('timed', 'true');
     }
     if (gameMode === 'endless') {
       query.set('tournamentId', 'campaign-endless');
     }
+    try {
+      localStorage.removeItem('jat_active_save_v1');
+    } catch {}
     router.push(`/game?${query.toString()}`);
   };
 
@@ -361,7 +367,7 @@ function PlanetBriefingContent() {
                 >
                   <div>
                     <div className="font-bold text-white flex items-center gap-1.5">
-                      <span>🛡️</span> Standard Mode (30 Sols)
+                      <span>🛡️</span> Standard Mode (30 {cartridge.dayUnit.plural})
                     </div>
                     <div className="text-[10px] opacity-70">
                       Untimed strategic survival • Official campaign score progression
@@ -410,7 +416,7 @@ function PlanetBriefingContent() {
                       <span>♾️</span> Endless Survival
                     </div>
                     <div className="text-[10px] opacity-70">
-                      Survive past Sol 30 • Compounding decay decay curves
+                      Survive past {cartridge.dayUnit.singular} 30 • Compounding decay curves
                     </div>
                   </div>
                   {gameMode === 'endless' && <span className="text-purple-400 text-lg">✓</span>}
