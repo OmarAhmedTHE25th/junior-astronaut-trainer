@@ -1145,7 +1145,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         title: `🛰️ Electronic Warfare Launched: ${slug.toUpperCase()}`,
         description: `Offensive cyber-operation deployed against ${targetName || 'rival outpost'}${
           slug === 'supply-intercept' ? ' (+6% O₂, +5% Power siphoned)' : ''
-        }.${paymentType === 'power' ? ` Cost: ${powerCost}⚡` : ' Paid with Mars Credits.'}`,
+        }.${paymentType === 'power' ? ` Cost: ${powerCost}⚡` : ' Paid with Galaxy Coins.'}`,
         resourceChanges: {
           power: slug === 'supply-intercept' ? (paymentType === 'power' ? -powerCost + 5 : 5) : (paymentType === 'power' ? -powerCost : 0),
           oxygen: slug === 'supply-intercept' ? 6 : 0,

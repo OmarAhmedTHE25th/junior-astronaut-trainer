@@ -93,7 +93,7 @@ export default function RivalTelemetryBar({
 
     if (paymentMode === 'mc' && walletCredits < def.mcCost) {
       playAlert();
-      setActionFeedback(`⚠️ Insufficient Mars Credits! Requires ${def.mcCost} MC (Balance: ${walletCredits} MC)`);
+      setActionFeedback(`⚠️ Insufficient Galaxy Coins! Requires ${def.mcCost} GC (Balance: ${walletCredits} GC)`);
       return;
     }
 
@@ -294,7 +294,7 @@ export default function RivalTelemetryBar({
                       : 'text-white/60 hover:text-white'
                   }`}
                 >
-                  🪙 Credits ({walletCredits} MC)
+                  🪙 Coins ({walletCredits} GC)
                 </button>
               </div>
             </div>
@@ -352,7 +352,7 @@ export default function RivalTelemetryBar({
                   {/* Action Trigger Button */}
                   <div className="pt-1 border-t border-white/5 flex items-center justify-between gap-2">
                     <span className="text-[10px] font-bold text-amber-300">
-                      {paymentMode === 'power' ? `${def.powerCost}⚡` : `${def.mcCost} MC`}
+                      {paymentMode === 'power' ? `${def.powerCost}⚡` : `${def.mcCost} GC`}
                     </span>
 
                     <button

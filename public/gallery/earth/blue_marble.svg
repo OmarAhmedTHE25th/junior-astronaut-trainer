@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="100%">
+  <defs>
+    <radialGradient id="spaceBg" cx="50%" cy="50%" r="75%">
+      <stop offset="0%" stop-color="#050814"/>
+      <stop offset="100%" stop-color="#010206"/>
+    </radialGradient>
+    <radialGradient id="earthGlow" cx="42%" cy="42%" r="58%">
+      <stop offset="0%" stop-color="#2a75d3"/>
+      <stop offset="45%" stop-color="#144d9b"/>
+      <stop offset="75%" stop-color="#0a2a5e"/>
+      <stop offset="96%" stop-color="#04122d"/>
+      <stop offset="100%" stop-color="#000614"/>
+    </radialGradient>
+    <radialGradient id="atmoGlow" cx="45%" cy="45%" r="50%">
+      <stop offset="85%" stop-color="#38bdf8" stop-opacity="0"/>
+      <stop offset="97%" stop-color="#38bdf8" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#7dd3fc" stop-opacity="0.9"/>
+    </radialGradient>
+    <linearGradient id="sunShine" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.25"/>
+      <stop offset="60%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="blurFilter" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+  </defs>
+
+  <!-- Deep space background with subtle stars -->
+  <rect width="800" height="500" fill="url(#spaceBg)"/>
+  <g fill="#ffffff" opacity="0.6">
+    <circle cx="70" cy="45" r="1"/>
+    <circle cx="150" cy="90" r="1.5"/>
+    <circle cx="220" cy="30" r="0.8"/>
+    <circle cx="680" cy="60" r="1.2"/>
+    <circle cx="740" cy="120" r="1"/>
+    <circle cx="710" cy="380" r="1.4"/>
+    <circle cx="650" cy="440" r="0.8"/>
+    <circle cx="110" cy="410" r="1.2"/>
+    <circle cx="45" cy="330" r="1.5"/>
+  </g>
+
+  <!-- Atmospheric halo ring -->
+  <circle cx="400" cy="250" r="184" fill="none" stroke="#38bdf8" stroke-width="6" opacity="0.4" filter="url(#blurFilter)"/>
+  <circle cx="400" cy="250" r="180" fill="url(#earthGlow)"/>
+
+  <!-- Landmasses (Africa, Arabia, Antarctica in Blue Marble style) -->
+  <g fill="#4d7c3b" opacity="0.85">
+    <!-- Africa -->
+    <path d="M380,160 Q420,170 435,210 Q445,260 415,310 Q390,340 375,320 Q360,280 350,240 Q350,190 380,160 Z" fill="#607a3c"/>
+    <!-- Sahara desert tint -->
+    <path d="M370,170 Q430,175 440,210 Q400,230 365,215 Q360,190 370,170 Z" fill="#b08b59"/>
+    <!-- Arabian peninsula -->
+    <path d="M435,185 Q465,190 470,220 Q445,225 435,200 Z" fill="#b08b59"/>
+    <!-- Madagascar -->
+    <path d="M440,280 Q450,290 445,315 Q435,310 438,285 Z" fill="#4d7c3b"/>
+    <!-- Antarctica ice shelf at south pole -->
+    <path d="M310,380 Q400,360 490,380 Q400,430 310,380 Z" fill="#e2e8f0" opacity="0.95"/>
+  </g>
+
+  <!-- Swirling White Cloud Cover Systems -->
+  <g fill="#ffffff" opacity="0.88">
+    <!-- Intertropical Convergence Zone belt -->
+    <path d="M260,220 Q320,240 380,215 Q430,195 500,210 Q530,230 480,240 Q410,230 350,250 Q280,245 260,220 Z"/>
+    <!-- South Atlantic / Indian Ocean Cyclone Spiral -->
+    <path d="M400,280 Q430,270 450,295 Q440,325 410,320 Q395,305 415,295 Q425,300 420,310 Z" opacity="0.9"/>
+    <!-- Mediterranean and North European cloud streamers -->
+    <path d="M340,140 Q400,120 450,135 Q420,155 360,150 Z" opacity="0.75"/>
+    <path d="M290,170 Q330,160 360,180 Q320,190 290,170 Z" opacity="0.8"/>
+  </g>
+
+  <!-- Atmospheric rim glow and limb highlight -->
+  <circle cx="400" cy="250" r="180" fill="url(#atmoGlow)"/>
+  <circle cx="400" cy="250" r="180" fill="url(#sunShine)"/>
+
+  <!-- Telemetry Overlay Badge -->
+  <rect x="25" y="25" width="220" height="50" rx="8" fill="#0b1329" fill-opacity="0.85" stroke="#38bdf8" stroke-width="1.5"/>
+  <text x="40" y="47" fill="#38bdf8" font-family="monospace" font-size="11" font-weight="bold" letter-spacing="1.5">NASA APOLLO 17 ARCHIVE</text>
+  <text x="40" y="63" fill="#ffffff" font-family="sans-serif" font-size="12" font-weight="900">THE BLUE MARBLE (1972)</text>
+</svg>

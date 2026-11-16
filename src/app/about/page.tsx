@@ -18,9 +18,9 @@ const nasaSources = [
     desc: "Space biology research that inspires the health and biology facts you see between turns.",
   },
   {
-    name: "Mars Rover Photos",
-    url: "https://mars.nasa.gov/mars2020/multimedia/raw-images/",
-    desc: "Real images from Curiosity, Perseverance, Opportunity, and Spirit that appear as backdrops.",
+    name: "NASA Image & Video Library",
+    url: "https://images.nasa.gov/",
+    desc: "Authentic planetary, atmospheric, and deep-space photography across all 9 Solar System campaign worlds.",
   },
   {
     name: "APOD (Astronomy Picture of the Day)",
@@ -28,9 +28,9 @@ const nasaSources = [
     desc: "Stunning NASA space images used throughout the game for visual inspiration.",
   },
   {
-    name: "Mars Trek",
-    url: "https://trek.nasa.gov/mars/",
-    desc: "Mars terrain and mapping data that informed the game's landscape visuals.",
+    name: "JPL Horizons & Solar System Treks",
+    url: "https://trek.nasa.gov/",
+    desc: "Solar-system-wide orbital ephemerides, terrain models, and planetary telemetry from NASA JPL.",
   },
 ];
 

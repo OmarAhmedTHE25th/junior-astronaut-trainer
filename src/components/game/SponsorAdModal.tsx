@@ -376,7 +376,7 @@ export default function SponsorAdModal({
                 </span>
                 <span className="text-xs font-mono text-starlight/70">
                   {rewardMode === 'credits'
-                    ? '150 Mars Credits ready for immediate transfer to your colony wallet.'
+                    ? '150 Galaxy Coins ready for immediate transfer to your colony wallet.'
                     : '+20% Power, Oxygen, and Radiation Shielding ready for life-support injection.'}
                 </span>
               </div>
@@ -398,7 +398,7 @@ export default function SponsorAdModal({
                 <span>✅</span>
                 <span>
                   {rewardMode === 'credits'
-                    ? 'CLAIM +150 MC & RETURN'
+                    ? 'CLAIM +150 GC & RETURN'
                     : 'CLAIM +20% VITALS & RETURN'}
                 </span>
                 <span className="text-xl">→</span>

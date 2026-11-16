@@ -48,8 +48,8 @@ export const BATTLEPASS_TIERS: BattlePassTierDef[] = [
   {
     tier: 1,
     xpRequired: 0,
-    freeReward: { type: 'credits', mcAmount: 100, label: '100 MC', icon: '💰' },
-    premiumReward: { type: 'credits', mcAmount: 500, titleName: 'Vanguard Recruit', label: '500 MC + Title', icon: '⭐' },
+    freeReward: { type: 'credits', mcAmount: 100, label: '100 GC', icon: '💰' },
+    premiumReward: { type: 'credits', mcAmount: 500, titleName: 'Vanguard Recruit', label: '500 GC + Title', icon: '⭐' },
   },
   {
     tier: 2,
@@ -60,8 +60,8 @@ export const BATTLEPASS_TIERS: BattlePassTierDef[] = [
   {
     tier: 3,
     xpRequired: 1000,
-    freeReward: { type: 'credits', mcAmount: 150, label: '150 MC', icon: '💰' },
-    premiumReward: { type: 'credits', mcAmount: 750, label: '750 MC Payout', icon: '🪙' },
+    freeReward: { type: 'credits', mcAmount: 150, label: '150 GC', icon: '💰' },
+    premiumReward: { type: 'credits', mcAmount: 750, label: '750 GC Payout', icon: '🪙' },
   },
   {
     tier: 4,
@@ -72,8 +72,8 @@ export const BATTLEPASS_TIERS: BattlePassTierDef[] = [
   {
     tier: 5,
     xpRequired: 2000,
-    freeReward: { type: 'credits', mcAmount: 200, label: '200 MC', icon: '💰' },
-    premiumReward: { type: 'credits', mcAmount: 1000, titleName: 'Fleet Commander', label: '1,000 MC + Title', icon: '🎖️' },
+    freeReward: { type: 'credits', mcAmount: 200, label: '200 GC', icon: '💰' },
+    premiumReward: { type: 'credits', mcAmount: 1000, titleName: 'Fleet Commander', label: '1,000 GC + Title', icon: '🎖️' },
   },
   {
     tier: 6,
@@ -84,8 +84,8 @@ export const BATTLEPASS_TIERS: BattlePassTierDef[] = [
   {
     tier: 7,
     xpRequired: 3000,
-    freeReward: { type: 'credits', mcAmount: 250, label: '250 MC', icon: '💰' },
-    premiumReward: { type: 'credits', mcAmount: 1250, label: '1,250 MC Payout', icon: '🪙' },
+    freeReward: { type: 'credits', mcAmount: 250, label: '250 GC', icon: '💰' },
+    premiumReward: { type: 'credits', mcAmount: 1250, label: '1,250 GC Payout', icon: '🪙' },
   },
   {
     tier: 8,
@@ -96,14 +96,14 @@ export const BATTLEPASS_TIERS: BattlePassTierDef[] = [
   {
     tier: 9,
     xpRequired: 4000,
-    freeReward: { type: 'credits', mcAmount: 300, label: '300 MC', icon: '💰' },
-    premiumReward: { type: 'credits', mcAmount: 1500, titleName: 'Star Marshal', label: '1,500 MC + Title', icon: '🚀' },
+    freeReward: { type: 'credits', mcAmount: 300, label: '300 GC', icon: '💰' },
+    premiumReward: { type: 'credits', mcAmount: 1500, titleName: 'Star Marshal', label: '1,500 GC + Title', icon: '🚀' },
   },
   {
     tier: 10,
     xpRequired: 4500,
-    freeReward: { type: 'item', itemSlug: 'rad-shielding', quantity: 1, label: '1x Shield Pack + 300 MC', icon: '👑' },
-    premiumReward: { type: 'item', itemSlug: 'telemetry-decoy', quantity: 2, mcAmount: 2000, label: '2,000 MC + 2x Decoys + Apex Badge', icon: '⭐⭐⭐⭐⭐' },
+    freeReward: { type: 'item', itemSlug: 'rad-shielding', quantity: 1, label: '1x Shield Pack + 300 GC', icon: '👑' },
+    premiumReward: { type: 'item', itemSlug: 'telemetry-decoy', quantity: 2, mcAmount: 2000, label: '2,000 GC + 2x Decoys + Apex Badge', icon: '⭐⭐⭐⭐⭐' },
   },
 ];
 

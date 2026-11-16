@@ -53,9 +53,9 @@ const dataSources = [
   { name: "DONKI", label: "Solar Events", url: "https://ccmc.gsfc.nasa.gov/tools/DONKI/" },
   { name: "RadLab", label: "Radiation Data", url: "https://visualization.osdr.nasa.gov/radlab/gui/data-api/" },
   { name: "OSDR", label: "Space Biology", url: "https://osdr.nasa.gov/bio/repo/" },
-  { name: "Mars Rover Photos", label: "Mars Imagery", url: "https://api.nasa.gov/" },
+  { name: "NASA Image & Video Library", label: "Planetary Imagery", url: "https://images.nasa.gov/" },
   { name: "APOD", label: "Astronomy Pictures", url: "https://api.nasa.gov/" },
-  { name: "Mars Trek", label: "Mars Terrain", url: "https://trek.nasa.gov/mars/" },
+  { name: "JPL Horizons / Solar System Treks", label: "Orbital & Terrain Telemetry", url: "https://trek.nasa.gov/" },
 ];
 
 export default function HomePage() {

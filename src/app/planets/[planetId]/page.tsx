@@ -177,7 +177,7 @@ function PlanetBriefingContent() {
               title="Colony Store & Gear"
             >
               <span>💰</span>
-              <span>{creditsBalance} MC</span>
+              <span>{creditsBalance} GC</span>
             </Link>
             {isFiveStar && (
               <span className="px-3 py-1 rounded-xl bg-amber-500/20 border border-amber-400 text-amber-300 font-mono text-xs font-bold flex items-center gap-1.5">

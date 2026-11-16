@@ -63,7 +63,7 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             success: false,
-            error: `Insufficient Mars Credits: required ${crateCost} MC, available ${currentWallet.creditsBalance} MC`,
+            error: `Insufficient Galaxy Coins: required ${crateCost} GC, available ${currentWallet.creditsBalance} GC`,
           },
           { status: 400 }
         );
@@ -134,14 +134,14 @@ export async function POST(request: Request) {
 
         reward = {
           itemSlug: undefined,
-          itemName: `${jackpotCredits} MC JACKPOT!`,
-          name: `${jackpotCredits} MC JACKPOT!`,
+          itemName: `${jackpotCredits} GC JACKPOT!`,
+          name: `${jackpotCredits} GC JACKPOT!`,
           icon: '💎',
           quantity: 1,
           rarity: 'legendary',
           isJackpot: true,
           jackpotCredits,
-          description: 'Instant telemetry high-yield Mars Credit jackpot credited directly to your outpost wallet.',
+          description: 'Instant telemetry high-yield Galaxy Coins jackpot credited directly to your outpost wallet.',
           isPityGuaranteed,
           rebateCredits: rebateApplied,
         };

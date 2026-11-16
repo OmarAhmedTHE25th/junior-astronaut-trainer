@@ -189,7 +189,7 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
                   adjustBalanceOptimistic(bundle.mcAmount);
                 }
               } catch (err) {
-                console.error('Failed to credit Mars Credits upon return:', err);
+                console.error('Failed to credit Galaxy Coins upon return:', err);
                 adjustBalanceOptimistic(bundle.mcAmount);
               }
             } else if (isPass) {
@@ -285,11 +285,11 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
 
             playVictory();
             setGodModeBanner(
-              '⚡ DEVTEST26 GOD-MODE ACTIVATED: VIP Unlocked • 999,999 MC • All 9 Worlds & Max Inventory Granted'
+              '⚡ DEVTEST26 GOD-MODE ACTIVATED: VIP Unlocked • 999,999 GC • All 9 Worlds & Max Inventory Granted'
             );
             setStatusMsg({
               type: 'success',
-              text: '⚡ DEVTEST26 GOD-MODE ACTIVATED: 999,999 MC, VIP status, all 9 planets, all badges, and 999 supplies granted!',
+              text: '⚡ DEVTEST26 GOD-MODE ACTIVATED: 999,999 GC, VIP status, all 9 planets, all badges, and 999 supplies granted!',
             });
           } else {
             playSuccess();
@@ -332,7 +332,7 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
     if (currentCredits < totalCost) {
       setStatusMsg({
         type: 'error',
-        text: `Insufficient Mars Credits! Required: ${totalCost} MC, Available: ${currentCredits} MC.`,
+        text: `Insufficient Galaxy Coins! Required: ${totalCost} GC, Available: ${currentCredits} GC.`,
       });
       playAlert();
       return;
@@ -356,7 +356,7 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
         playSuccess();
         setStatusMsg({
           type: 'success',
-          text: `Purchased ${qty}x ${item.name} for ${totalCost} MC. Added to your outpost inventory!`,
+          text: `Purchased ${qty}x ${item.name} for ${totalCost} GC. Added to your outpost inventory!`,
         });
         if (typeof data.remainingCredits === 'number') {
           syncWallet(data.remainingCredits);
@@ -401,7 +401,7 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
         playSuccess();
         setStatusMsg({
           type: 'success',
-          text: `Recycled ${qty}x ${itemDef?.name || itemSlug} for +${data.refundCredits || totalRefund} MC refund!`,
+          text: `Recycled ${qty}x ${itemDef?.name || itemSlug} for +${data.refundCredits || totalRefund} GC refund!`,
         });
         setRecycleQuantities((prev) => ({ ...prev, [itemSlug]: 1 }));
         if (typeof data.remainingCredits === 'number') {
@@ -505,7 +505,7 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
     if (!isDailyFree && currentCredits < crateDef.costCredits) {
       setStatusMsg({
         type: 'error',
-        text: `Insufficient Mars Credits to open ${crateDef.name}! Need ${crateDef.costCredits} MC, have ${currentCredits} MC.`,
+        text: `Insufficient Galaxy Coins to open ${crateDef.name}! Need ${crateDef.costCredits} GC, have ${currentCredits} GC.`,
       });
       playAlert();
       return;
@@ -614,11 +614,11 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-cyan-300">
-              Martian Outpost Logistics &amp; Economy
+              Galactic Outpost Logistics &amp; Economy
             </span>
           </div>
           <p className="text-xs text-starlight/75 max-w-xl leading-relaxed">
-            Purchase emergency survival supplies, unlock seasonal Battle Pass rewards, open orbital loot drops, or top up your Mars Credit reserves via Stripe sandbox.
+            Purchase emergency survival supplies, unlock seasonal Battle Pass rewards, open orbital loot drops, or top up your Galaxy Coin reserves via Stripe sandbox.
           </p>
         </div>
 
@@ -630,7 +630,7 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
             </span>
             <span className="font-heading font-black text-xl text-white whitespace-nowrap">
               💰 {wallet ? wallet.creditsBalance.toLocaleString() : '500'}{' '}
-              <span className="text-xs text-amber-300">MC</span>
+              <span className="text-xs text-amber-300">GC</span>
             </span>
           </div>
         </div>
@@ -642,7 +642,7 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
           <div className="flex items-center gap-2">
             <span className="text-base">💳</span>
             <span className="text-xs font-mono font-black text-cyan-300 uppercase tracking-wider">
-              MC TOP-UP &amp; VIP ENTITLEMENTS (STRIPE CHECKOUT)
+              GC TOP-UP &amp; VIP ENTITLEMENTS (STRIPE CHECKOUT)
             </span>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -658,10 +658,10 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
                 hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer
                 flex items-center gap-1.5
               "
-              title="Watch mandatory sponsor commercial for +150 Mars Credits"
+              title="Watch mandatory sponsor commercial for +150 Galaxy Coins"
             >
               <span>🍔</span>
-              <span>Watch Sponsor Broadcast (+150 MC)</span>
+              <span>Watch Sponsor Broadcast (+150 GC)</span>
             </button>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-200 border border-cyan-500/40">
               Official Hosted Portal
@@ -714,17 +714,17 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
         </div>
       </div>
 
-      {/* ── PROMO CODE REDEMPTION & DEVTEST26 QA OVERRIDE ── */}
+      {/* ── PROMO CODE REDEMPTION ── */}
       <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0B1026] border border-cyan-500/30 shadow-lg space-y-2.5">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="text-lg">🎟️</span>
             <div>
               <span className="text-xs font-mono font-black text-cyan-300 uppercase tracking-wider block">
-                OUTPOST PROMO CODES &amp; QA OVERRIDE
+                OUTPOST PROMO CODES
               </span>
               <span className="text-[10px] text-starlight/70">
-                Enter an authorized telemetry key or QA bypass (e.g., <code className="text-amber-300 font-bold">DEVTEST26</code>).
+                Enter an authorized mission clearance code or promotional voucher.
               </span>
             </div>
           </div>
@@ -943,7 +943,7 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
                       {/* Price Tag */}
                       <div className="text-right shrink-0">
                         <span className="font-heading font-extrabold text-base text-amber-300 block whitespace-nowrap">
-                          {item.basePrice} <span className="text-xs">MC</span>
+                          {item.basePrice} <span className="text-xs">GC</span>
                         </span>
                         <span className="text-[9px] text-white/50 uppercase whitespace-nowrap block">
                           Base Unit Price
@@ -1025,7 +1025,7 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
                       >
                         <span>{canAfford ? 'Buy' : 'Need'}</span>
                         <span>{qty}x</span>
-                        <span>({totalCost} MC)</span>
+                        <span>({totalCost} GC)</span>
                         <span>→</span>
                       </button>
                     </div>
@@ -1124,7 +1124,7 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
                       <div className="flex items-center justify-between text-[11px] text-starlight/70 flex-wrap gap-1">
                         <span className="text-white/60">Recycle Value (60% Refund):</span>
                         <span className="font-mono font-bold text-amber-300 whitespace-nowrap">
-                          +{totalRefund} MC ({refundPerUnit} MC/unit)
+                          +{totalRefund} GC ({refundPerUnit} GC/unit)
                         </span>
                       </div>
 
@@ -1180,7 +1180,7 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
                           disabled={isProcessing}
                           className="flex-1 min-w-[120px] py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-amber-200 font-mono font-bold text-xs uppercase border border-amber-400/40 hover:border-amber-300 shadow-sm active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
                         >
-                          <span>♻️ Recycle for {totalRefund} MC</span>
+                          <span>♻️ Recycle for {totalRefund} GC</span>
                         </button>
                       </div>
                     </div>
@@ -1227,7 +1227,7 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-lg">💰</span>
-                  <span><strong>+25% MC</strong> Mission Bonus</span>
+                  <span><strong>+25% GC</strong> Mission Bonus</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-lg">👑</span>
@@ -1245,7 +1245,7 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
                   </span>
                 </div>
                 <p className="text-xs text-starlight/75 mt-1 max-w-xl">
-                  Unlock 3 Emergency Life-Support Retries on every mission, 1 Free Sovereign Drop Pod every 24 hours, +25% Mars Credit payouts, and all 10 Premium Battle Pass reward tiers.
+                  Unlock 3 Emergency Life-Support Retries on every mission, 1 Free Sovereign Drop Pod every 24 hours, +25% Galaxy Coin payouts, and all 10 Premium Battle Pass reward tiers.
                 </p>
               </div>
               <button
@@ -1510,7 +1510,7 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
                           </span>
                         ) : (
                           <span className="font-heading font-black text-lg text-white">
-                            {crate.costCredits} <span className="text-xs text-amber-300">MC</span>
+                            {crate.costCredits} <span className="text-xs text-amber-300">GC</span>
                           </span>
                         )}
                       </div>
@@ -1529,12 +1529,12 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
                     <div className="space-y-1 text-[11px] font-mono">
                       {crate.slug === 'elite' && (
                         <div className="text-cyan-300 bg-cyan-950/40 border border-cyan-500/30 px-2 py-1 rounded-lg">
-                          💰 +100 MC Instant Rebate on every open
+                          💰 +100 GC Instant Rebate on every open
                         </div>
                       )}
                       {crate.slug === 'sovereign' && (
                         <div className="text-amber-300 bg-amber-950/40 border border-amber-400/30 px-2 py-1 rounded-lg">
-                          ⭐ 2x Loot Multiplier + 2,500 MC Jackpot chance
+                          ⭐ 2x Loot Multiplier + 2,500 GC Jackpot chance
                         </div>
                       )}
                     </div>
@@ -1578,7 +1578,7 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
                       }
                     `}
                   >
-                    <span>{isFreeDaily ? 'Claim Free Daily Vault' : `Open Capsule (${crate.costCredits} MC)`}</span>
+                    <span>{isFreeDaily ? 'Claim Free Daily Vault' : `Open Capsule (${crate.costCredits} GC)`}</span>
                     <span>→</span>
                   </button>
                 </div>
@@ -1646,13 +1646,13 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
                 {/* Jackpot & Rebate Callouts */}
                 {crateModalReward.isJackpot && (
                   <div className="p-3 rounded-xl bg-amber-500/20 border border-amber-400/60 text-amber-300 font-black text-xs animate-pulse">
-                    🎉 MARS CREDITS JACKPOT! +{crateModalReward.jackpotCredits} MC Credited to Wallet!
+                    🎉 GALAXY COINS JACKPOT! +{crateModalReward.jackpotCredits} GC Credited to Wallet!
                   </div>
                 )}
 
                 {crateModalReward.rebateCredits && crateModalReward.rebateCredits > 0 && (
                   <div className="text-xs text-cyan-300 font-bold bg-cyan-950/40 border border-cyan-500/30 p-2 rounded-lg">
-                    💰 +{crateModalReward.rebateCredits} MC Elite Pod Rebate Deposited
+                    💰 +{crateModalReward.rebateCredits} GC Elite Pod Rebate Deposited
                   </div>
                 )}
 
@@ -1688,7 +1688,7 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
           }
           setStatusMsg({
             type: 'success',
-            text: `🍔 Sponsor Broadcast Completed! +${credits || 150} Mars Credits credited to your wallet.`,
+            text: `🍔 Sponsor Broadcast Completed! +${credits || 150} Galaxy Coins credited to your wallet.`,
           });
           fetchWalletAndInventory();
         }}

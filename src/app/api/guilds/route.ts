@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
           if (wallet.creditsBalance < GUILD_CREATION_FEE_MC) {
             return NextResponse.json({
               success: false,
-              error: `Insufficient Mars Credits to found a guild. Required: ${GUILD_CREATION_FEE_MC} MC (Balance: ${wallet.creditsBalance} MC).`,
+              error: `Insufficient Galaxy Coins to found a guild. Required: ${GUILD_CREATION_FEE_MC} GC (Balance: ${wallet.creditsBalance} GC).`,
             }, { status: 400 });
           }
           const deductRes = await deductPlayerCredits(cadetId, GUILD_CREATION_FEE_MC);

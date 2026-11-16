@@ -328,7 +328,7 @@ export default function MainMenu() {
             </div>
           </button>
 
-          {/* Mars Credits / Store Button */}
+          {/* Galaxy Coins / Store Button */}
           <Link
             href="/store"
             onClick={playClick}
@@ -340,7 +340,7 @@ export default function MainMenu() {
             "
             title="Colony Supply Store & Outpost Inventory"
           >
-            <span className="text-emerald-400 font-extrabold">💰 {walletCredits.toLocaleString()} MC</span>
+            <span className="text-emerald-400 font-extrabold">💰 {walletCredits.toLocaleString()} GC</span>
             <span className="text-[10px] uppercase font-bold text-emerald-300/80 bg-emerald-500/20 px-1.5 py-0.5 rounded border border-emerald-500/30">
               Store &amp; Gear →
             </span>
@@ -607,7 +607,7 @@ export default function MainMenu() {
                 Planetary Reconnaissance Gallery
               </h3>
               <p className="text-xs text-starlight/70 mt-1 leading-relaxed">
-                Explore authentic NASA deep-space imagery, Mars rover photography, and planetary telemetry across all 9 worlds.
+                Explore authentic NASA deep-space imagery, planetary photography, and telemetry across all 9 worlds.
               </p>
             </div>
           </Link>

@@ -311,7 +311,7 @@ export default function MarsDropMap({
                         <span>⚡</span> EMP Telemetry Jam
                       </span>
                       <span className="text-[10px] text-amber-400 font-extrabold">
-                        {paymentMode === 'power' ? `${def.powerCost}⚡` : `${def.mcCost} MC`}
+                        {paymentMode === 'power' ? `${def.powerCost}⚡` : `${def.mcCost} GC`}
                       </span>
                     </div>
                     <p className="text-[10px] text-white/60 line-clamp-1">
@@ -340,7 +340,7 @@ export default function MarsDropMap({
                         <span>🛰️</span> Supply Intercept
                       </span>
                       <span className="text-[10px] text-cyan-400 font-extrabold">
-                        {paymentMode === 'power' ? `${def.powerCost}⚡` : `${def.mcCost} MC`}
+                        {paymentMode === 'power' ? `${def.powerCost}⚡` : `${def.mcCost} GC`}
                       </span>
                     </div>
                     <p className="text-[10px] text-white/60 line-clamp-1">
@@ -369,7 +369,7 @@ export default function MarsDropMap({
                         <span>🌪️</span> Laser Blind Strike
                       </span>
                       <span className="text-[10px] text-rose-400 font-extrabold">
-                        {paymentMode === 'power' ? `${def.powerCost}⚡` : `${def.mcCost} MC`}
+                        {paymentMode === 'power' ? `${def.powerCost}⚡` : `${def.mcCost} GC`}
                       </span>
                     </div>
                     <p className="text-[10px] text-white/60 line-clamp-1">

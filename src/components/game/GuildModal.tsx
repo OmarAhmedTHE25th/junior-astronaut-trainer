@@ -98,7 +98,7 @@ export default function GuildModal({ isOpen, onClose }: GuildModalProps) {
       return;
     }
     if (!isFiveStar && walletMC < GUILD_CREATION_FEE_MC) {
-      setFormError(`Insufficient Mars Credits! Required: ${GUILD_CREATION_FEE_MC} MC (Wallet: ${walletMC} MC).`);
+      setFormError(`Insufficient Galaxy Coins! Required: ${GUILD_CREATION_FEE_MC} GC (Wallet: ${walletMC} GC).`);
       playWarning();
       return;
     }
@@ -191,7 +191,7 @@ export default function GuildModal({ isOpen, onClose }: GuildModalProps) {
     if (!currentGuild) return;
     if (amount <= 0) return;
     if (walletMC < amount) {
-      showToast(`Insufficient Mars Credits! Required: ${amount} MC (Wallet: ${walletMC} MC).`, 'error');
+      showToast(`Insufficient Galaxy Coins! Required: ${amount} GC (Wallet: ${walletMC} GC).`, 'error');
       playWarning();
       return;
     }
@@ -203,7 +203,7 @@ export default function GuildModal({ isOpen, onClose }: GuildModalProps) {
 
     if (res.success && res.guild) {
       playSuccess();
-      showToast(`Contributed ${amount.toLocaleString()} MC to ${res.guild.name} Treasury!`, 'success');
+      showToast(`Contributed ${amount.toLocaleString()} GC to ${res.guild.name} Treasury!`, 'success');
       if (typeof res.remainingCredits === 'number') {
         syncWallet(res.remainingCredits);
       }
@@ -299,9 +299,9 @@ export default function GuildModal({ isOpen, onClose }: GuildModalProps) {
             </button>
           </div>
 
-          {/* Wallet MC indicator */}
+          {/* Wallet GC indicator */}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs font-mono">
-            <span className="text-emerald-400 font-extrabold">💰 {walletMC.toLocaleString()} MC</span>
+            <span className="text-emerald-400 font-extrabold">💰 {walletMC.toLocaleString()} GC</span>
             {isFiveStar && (
               <span className="text-[10px] bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded font-black border border-amber-400/40">
                 VIP FREE FOUNDING
@@ -406,7 +406,7 @@ export default function GuildModal({ isOpen, onClose }: GuildModalProps) {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-mono uppercase tracking-wider text-cyan-400 font-bold">
-                          Allied Treasury: {currentGuild.treasuryMC.toLocaleString()} MC
+                          Allied Treasury: {currentGuild.treasuryMC.toLocaleString()} GC
                         </span>
                         <span className={`text-[10px] font-black px-2 py-0.5 rounded ${
                           currentGuild.buffLevel === 5 ? 'bg-amber-400 text-slate-950 font-extrabold' : 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40'
@@ -426,14 +426,14 @@ export default function GuildModal({ isOpen, onClose }: GuildModalProps) {
                         disabled={isSubmitting || walletMC < 100}
                         className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-mono font-bold transition-all cursor-pointer disabled:opacity-40"
                       >
-                        +100 MC
+                        +100 GC
                       </button>
                       <button
                         onClick={() => handleDonate(500)}
                         disabled={isSubmitting || walletMC < 500}
                         className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-mono font-bold transition-all cursor-pointer disabled:opacity-40"
                       >
-                        +500 MC
+                        +500 GC
                       </button>
                       <div className="flex items-center gap-1">
                         <input
@@ -459,7 +459,7 @@ export default function GuildModal({ isOpen, onClose }: GuildModalProps) {
                     <div className="space-y-1">
                       <div className="flex justify-between text-[11px] font-mono text-starlight/70">
                         <span>
-                          {milestone.nextLevel ? `Progress to Level ${milestone.nextLevel}: ${milestone.remainingMC.toLocaleString()} MC remaining` : 'Maximum Clan Hegemony Reached!'}
+                          {milestone.nextLevel ? `Progress to Level ${milestone.nextLevel}: ${milestone.remainingMC.toLocaleString()} GC remaining` : 'Maximum Clan Hegemony Reached!'}
                         </span>
                         <span>{milestone.progressPercent}%</span>
                       </div>
@@ -494,10 +494,10 @@ export default function GuildModal({ isOpen, onClose }: GuildModalProps) {
                           }`}
                         >
                           <span className="block font-black">
-                            {lvl === 5 ? '★ LV.5' : `LV.${lvl}`} ({buff.minTreasuryMC >= 1000 ? `${buff.minTreasuryMC / 1000}k` : buff.minTreasuryMC} MC)
+                            {lvl === 5 ? '★ LV.5' : `LV.${lvl}`} ({buff.minTreasuryMC >= 1000 ? `${buff.minTreasuryMC / 1000}k` : buff.minTreasuryMC} GC)
                           </span>
                           <span className="text-[9px] block leading-tight mt-0.5">
-                            {buff.vitalsBonusPercent}% vitals {buff.creditsBonusPercent > 0 ? `• +${buff.creditsBonusPercent}% MC` : ''}
+                            {buff.vitalsBonusPercent}% vitals {buff.creditsBonusPercent > 0 ? `• +${buff.creditsBonusPercent}% GC` : ''}
                           </span>
                         </div>
                       );
@@ -522,7 +522,7 @@ export default function GuildModal({ isOpen, onClose }: GuildModalProps) {
                         <tr>
                           <th className="py-2 px-3">Cadet</th>
                           <th className="py-2 px-3">Rank / Role</th>
-                          <th className="py-2 px-3 text-right">Contributed MC</th>
+                          <th className="py-2 px-3 text-right">Contributed GC</th>
                           <th className="py-2 px-3 text-right">Score Contributed</th>
                         </tr>
                       </thead>
@@ -564,7 +564,7 @@ export default function GuildModal({ isOpen, onClose }: GuildModalProps) {
                                   </span>
                                 </td>
                                 <td className="py-2 px-3 text-right text-emerald-400 font-bold">
-                                  +{member.contributedMC.toLocaleString()} MC
+                                  +{member.contributedMC.toLocaleString()} GC
                                 </td>
                                 <td className="py-2 px-3 text-right text-cyan-300 font-bold">
                                   {member.contributedScore.toLocaleString()} pts
@@ -606,7 +606,7 @@ export default function GuildModal({ isOpen, onClose }: GuildModalProps) {
                   }}
                   className="w-full sm:w-auto px-4 py-2 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-heading font-extrabold text-xs transition-all cursor-pointer shadow"
                 >
-                  + Found New Guild ({isFiveStar ? 'FREE' : `${GUILD_CREATION_FEE_MC} MC`})
+                  + Found New Guild ({isFiveStar ? 'FREE' : `${GUILD_CREATION_FEE_MC} GC`})
                 </button>
               )}
             </div>
@@ -706,7 +706,7 @@ export default function GuildModal({ isOpen, onClose }: GuildModalProps) {
 
                 <div className="pt-1 flex items-center justify-between">
                   <span className="text-[11px] font-mono text-starlight/60">
-                    Fee: {isFiveStar ? 'FREE (Five-Star General)' : `${GUILD_CREATION_FEE_MC} MC`}
+                    Fee: {isFiveStar ? 'FREE (Five-Star General)' : `${GUILD_CREATION_FEE_MC} GC`}
                   </span>
                   <button
                     type="submit"
@@ -770,7 +770,7 @@ export default function GuildModal({ isOpen, onClose }: GuildModalProps) {
                           <div className="flex items-center gap-2.5 text-[10px] font-mono text-starlight/60 mt-1">
                             <span>Score: <strong className="text-emerald-400">{g.totalGuildScore.toLocaleString()}</strong></span>
                             <span>•</span>
-                            <span>Treasury: <strong className="text-white">{g.treasuryMC.toLocaleString()} MC</strong></span>
+                            <span>Treasury: <strong className="text-white">{g.treasuryMC.toLocaleString()} GC</strong></span>
                             <span>•</span>
                             <span>{g.members.length}/20 Cadets</span>
                           </div>
@@ -891,7 +891,7 @@ export default function GuildModal({ isOpen, onClose }: GuildModalProps) {
                             </span>
                           </td>
                           <td className="py-2.5 px-3 text-right font-bold text-white">
-                            {g.treasuryMC.toLocaleString()} MC
+                            {g.treasuryMC.toLocaleString()} GC
                           </td>
                           <td className="py-2.5 px-3 text-right font-bold text-emerald-400 text-sm">
                             {g.totalGuildScore.toLocaleString()} pts

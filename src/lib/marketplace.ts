@@ -220,7 +220,7 @@ export async function createListing(options: {
     throw new Error('Quantity must be a positive integer');
   }
   if (unitPrice <= 0 || !Number.isInteger(unitPrice)) {
-    throw new Error('Unit price must be a positive integer in Mars Credits');
+    throw new Error('Unit price must be a positive integer in Galaxy Coins');
   }
 
   const itemDef = CATALOG_ITEMS[itemSlug];
@@ -374,7 +374,7 @@ export async function executePurchase(options: {
 
     if (currentCredits < totalPrice) {
       throw new Error(
-        `Insufficient Mars Credits: Required ${totalPrice} MC, Balance is ${currentCredits} MC`
+        `Insufficient Galaxy Coins: Required ${totalPrice} GC, Balance is ${currentCredits} GC`
       );
     }
 
@@ -473,7 +473,7 @@ export async function executePurchase(options: {
   const buyerWallet = await getPlayerWallet(buyerId);
   if (buyerWallet.creditsBalance < totalPrice) {
     throw new Error(
-      `Insufficient Mars Credits: Required ${totalPrice} MC, Balance is ${buyerWallet.creditsBalance} MC`
+      `Insufficient Galaxy Coins: Required ${totalPrice} GC, Balance is ${buyerWallet.creditsBalance} GC`
     );
   }
 
@@ -877,7 +877,7 @@ export async function deductPlayerCredits(
     `;
 
     if (!rows || rows.length === 0) {
-      throw new Error(`Insufficient Mars Credits: required ${amount} MC`);
+      throw new Error(`Insufficient Galaxy Coins: required ${amount} GC`);
     }
 
     return { success: true, remainingCredits: rows[0].credits_balance };
@@ -885,7 +885,7 @@ export async function deductPlayerCredits(
 
   const wallet = await getPlayerWallet(playerId);
   if (wallet.creditsBalance < amount) {
-    throw new Error(`Insufficient Mars Credits: required ${amount} MC (balance: ${wallet.creditsBalance} MC)`);
+    throw new Error(`Insufficient Galaxy Coins: required ${amount} GC (balance: ${wallet.creditsBalance} GC)`);
   }
   wallet.creditsBalance -= amount;
   wallet.updatedAt = new Date().toISOString();
@@ -937,7 +937,7 @@ export async function executeStorePurchase(options: {
       if (!updatedWallets || updatedWallets.length === 0) {
         currentWallet = await getPlayerWallet(playerId);
         throw new Error(
-          `Insufficient Mars Credits: required ${totalCost} MC, available ${currentWallet.creditsBalance} MC`
+          `Insufficient Galaxy Coins: required ${totalCost} GC, available ${currentWallet.creditsBalance} GC`
         );
       }
       currentWallet = { ...currentWallet, creditsBalance: updatedWallets[0].credits_balance };
@@ -969,7 +969,7 @@ export async function executeStorePurchase(options: {
   if (totalCost > 0) {
     if (wallet.creditsBalance < totalCost) {
       throw new Error(
-        `Insufficient Mars Credits: required ${totalCost} MC, available ${wallet.creditsBalance} MC`
+        `Insufficient Galaxy Coins: required ${totalCost} GC, available ${wallet.creditsBalance} GC`
       );
     }
     wallet.creditsBalance -= totalCost;
@@ -1148,7 +1148,7 @@ export async function redeemPromoCode(playerId: string, rawCode: string) {
       code: 'DEVTEST26',
       creditsBalance: 999999,
       isFiveStarGeneral: true,
-      message: '⚡ DEVTEST26 GOD-MODE ACTIVATED: VIP Unlocked • 999,999 MC • All 9 Worlds & Max Inventory Granted',
+      message: '⚡ DEVTEST26 GOD-MODE ACTIVATED: VIP Unlocked • 999,999 GC • All 9 Worlds & Max Inventory Granted',
     };
   }
 
@@ -1159,7 +1159,7 @@ export async function redeemPromoCode(playerId: string, rawCode: string) {
       success: true,
       code: 'MARS2026',
       creditsBalance: res.newBalance,
-      message: `Promo code redeemed! +${reward} Mars Credits added.`,
+      message: `Promo code redeemed! +${reward} Galaxy Coins added.`,
     };
   }
 

@@ -61,7 +61,7 @@ export const GUILD_TREASURY_BUFFS: Record<number, GuildTreasuryBuff> = {
     creditsBonusPercent: 5,
     hasGoldTrim: false,
     name: 'Orbital Logistics Network',
-    description: '+5% starting vitals & +5% Mars Credits earned',
+    description: '+5% starting vitals & +5% Galaxy Coins earned',
   },
   3: {
     level: 3,
@@ -70,7 +70,7 @@ export const GUILD_TREASURY_BUFFS: Record<number, GuildTreasuryBuff> = {
     creditsBonusPercent: 10,
     hasGoldTrim: false,
     name: 'Allied Supply Convoys',
-    description: '+8% starting vitals & +10% Mars Credits earned',
+    description: '+8% starting vitals & +10% Galaxy Coins earned',
   },
   4: {
     level: 4,
@@ -78,8 +78,8 @@ export const GUILD_TREASURY_BUFFS: Record<number, GuildTreasuryBuff> = {
     vitalsBonusPercent: 12,
     creditsBonusPercent: 15,
     hasGoldTrim: false,
-    name: 'Martian Sector Dominance',
-    description: '+12% starting vitals & +15% Mars Credits earned',
+    name: 'Galactic Sector Dominance',
+    description: '+12% starting vitals & +15% Galaxy Coins earned',
   },
   5: {
     level: 5,
@@ -88,7 +88,7 @@ export const GUILD_TREASURY_BUFFS: Record<number, GuildTreasuryBuff> = {
     creditsBonusPercent: 20,
     hasGoldTrim: true,
     name: 'Sovereign Clan Hegemony',
-    description: '+15% starting vitals, +20% Mars Credits earned, & Gold [TAG] trim',
+    description: '+15% starting vitals, +20% Galaxy Coins earned, & Gold [TAG] trim',
   },
 };
 

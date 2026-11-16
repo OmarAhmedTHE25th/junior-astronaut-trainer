@@ -180,7 +180,7 @@ export const CRATE_TIERS: Record<CrateTierSlug, CrateDef> = {
     badge: 'STANDARD',
     description: 'Automated atmospheric resupply capsule deployed via drogue chute.',
     odds: { common: 0.65, rare: 0.28, legendary: 0.07 },
-    features: ['65% Common Consumables', '28% Rare Tech Modules', '7% Legendary / 500 MC Jackpot'],
+    features: ['65% Common Consumables', '28% Rare Tech Modules', '7% Legendary / 500 GC Jackpot'],
   },
   elite: {
     slug: 'elite',
@@ -189,10 +189,10 @@ export const CRATE_TIERS: Record<CrateTierSlug, CrateDef> = {
     costCredits: 400,
     icon: '🛸',
     badge: 'ELITE POD',
-    description: 'Pressurized aerospace capsule with reinforced avionics and guaranteed 100 MC rebate.',
+    description: 'Pressurized aerospace capsule with reinforced avionics and guaranteed 100 GC rebate.',
     rebateMC: 100,
     odds: { common: 0.30, rare: 0.50, legendary: 0.20 },
-    features: ['Instant 100 MC Rebate', '50% Rare Tech Modules', '20% Legendary / 1,000 MC Jackpot'],
+    features: ['Instant 100 GC Rebate', '50% Rare Tech Modules', '20% Legendary / 1,000 GC Jackpot'],
   },
   sovereign: {
     slug: 'sovereign',
@@ -204,7 +204,7 @@ export const CRATE_TIERS: Record<CrateTierSlug, CrateDef> = {
     description: 'Orbital titanium dreadnought vault containing apex colony hardware with double yield.',
     freeDailyForVIP: true,
     odds: { common: 0.00, rare: 0.55, legendary: 0.45 },
-    features: ['1 Free Daily Open for VIPs', 'Zero Common Items', '45% Legendary / 2,500 MC Jackpot', '2x Quantity Yield'],
+    features: ['1 Free Daily Open for VIPs', 'Zero Common Items', '45% Legendary / 2,500 GC Jackpot', '2x Quantity Yield'],
   },
 };
 
@@ -222,7 +222,7 @@ export interface CrateReward {
   isPityGuaranteed?: boolean;
 }
 
-// ─── Stripe Mars Credit Bundles ───────────────────────────────
+// ─── Stripe Galaxy Coin Bundles ───────────────────────────────
 
 export interface StoreStripeBundle {
   id: string;
@@ -241,7 +241,7 @@ export interface StoreStripeBundle {
 export const STRIPE_BUNDLES: StoreStripeBundle[] = [
   {
     id: 'bundle-500',
-    name: 'Cadet Supply Crate (500 MC)',
+    name: 'Cadet Supply Crate (500 GC)',
     mcAmount: 500,
     credits: 500,
     usdPriceCents: 99,
@@ -249,11 +249,11 @@ export const STRIPE_BUNDLES: StoreStripeBundle[] = [
     priceUsd: '$0.99',
     icon: '💰',
     badge: 'STARTER',
-    description: '500 Mars Credits Top-Up',
+    description: '500 Galaxy Coins Top-Up',
   },
   {
     id: 'bundle-1500',
-    name: 'Commander Stash (1,500 MC)',
+    name: 'Commander Stash (1,500 GC)',
     mcAmount: 1500,
     credits: 1500,
     usdPriceCents: 249,
@@ -261,11 +261,11 @@ export const STRIPE_BUNDLES: StoreStripeBundle[] = [
     priceUsd: '$2.49',
     icon: '🪙',
     badge: 'POPULAR (+25% BONUS)',
-    description: '1,500 Mars Credits Top-Up',
+    description: '1,500 Galaxy Coins Top-Up',
   },
   {
     id: 'bundle-5000',
-    name: 'Outpost Treasury (5,000 MC)',
+    name: 'Outpost Treasury (5,000 GC)',
     mcAmount: 5000,
     credits: 5000,
     usdPriceCents: 499,
@@ -273,7 +273,7 @@ export const STRIPE_BUNDLES: StoreStripeBundle[] = [
     priceUsd: '$4.99',
     icon: '💎',
     badge: 'BEST VALUE (2X VALUE)',
-    description: '5,000 Mars Credits Top-Up',
+    description: '5,000 Galaxy Coins Top-Up',
   },
   {
     id: 'bundle-fivestar-pass',

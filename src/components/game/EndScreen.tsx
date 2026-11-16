@@ -405,7 +405,7 @@ export default function EndScreen() {
                 <div>
                   <div className="flex items-center gap-1.5">
                     <span className="font-heading font-black text-emerald-300 text-sm block leading-none">
-                      +{earnedCredits} Mars Credits Earned!
+                      +{earnedCredits} Galaxy Coins Earned!
                     </span>
                     {isFiveStar && (
                       <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/50">

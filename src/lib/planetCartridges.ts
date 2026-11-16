@@ -1419,7 +1419,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       },
       {
         id: 'refine_carbon_gems',
-        title: 'Refine Diamond Hail to MC & Plating',
+        title: 'Refine Diamond Hail to GC & Plating',
         subtitle: 'Fortify hull & sell gems',
         description: 'Compress collected diamonds into reinforced armor plating and catalog gems for colony credits.',
         category: 'science',

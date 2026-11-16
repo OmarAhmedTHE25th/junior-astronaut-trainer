@@ -118,7 +118,7 @@ export default function PlanetaryGalleryPage() {
                 title="Colony Store & Gear"
               >
                 <span>💰</span>
-                <span>{creditsBalance} MC</span>
+                <span>{creditsBalance} GC</span>
               </Link>
             )}
             {isFiveStar && (

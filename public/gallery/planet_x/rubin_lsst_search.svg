@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="100%">
+  <defs>
+    <radialGradient id="cerroPachonSky" cx="50%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#05081c"/>
+      <stop offset="60%" stop-color="#02030a"/>
+      <stop offset="100%" stop-color="#000003"/>
+    </radialGradient>
+    <filter id="laserGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>
+  </defs>
+
+  <rect width="800" height="500" fill="url(#cerroPachonSky)"/>
+
+  <!-- Dense Deep Sky Survey Starfield (Milky Way fringe in southern hemisphere) -->
+  <g fill="#ffffff">
+    <circle cx="80" cy="50" r="1.2" opacity="0.8"/>
+    <circle cx="120" cy="110" r="0.7" opacity="0.5"/>
+    <circle cx="160" cy="40" r="1.8" opacity="0.9"/>
+    <circle cx="210" cy="90" r="0.9" opacity="0.7"/>
+    <circle cx="280" cy="60" r="1.4" opacity="0.8"/>
+    <circle cx="340" cy="120" r="0.6" opacity="0.4"/>
+    <circle cx="420" cy="45" r="1.5" opacity="0.85"/>
+    <circle cx="510" cy="70" r="2" opacity="0.9"/>
+    <circle cx="590" cy="110" r="0.8" opacity="0.6"/>
+    <circle cx="650" cy="40" r="1.6" opacity="0.8"/>
+    <circle cx="720" cy="90" r="1.1" opacity="0.7"/>
+    <circle cx="760" cy="140" r="0.9" opacity="0.5"/>
+    <!-- Faint distant galaxies -->
+    <ellipse cx="240" cy="140" rx="4" ry="1.5" fill="#fef08a" opacity="0.5" transform="rotate(-30 240 140)"/>
+    <ellipse cx="610" cy="130" rx="5" ry="2" fill="#bae6fd" opacity="0.6" transform="rotate(20 610 130)"/>
+  </g>
+
+  <!-- 3.2-Gigapixel LSST Camera Focal Plane Grid (350 field hexagons / squares) -->
+  <g stroke="#38bdf8" stroke-width="0.8" fill="none" opacity="0.45" transform="translate(420, 150)">
+    <circle cx="0" cy="0" r="130" stroke="#0284c7" stroke-width="1.5" stroke-dasharray="4,4"/>
+    <!-- CCD Mosaic Sensor array -->
+    <rect x="-80" y="-80" width="160" height="160" rx="6" stroke="#38bdf8" stroke-width="1.2"/>
+    <line x1="-80" y1="-26" x2="80" y2="-26"/>
+    <line x1="-80" y1="26" x2="80" y2="26"/>
+    <line x1="-26" y1="-80" x2="-26" y2="80"/>
+    <line x1="26" y1="-80" x2="26" y2="80"/>
+    <text x="-70" y="-90" fill="#38bdf8" font-family="monospace" font-size="8" letter-spacing="1">LSST 3,200-MEGAPIXEL SENSOR PLANE</text>
+  </g>
+
+  <!-- Mountaintop Silhouette of Cerro Pachón, Chile -->
+  <path d="M-50,420 Q120,410 260,370 Q380,340 500,370 Q640,410 850,380 L850,550 L-50,550 Z" fill="#060913"/>
+  <path d="M-50,420 Q120,410 260,370 Q380,340 500,370 Q640,410 850,380" stroke="#1e293b" stroke-width="1.5"/>
+
+  <!-- Vera C. Rubin Observatory Simonyi Survey Telescope Dome -->
+  <g transform="translate(320, 310)">
+    <rect x="-35" y="30" width="70" height="40" fill="#0f172a" stroke="#334155" stroke-width="1.5"/>
+    <path d="M-40,30 Q0,-25 40,30 Z" fill="#1e293b" stroke="#475569" stroke-width="2"/>
+    <!-- Dome Optical Slit Open -->
+    <rect x="-10" y="-15" width="20" height="45" fill="#020617"/>
+    <!-- Laser guide star beacon firing into the sky -->
+    <line x1="0" y1="0" x2="100" y2="-250" stroke="#f59e0b" stroke-width="2" filter="url(#laserGlow)" opacity="0.8"/>
+  </g>
+
+  <!-- Telemetry Badge -->
+  <rect x="25" y="25" width="370" height="50" rx="8" fill="#0b1329" fill-opacity="0.9" stroke="#38bdf8" stroke-width="1.5"/>
+  <text x="40" y="47" fill="#38bdf8" font-family="monospace" font-size="11" font-weight="bold" letter-spacing="1.5">VERA C. RUBIN OBSERVATORY // CHILE</text>
+  <text x="40" y="63" fill="#ffffff" font-family="sans-serif" font-size="12" font-weight="900">LSST 10-YEAR PLANET NINE SEARCH FIELD</text>
+</svg>

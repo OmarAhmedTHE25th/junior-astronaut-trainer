@@ -111,7 +111,7 @@ export default function PlanetsMapPage() {
               title="Colony Store & Gear"
             >
               <span>💰</span>
-              <span>{creditsBalance} MC</span>
+              <span>{creditsBalance} GC</span>
             </Link>
 
             {/* VIP Five-Star General Status Banner */}

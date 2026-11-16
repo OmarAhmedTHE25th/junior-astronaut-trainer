@@ -101,7 +101,7 @@ function CommanderProfileContent({
               <div className="p-3 rounded-2xl bg-black/40 border border-white/10">
                 <span className="text-[10px] text-white/50 uppercase block">Net Worth</span>
                 <span className="font-heading font-extrabold text-lg text-cyan-300">
-                  {profile.marketplaceNetWorth} <span className="text-xs">MC</span>
+                  {profile.marketplaceNetWorth} <span className="text-xs">GC</span>
                 </span>
               </div>
             </div>
