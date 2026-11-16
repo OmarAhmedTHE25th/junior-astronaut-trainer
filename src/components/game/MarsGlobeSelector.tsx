@@ -17,7 +17,8 @@ export default function MarsGlobeSelector({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Rotation angles (radians)
-  const rotYRef = useRef<number>(-LANDING_SITES[selectedSite].lon * (Math.PI / 180));
+  const initialSite = LANDING_SITES[selectedSite] || LANDING_SITES.jezero;
+  const rotYRef = useRef<number>(-initialSite.lon * (Math.PI / 180));
   const rotXRef = useRef<number>(0.25);
   const targetRotYRef = useRef<number | null>(null);
   const targetRotXRef = useRef<number | null>(null);
@@ -26,11 +27,11 @@ export default function MarsGlobeSelector({
   const lastMousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const isInteractingRef = useRef(false);
 
-  const [activeSiteInfo, setActiveSiteInfo] = useState(LANDING_SITES[selectedSite]);
+  const [activeSiteInfo, setActiveSiteInfo] = useState(LANDING_SITES[selectedSite] || LANDING_SITES.jezero);
 
   // Center on site coordinates smoothly
   const focusOnSite = useCallback((siteId: LandingSiteId) => {
-    const site = LANDING_SITES[siteId];
+    const site = LANDING_SITES[siteId] || LANDING_SITES.jezero;
     setActiveSiteInfo(site);
     onSelectSite(siteId);
 
@@ -41,7 +42,7 @@ export default function MarsGlobeSelector({
   }, [onSelectSite]);
 
   useEffect(() => {
-    setActiveSiteInfo(LANDING_SITES[selectedSite]);
+    setActiveSiteInfo(LANDING_SITES[selectedSite] || LANDING_SITES.jezero);
   }, [selectedSite]);
 
   // Animation & 3D Render Loop

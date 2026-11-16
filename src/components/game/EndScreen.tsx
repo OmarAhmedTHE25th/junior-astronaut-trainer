@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import Button from '@/components/ui/Button';
 import { useGame } from './GameProvider';
@@ -11,6 +12,11 @@ const TelemetryChart = dynamic(() => import('./TelemetryChart'), { ssr: false })
 import { calculateScore } from '@/lib/gameEngine';
 import { playVictory, playGameOver, playClick, playSuccess } from '@/lib/sound';
 import { useBattlePass, addBattlePassXP } from '@/lib/battlePass';
+import {
+  savePlanetBestScore,
+  PLANET_CARTRIDGES,
+  type PlanetCartridge,
+} from '@/lib/planetCartridges';
 import {
   useProfile,
   evaluateBadges,
@@ -59,6 +65,7 @@ export default function EndScreen() {
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [showCertificateView, setShowCertificateView] = useState(false);
   const [squadPodium, setSquadPodium] = useState<SquadCadetState[]>([]);
+  const [unlockedNextCartridge, setUnlockedNextCartridge] = useState<PlanetCartridge | null>(null);
   const submittedRef = useRef(false);
 
   // Identify the active cadet profile
@@ -217,7 +224,18 @@ export default function EndScreen() {
         score: finalScore,
       }),
     }).catch(() => {});
-  }, [isLoaded, state, activeCadet, bpXpEarned, earnedCredits, petXpToAward, finalScore]);
+
+    // 6. Record Standard Mode score to Campaign Progression
+    const isStandardCampaign = !state.isTimedMode && !state.isEndlessTournament;
+    const currentPlanetId = state.planetId || 'earth';
+    if (isStandardCampaign) {
+      const { unlockedPlanet } = savePlanetBestScore(currentPlanetId, finalScore);
+      if (unlockedPlanet && PLANET_CARTRIDGES[unlockedPlanet]) {
+        setUnlockedNextCartridge(PLANET_CARTRIDGES[unlockedPlanet]);
+        setTimeout(() => playSuccess(), 1000);
+      }
+    }
+  }, [isLoaded, state, activeCadet, bpXpEarned, earnedCredits, petXpToAward, finalScore, playSuccess]);
 
   // If this mission was a Competitive Squad Race, fetch final squad standings
   useEffect(() => {
@@ -669,6 +687,36 @@ export default function EndScreen() {
             </div>
           )}
 
+          {/* Newly Unlocked Planetary Campaign Sector Alert */}
+          {unlockedNextCartridge && (
+            <div className="mb-5 p-4 rounded-3xl bg-gradient-to-r from-emerald-950/90 via-slate-900 to-cyan-950/90 border-2 border-emerald-400 text-left shadow-[0_0_30px_rgba(52,211,153,0.35)] animate-bounce-subtle flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-black/60 border border-emerald-400/50 flex items-center justify-center text-3xl shadow-md flex-shrink-0">
+                  <span>🔓</span>
+                </div>
+                <div>
+                  <div className="text-[10px] font-mono font-black uppercase text-emerald-300 tracking-widest flex items-center gap-1.5">
+                    <span>✨</span>
+                    <span>NEW SECTOR UNLOCKED!</span>
+                  </div>
+                  <div className="text-base sm:text-lg font-heading font-black text-white">
+                    {unlockedNextCartridge.sector} // {unlockedNextCartridge.name.toUpperCase()}
+                  </div>
+                  <p className="text-xs text-starlight/80 leading-snug">
+                    Score clearance achieved! You have unlocked landing clearance for {unlockedNextCartridge.name}.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href={`/planets/${unlockedNextCartridge.id}`}
+                onClick={playClick}
+                className="px-5 py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 border border-emerald-200 text-slate-950 font-bold text-xs uppercase tracking-wider hover:scale-105 active:scale-95 transition-all shadow-md flex-shrink-0 text-center"
+              >
+                Explore {unlockedNextCartridge.name} →
+              </Link>
+            </div>
+          )}
+
           {/* Outpost Telemetry Stats */}
           <div className="grid grid-cols-2 gap-2.5 mb-6 text-xs sm:text-sm">
             <div className="bg-[#0B1026]/70 rounded-xl p-3 border border-white/5">
@@ -702,6 +750,15 @@ export default function EndScreen() {
             <Button variant="primary" size="lg" onClick={handlePlayAgain} className="w-full justify-center">
               🚀 Play Another Mission
             </Button>
+            <Link
+              href="/planets"
+              onClick={playClick}
+              className="w-full py-3 rounded-2xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/50 text-cyan-200 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-98"
+            >
+              <span>🪐</span>
+              <span>Solar System Campaign Map</span>
+              <span>→</span>
+            </Link>
             <Button
               variant="secondary"
               size="md"

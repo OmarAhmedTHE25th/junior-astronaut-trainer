@@ -35,8 +35,8 @@ export default function GamePage() {
   const { profile, isLoaded } = useProfile();
   const [launched, setLaunched] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty>("commander");
-  const [planetId, setPlanetId] = useState<PlanetId>("mars");
-  const [landingSite, setLandingSite] = useState<LandingSiteId>("jezero");
+  const [planetId, setPlanetId] = useState<PlanetId>("earth");
+  const [landingSite, setLandingSite] = useState<LandingSiteId>("iss_zenith");
   const [squadCode, setSquadCode] = useState<string | null>(null);
   const [matchId, setMatchId] = useState<string | null>(null);
   const [weatherSeed, setWeatherSeed] = useState<number | null>(null);

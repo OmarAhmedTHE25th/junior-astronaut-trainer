@@ -273,9 +273,9 @@ export type GameAction =
   | { type: 'ABORT_MISSION' }
   | { type: 'APPLY_SPONSOR_RELIEF' };
 
-// ── Martian Landing Sites ───────────────────────────────────
+// ── Martian & Planetary Landing Sites ───────────────────────
 
-export type LandingSiteId = 'jezero' | 'gale' | 'olympus';
+export type LandingSiteId = 'jezero' | 'gale' | 'olympus' | (string & {});
 
 export interface LandingSite {
   id: LandingSiteId;

@@ -106,10 +106,16 @@ export interface PlanetTheme {
 export interface PlanetCartridge {
   id: PlanetId;
   order: number | 'X';
+  sector: string;
   name: string;
   tagline: string;
   subtitle: string;
   description: string;
+  image: string;
+  requiredPrevScore: number;
+  unlockTargetScore: number;
+  prevPlanetId?: PlanetId;
+  nextPlanetId?: PlanetId;
   secret?: boolean;
   theme: PlanetTheme;
   locations: PlanetLandingLocation[];
@@ -128,15 +134,21 @@ export interface PlanetCartridge {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
-  // 1. MARS
+  // 2. MARS (LEVEL 2)
   mars: {
     id: 'mars',
-    order: 1,
+    order: 2,
+    sector: 'SECTOR 02',
     name: 'Mars',
     tagline: 'The Red Planet • Outpost Jezero',
     subtitle: 'Cold Desert & Global Dust Storms',
     description:
-      'The initial human proving ground. A dry, oxidized world where thin CO2 atmosphere and high UV radiation demand constant life support calibration.',
+      'The secondary human proving ground. A dry, oxidized world where thin CO2 atmosphere, high UV radiation, and severe regolith dust storms demand constant life support calibration.',
+    image: '/planets/mars.png',
+    requiredPrevScore: 1000,
+    unlockTargetScore: 1500,
+    prevPlanetId: 'earth',
+    nextPlanetId: 'venus',
     theme: {
       bgGradient: 'from-amber-950 via-slate-950 to-red-950',
       bgDark: '#0B1026',
@@ -285,15 +297,20 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
     },
   },
 
-  // 2. EARTH (LOW ORBIT)
+  // 1. EARTH (LEVEL 1 - BASELINE)
   earth: {
     id: 'earth',
-    order: 2,
-    name: 'Earth (Low Orbit)',
+    order: 1,
+    sector: 'SECTOR 01',
+    name: 'Earth',
     tagline: 'Kessler Cascade & Space Debris Belt',
-    subtitle: 'Altitude: 380 km • Inclination: 51.6°',
+    subtitle: 'Worst-Case Scenario: Planetary Crisis',
     description:
-      'Humankinds cradle, surrounded by a swirling halo of dead satellites, rocket stages, and hypervelocity shrapnel that threatens total orbital lockout.',
+      'Humankinds cradle and the essential proving ground. Surrounded by a swirling halo of dead satellites, rocket stages, and hypervelocity shrapnel that threatens total orbital lockout.',
+    image: '/planets/earth.png',
+    requiredPrevScore: 0,
+    unlockTargetScore: 1000,
+    nextPlanetId: 'mars',
     theme: {
       bgGradient: 'from-blue-950 via-slate-950 to-emerald-950',
       bgDark: '#030E26',
@@ -442,15 +459,21 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
     },
   },
 
-  // 3. VENUS
+  // 3. VENUS (LEVEL 3)
   venus: {
     id: 'venus',
     order: 3,
+    sector: 'SECTOR 03',
     name: 'Venus',
     tagline: 'Cloud City Aerostat Station (55 km)',
     subtitle: 'Supercritical Pressure & Sulfuric Haze',
     description:
       'Beneath the yellow clouds lies a 465°C furnace. At 55 km altitude, pressure and temperature are Earth-like, but corrosive sulfuric rain never stops.',
+    image: '/planets/venus.png',
+    requiredPrevScore: 1500,
+    unlockTargetScore: 2000,
+    prevPlanetId: 'mars',
+    nextPlanetId: 'mercury',
     theme: {
       bgGradient: 'from-amber-950 via-yellow-950 to-slate-950',
       bgDark: '#1c1303',
@@ -600,15 +623,21 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
     },
   },
 
-  // 4. MERCURY
+  // 4. MERCURY (LEVEL 4)
   mercury: {
     id: 'mercury',
     order: 4,
+    sector: 'SECTOR 04',
     name: 'Mercury',
     tagline: 'The Hermean Twilight Crawler',
     subtitle: 'Thermal Extremes: 430°C Day / -180°C Night',
     description:
       'Airless, heavily cratered, and scorched by the sun. The outpost must ride heavy crawler treads, forever pacing the moving twilight terminator line.',
+    image: '/planets/mercury.png',
+    requiredPrevScore: 2000,
+    unlockTargetScore: 2500,
+    prevPlanetId: 'venus',
+    nextPlanetId: 'jupiter',
     theme: {
       bgGradient: 'from-orange-950 via-slate-950 to-stone-950',
       bgDark: '#1a0b02',
@@ -759,15 +788,21 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
     },
   },
 
-  // 5. JUPITER
+  // 5. JUPITER (LEVEL 5)
   jupiter: {
     id: 'jupiter',
     order: 5,
+    sector: 'SECTOR 05',
     name: 'Jupiter',
     tagline: 'Great Red Spot & Io Plasma Torus',
     subtitle: 'Radiation Belts & Megavolt Lightning',
     description:
       'The king of planets. A churning colossus surrounded by million-gauss radiation belts and titanic megavolt lightning arcs capable of overloading any capacitor.',
+    image: '/planets/jupiter.png',
+    requiredPrevScore: 2500,
+    unlockTargetScore: 3000,
+    prevPlanetId: 'mercury',
+    nextPlanetId: 'saturn',
     theme: {
       bgGradient: 'from-purple-950 via-amber-950 to-slate-950',
       bgDark: '#120521',
@@ -916,15 +951,21 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
     },
   },
 
-  // 6. SATURN
+  // 6. SATURN (LEVEL 6)
   saturn: {
     id: 'saturn',
     order: 6,
+    sector: 'SECTOR 06',
     name: 'Saturn',
     tagline: 'The C-Ring Ice Skimmer',
     subtitle: 'Ring Particles & Cryogenic Plumes',
     description:
       'The jewel of the solar system. A ring skimmer outpost harvesting billions of tons of pristine water-ice boulders while navigating ring-shear turbulence.',
+    image: '/planets/saturn.png',
+    requiredPrevScore: 3000,
+    unlockTargetScore: 3500,
+    prevPlanetId: 'jupiter',
+    nextPlanetId: 'uranus',
     theme: {
       bgGradient: 'from-amber-950 via-slate-950 to-blue-950',
       bgDark: '#0e1224',
@@ -1072,15 +1113,21 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
     },
   },
 
-  // 7. URANUS
+  // 7. URANUS (LEVEL 7)
   uranus: {
     id: 'uranus',
     order: 7,
+    sector: 'SECTOR 07',
     name: 'Uranus',
     tagline: 'The Tilted Giant & Methane Cryo-Depths',
     subtitle: '98° Axial Tilt • -224°C Cryogenic Deep',
     description:
       'The coldest world in the solar system. A sideways-spinning ice giant shrouded in aquamarine clouds of methane, ammonia, and water slush.',
+    image: '/planets/uranus.png',
+    requiredPrevScore: 3500,
+    unlockTargetScore: 4000,
+    prevPlanetId: 'saturn',
+    nextPlanetId: 'neptune',
     theme: {
       bgGradient: 'from-cyan-950 via-slate-950 to-teal-950',
       bgDark: '#041820',
@@ -1229,15 +1276,21 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
     },
   },
 
-  // 8. NEPTUNE
+  // 8. NEPTUNE (LEVEL 8)
   neptune: {
     id: 'neptune',
     order: 8,
+    sector: 'SECTOR 08',
     name: 'Neptune',
     tagline: 'The Great Dark Spot & Diamond Rain Sky',
     subtitle: '2,100 km/h Supersonic Winds • Diamond Hail',
     description:
       'The farthest recognized planet. Raging with supersonic methane jet streams and crushing pressures that condense carbon into diamond hail showers.',
+    image: '/planets/neptune.png',
+    requiredPrevScore: 4000,
+    unlockTargetScore: 4500,
+    prevPlanetId: 'uranus',
+    nextPlanetId: 'planet_x',
     theme: {
       bgGradient: 'from-blue-950 via-indigo-950 to-slate-950',
       bgDark: '#080d26',
@@ -1385,16 +1438,21 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
     },
   },
 
-  // 9. PLANET X (THE KUIPER ANOMALY)
+  // 9. PLANET X (LEVEL X - SECRET)
   planet_x: {
     id: 'planet_x',
     order: 'X',
-    name: 'Planet X (The Kuiper Anomaly)',
+    sector: 'SECTOR X',
+    name: 'Planet X',
     tagline: 'Trans-Neptunian Micro-Singularity',
     subtitle: 'Cosmic Anomaly • Spacetime Distortion',
     description:
       'A mythical primordial black hole or rogue dark-matter world lurking 600 AU out in the frozen Kuiper cliff. Spacetime bends, and quantum decoherence scrambles reality.',
+    image: '/planets/planet_x.png',
     secret: true,
+    requiredPrevScore: 4500,
+    unlockTargetScore: 5000,
+    prevPlanetId: 'neptune',
     theme: {
       bgGradient: 'from-purple-950 via-black to-slate-950',
       bgDark: '#030108',
@@ -1545,8 +1603,8 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
 };
 
 export const ORDERED_PLANET_IDS: PlanetId[] = [
-  'mars',
   'earth',
+  'mars',
   'venus',
   'mercury',
   'jupiter',
@@ -1556,30 +1614,135 @@ export const ORDERED_PLANET_IDS: PlanetId[] = [
   'planet_x',
 ];
 
-/** Get cartridge definition by Planet ID with Mars fallback */
+/** Get cartridge definition by Planet ID with Earth fallback */
 export function getPlanetCartridge(planetId?: PlanetId | string): PlanetCartridge {
   if (planetId && planetId in PLANET_CARTRIDGES) {
     return PLANET_CARTRIDGES[planetId as PlanetId];
   }
-  return PLANET_CARTRIDGES.mars;
+  return PLANET_CARTRIDGES.earth;
 }
 
-/** Check if Planet X is unlocked */
-export function isPlanetUnlocked(planetId: PlanetId): boolean {
-  if (planetId !== 'planet_x') return true;
+/** Retrieve all saved best scores from localStorage */
+export function getPlanetBestScores(): Record<PlanetId, number> {
+  if (typeof window === 'undefined') return {} as Record<PlanetId, number>;
+  try {
+    const raw = localStorage.getItem('jat_planet_best_scores_v1');
+    if (!raw) return {} as Record<PlanetId, number>;
+    return JSON.parse(raw) as Record<PlanetId, number>;
+  } catch {
+    return {} as Record<PlanetId, number>;
+  }
+}
+
+/** Check if Planet X Easter egg has been unlocked via 5 clicks */
+export function isEasterEggUnlocked(): boolean {
   if (typeof window === 'undefined') return false;
   try {
-    return localStorage.getItem('jat_planet_x_unlocked') === 'true';
+    return localStorage.getItem('jat_planet_x_easter_egg_v1') === 'true';
   } catch {
     return false;
   }
 }
 
-/** Unlock Planet X and notify active listeners */
-export function unlockPlanetX(): void {
+/** Unlock Planet X via the stealth Easter egg */
+export function unlockPlanetXEasterEgg(): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem('jat_planet_x_unlocked', 'true');
+    localStorage.setItem('jat_planet_x_easter_egg_v1', 'true');
     window.dispatchEvent(new Event('jat-planet-unlocked'));
   } catch {}
+}
+
+/** Check if Planet X is unlocked (legacy & compatibility) */
+export function unlockPlanetX(): void {
+  unlockPlanetXEasterEgg();
+}
+
+/**
+ * Check if a planet is unlocked based on VIP Five-Star General status,
+ * score requirements on the previous planet, or Easter egg.
+ */
+export function isPlanetUnlocked(
+  planetId: PlanetId,
+  isFiveStarGeneral = false,
+  bestScores?: Record<PlanetId, number>
+): boolean {
+  // 1. VIP Five-Star Generals have all 9 sectors unconditionally unlocked
+  if (isFiveStarGeneral) return true;
+
+  // 2. Earth is the default starting sector
+  if (planetId === 'earth') return true;
+
+  const scores = bestScores || getPlanetBestScores();
+
+  // 3. Planet X requires >= 4,500 on Neptune OR the stealth Easter egg
+  if (planetId === 'planet_x') {
+    if (isEasterEggUnlocked()) return true;
+    return (scores.neptune || 0) >= 4500;
+  }
+
+  // 4. Other planets require reaching unlockTargetScore on the preceding world
+  const cartridge = PLANET_CARTRIDGES[planetId];
+  if (!cartridge || !cartridge.prevPlanetId) return true;
+
+  const prevScore = scores[cartridge.prevPlanetId] || 0;
+  return prevScore >= cartridge.requiredPrevScore;
+}
+
+/**
+ * Save a newly achieved Standard Mode score and check if it unlocks the next planet.
+ */
+export function savePlanetBestScore(
+  planetId: PlanetId,
+  score: number
+): { isNewBest: boolean; unlockedPlanet?: PlanetId } {
+  if (typeof window === 'undefined') return { isNewBest: false };
+  try {
+    const scores = getPlanetBestScores();
+    const currentBest = scores[planetId] || 0;
+    const isNewBest = score > currentBest;
+
+    if (isNewBest) {
+      scores[planetId] = score;
+      localStorage.setItem('jat_planet_best_scores_v1', JSON.stringify(scores));
+      window.dispatchEvent(new Event('jat-planet-score-updated'));
+    }
+
+    // Check if score crossed unlockTargetScore for the next sector
+    const cartridge = PLANET_CARTRIDGES[planetId];
+    let unlockedPlanet: PlanetId | undefined = undefined;
+
+    if (
+      cartridge.nextPlanetId &&
+      currentBest < cartridge.unlockTargetScore &&
+      score >= cartridge.unlockTargetScore
+    ) {
+      unlockedPlanet = cartridge.nextPlanetId;
+      window.dispatchEvent(new Event('jat-planet-unlocked'));
+    }
+
+    return { isNewBest, unlockedPlanet };
+  } catch {
+    return { isNewBest: false };
+  }
+}
+
+/**
+ * Get the highest unlocked sector metadata for the cadet
+ */
+export function getHighestUnlockedSector(
+  isFiveStarGeneral = false,
+  bestScores?: Record<PlanetId, number>
+): PlanetCartridge {
+  if (isFiveStarGeneral) {
+    return PLANET_CARTRIDGES.planet_x;
+  }
+  const scores = bestScores || getPlanetBestScores();
+  for (let i = ORDERED_PLANET_IDS.length - 1; i >= 0; i--) {
+    const pid = ORDERED_PLANET_IDS[i];
+    if (isPlanetUnlocked(pid, isFiveStarGeneral, scores)) {
+      return PLANET_CARTRIDGES[pid];
+    }
+  }
+  return PLANET_CARTRIDGES.earth;
 }
