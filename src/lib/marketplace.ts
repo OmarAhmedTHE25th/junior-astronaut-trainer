@@ -3,7 +3,7 @@
 // 5% Colony Trade Tax, and dynamic NASA DONKI scarcity pricing.
 
 import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
-import { getConnectionString } from './storageAdapter';
+import { getConnectionString, isNeonConfigured } from './storageAdapter';
 import {
   CATALOG_ITEMS,
   type ItemCategory,
@@ -46,16 +46,29 @@ function getMemoryStore(): MemoryMarketplaceState {
 
 async function getSqlClient(): Promise<NeonQueryFunction<false, false> | null> {
   const connStr = getConnectionString();
-  if (!connStr) return null;
+  if (!connStr) {
+    if (isNeonConfigured()) {
+      throw new Error('[Neon Wallet Error] Neon is configured but connection string is missing');
+    }
+    return null;
+  }
 
   try {
     const sql = neon(connStr);
     await ensureMarketplaceSchema(sql);
     return sql;
   } catch (err) {
-    console.warn('PostgreSQL unavailable, using in-memory marketplace store:', err);
+    console.error('[Neon Wallet Error] PostgreSQL initialization failed:', err);
+    if (isNeonConfigured()) {
+      throw err;
+    }
     return null;
   }
+}
+
+/** Get authenticated Neon SQL client directly */
+export async function getNeonSql(): Promise<NeonQueryFunction<false, false> | null> {
+  return getSqlClient();
 }
 
 let marketplaceSchemaPromise: Promise<void> | null = null;
@@ -144,28 +157,39 @@ export async function ensurePlayerWallet(playerId: string): Promise<PlayerWallet
   const now = new Date().toISOString();
 
   if (sql) {
-    // Non-destructive insert: DO NOTHING if wallet already exists
-    await sql`
-      INSERT INTO player_wallets (player_id, credits_balance, is_five_star_general, updated_at)
-      VALUES (${playerId}, 500, FALSE, NOW())
-      ON CONFLICT (player_id) DO NOTHING;
-    `;
+    try {
+      // Non-destructive insert: DO NOTHING if wallet already exists
+      await sql`
+        INSERT INTO player_wallets (player_id, credits_balance, is_five_star_general, updated_at)
+        VALUES (${playerId}, 500, FALSE, NOW())
+        ON CONFLICT (player_id) DO NOTHING;
+      `;
 
-    const rows = await sql`
-      SELECT player_id, credits_balance, is_five_star_general, updated_at
-      FROM player_wallets
-      WHERE player_id = ${playerId}
-      LIMIT 1;
-    `;
+      const rows = await sql`
+        SELECT player_id, credits_balance, is_five_star_general, updated_at
+        FROM player_wallets
+        WHERE player_id = ${playerId}
+        LIMIT 1;
+      `;
 
-    if (rows && rows.length > 0) {
-      return {
-        playerId: rows[0].player_id,
-        creditsBalance: Number(rows[0].credits_balance),
-        isFiveStarGeneral: Boolean(rows[0].is_five_star_general),
-        updatedAt: rows[0].updated_at,
-      };
+      if (rows && rows.length > 0) {
+        return {
+          playerId: rows[0].player_id,
+          creditsBalance: Number(rows[0].credits_balance),
+          isFiveStarGeneral: Boolean(rows[0].is_five_star_general),
+          updatedAt: rows[0].updated_at,
+        };
+      }
+    } catch (err) {
+      console.error('[Neon Wallet Error] Failed in ensurePlayerWallet:', err);
+      if (isNeonConfigured()) {
+        throw err;
+      }
     }
+  }
+
+  if (isNeonConfigured()) {
+    throw new Error('[Neon Wallet Error] Cannot fall back to in-memory store when Neon is configured');
   }
 
   const mem = getMemoryStore();
@@ -189,19 +213,30 @@ export async function getPlayerWallet(playerId: string): Promise<PlayerWallet> {
 export async function setPlayerVipStatus(playerId: string, isVip: boolean): Promise<PlayerWallet> {
   const sql = await getSqlClient();
   if (sql) {
-    const rows = await sql`
-      INSERT INTO player_wallets (player_id, credits_balance, is_five_star_general, updated_at)
-      VALUES (${playerId}, 500, ${isVip}, NOW())
-      ON CONFLICT (player_id)
-      DO UPDATE SET is_five_star_general = ${isVip}, updated_at = NOW()
-      RETURNING player_id, credits_balance, is_five_star_general, updated_at;
-    `;
-    return {
-      playerId: rows[0].player_id,
-      creditsBalance: Number(rows[0].credits_balance),
-      isFiveStarGeneral: Boolean(rows[0].is_five_star_general),
-      updatedAt: rows[0].updated_at,
-    };
+    try {
+      const rows = await sql`
+        INSERT INTO player_wallets (player_id, credits_balance, is_five_star_general, updated_at)
+        VALUES (${playerId}, 500, ${isVip}, NOW())
+        ON CONFLICT (player_id)
+        DO UPDATE SET is_five_star_general = ${isVip}, updated_at = NOW()
+        RETURNING player_id, credits_balance, is_five_star_general, updated_at;
+      `;
+      return {
+        playerId: rows[0].player_id,
+        creditsBalance: Number(rows[0].credits_balance),
+        isFiveStarGeneral: Boolean(rows[0].is_five_star_general),
+        updatedAt: rows[0].updated_at,
+      };
+    } catch (err) {
+      console.error('[Neon Wallet Error] Failed in setPlayerVipStatus:', err);
+      if (isNeonConfigured()) {
+        throw err;
+      }
+    }
+  }
+
+  if (isNeonConfigured()) {
+    throw new Error('[Neon Wallet Error] Cannot fall back to in-memory store when Neon is configured');
   }
 
   const mem = getMemoryStore();
@@ -218,23 +253,34 @@ export async function getPlayerInventory(playerId: string): Promise<PlayerInvent
   const sql = await getSqlClient();
 
   if (sql) {
-    const rows = await sql`
-      SELECT id, player_id, item_slug, item_name, category, quantity, metadata_json
-      FROM player_inventory
-      WHERE player_id = ${playerId}
-      ORDER BY category ASC, item_name ASC;
-    `;
+    try {
+      const rows = await sql`
+        SELECT id, player_id, item_slug, item_name, category, quantity, metadata_json
+        FROM player_inventory
+        WHERE player_id = ${playerId}
+        ORDER BY category ASC, item_name ASC;
+      `;
 
-    return (rows || []).map((r) => ({
-      id: r.id,
-      playerId: r.player_id,
-      itemSlug: r.item_slug,
-      itemName: r.item_name,
-      category: r.category as ItemCategory,
-      quantity: r.quantity,
-      icon: CATALOG_ITEMS[r.item_slug]?.icon || '📦',
-      metadataJson: r.metadata_json || {},
-    }));
+      return (rows || []).map((r) => ({
+        id: r.id,
+        playerId: r.player_id,
+        itemSlug: r.item_slug,
+        itemName: r.item_name,
+        category: r.category as ItemCategory,
+        quantity: r.quantity,
+        icon: CATALOG_ITEMS[r.item_slug]?.icon || '📦',
+        metadataJson: r.metadata_json || {},
+      }));
+    } catch (err) {
+      console.error('[Neon Wallet Error] Failed in getPlayerInventory:', err);
+      if (isNeonConfigured()) {
+        throw err;
+      }
+    }
+  }
+
+  if (isNeonConfigured()) {
+    throw new Error('[Neon Wallet Error] Cannot fall back to in-memory store when Neon is configured');
   }
 
   // Memory fallback - users have an empty inventory by default
@@ -281,47 +327,56 @@ export async function createListing(options: {
   const sql = await getSqlClient();
 
   if (sql) {
-    // Atomic escrow deduction: check quantity and subtract in a single statement
-    const updateResult = await sql`
-      UPDATE player_inventory
-      SET quantity = quantity - ${quantity}
-      WHERE player_id = ${sellerId} AND item_slug = ${itemSlug} AND quantity >= ${quantity}
-      RETURNING quantity;
-    `;
+    try {
+      // Atomic escrow deduction: check quantity and subtract in a single statement
+      const updateResult = await sql`
+        UPDATE player_inventory
+        SET quantity = quantity - ${quantity}
+        WHERE player_id = ${sellerId} AND item_slug = ${itemSlug} AND quantity >= ${quantity}
+        RETURNING quantity;
+      `;
 
-    if (!updateResult || updateResult.length === 0) {
-      throw new Error(`Insufficient ${itemDef.name} in inventory to list ${quantity}x`);
+      if (!updateResult || updateResult.length === 0) {
+        throw new Error(`Insufficient ${itemDef.name} in inventory to list ${quantity}x`);
+      }
+
+      const listingRows = await sql`
+        INSERT INTO market_listings (
+          id, seller_id, seller_name, seller_avatar, item_slug, item_name,
+          category, quantity_remaining, initial_quantity, unit_price, status, created_at, expires_at
+        ) VALUES (
+          ${listingId}, ${sellerId}, ${sellerName}, ${sellerAvatar || '👨‍🚀'},
+          ${itemSlug}, ${itemDef.name}, ${itemDef.category}, ${quantity},
+          ${quantity}, ${unitPrice}, 'active', ${createdAt}, ${expiresAt}
+        )
+        RETURNING *;
+      `;
+
+      const r = listingRows[0];
+      return {
+        id: r.id,
+        sellerId: r.seller_id,
+        sellerName: r.seller_name,
+        sellerAvatar: r.seller_avatar,
+        itemSlug: r.item_slug,
+        itemName: r.item_name,
+        category: r.category as ItemCategory,
+        quantityRemaining: r.quantity_remaining,
+        initialQuantity: r.initial_quantity,
+        unitPrice: r.unit_price,
+        status: r.status,
+        createdAt: r.created_at,
+        expiresAt: r.expires_at,
+        icon: itemDef.icon,
+      };
+    } catch (err) {
+      console.error('[Neon Wallet Error] Failed in createListing:', err);
+      if (isNeonConfigured()) throw err;
     }
+  }
 
-    const listingRows = await sql`
-      INSERT INTO market_listings (
-        id, seller_id, seller_name, seller_avatar, item_slug, item_name,
-        category, quantity_remaining, initial_quantity, unit_price, status, created_at, expires_at
-      ) VALUES (
-        ${listingId}, ${sellerId}, ${sellerName}, ${sellerAvatar || '👨‍🚀'},
-        ${itemSlug}, ${itemDef.name}, ${itemDef.category}, ${quantity},
-        ${quantity}, ${unitPrice}, 'active', ${createdAt}, ${expiresAt}
-      )
-      RETURNING *;
-    `;
-
-    const r = listingRows[0];
-    return {
-      id: r.id,
-      sellerId: r.seller_id,
-      sellerName: r.seller_name,
-      sellerAvatar: r.seller_avatar,
-      itemSlug: r.item_slug,
-      itemName: r.item_name,
-      category: r.category as ItemCategory,
-      quantityRemaining: r.quantity_remaining,
-      initialQuantity: r.initial_quantity,
-      unitPrice: r.unit_price,
-      status: r.status,
-      createdAt: r.created_at,
-      expiresAt: r.expires_at,
-      icon: itemDef.icon,
-    };
+  if (isNeonConfigured()) {
+    throw new Error('[Neon Wallet Error] Cannot fall back to in-memory store when Neon is configured');
   }
 
   // Memory fallback with atomic check
@@ -380,118 +435,127 @@ export async function executePurchase(options: {
   const sql = await getSqlClient();
 
   if (sql) {
-    // 1. Fetch listing and lock for update
-    const listings = await sql`
-      SELECT * FROM market_listings
-      WHERE id = ${listingId}
-      FOR UPDATE;
-    `;
+    try {
+      // 1. Fetch listing and lock for update
+      const listings = await sql`
+        SELECT * FROM market_listings
+        WHERE id = ${listingId}
+        FOR UPDATE;
+      `;
 
-    if (!listings || listings.length === 0) {
-      throw new Error('Market listing not found');
+      if (!listings || listings.length === 0) {
+        throw new Error('Market listing not found');
+      }
+      const listing = listings[0];
+
+      if (listing.status !== 'active') {
+        throw new Error(`Listing is no longer active (Status: ${listing.status})`);
+      }
+      if (listing.seller_id === buyerId) {
+        throw new Error('Colony regulations forbid buying your own market listing');
+      }
+      if (listing.quantity_remaining < quantityToBuy) {
+        throw new Error(
+          `Insufficient quantity remaining (Requested: ${quantityToBuy}, Available: ${listing.quantity_remaining})`
+        );
+      }
+
+      const totalPrice = quantityToBuy * listing.unit_price;
+      const taxPaid = Math.floor(totalPrice * MARKET_TAX_RATE);
+      const sellerPayout = totalPrice - taxPaid;
+
+      // 2. Fetch buyer wallet and lock for update
+      const wallets = await sql`
+        SELECT * FROM player_wallets
+        WHERE player_id = ${buyerId}
+        FOR UPDATE;
+      `;
+      const buyerWallet = wallets && wallets[0] ? wallets[0] : null;
+      const currentCredits = buyerWallet ? buyerWallet.credits_balance : 0;
+
+      if (currentCredits < totalPrice) {
+        throw new Error(
+          `Insufficient Galaxy Coins: Required ${totalPrice} GC, Balance is ${currentCredits} GC`
+        );
+      }
+
+      // 3. Deduct buyer credits
+      const updatedBuyerWallet = await sql`
+        UPDATE player_wallets
+        SET credits_balance = credits_balance - ${totalPrice}, updated_at = NOW()
+        WHERE player_id = ${buyerId} AND credits_balance >= ${totalPrice}
+        RETURNING credits_balance;
+      `;
+      if (!updatedBuyerWallet || updatedBuyerWallet.length === 0) {
+        throw new Error('Failed to deduct credits (insufficient balance or race condition)');
+      }
+
+      // 4. Credit seller with payout (after 5% colony tax)
+      await sql`
+        INSERT INTO player_wallets (player_id, credits_balance, updated_at)
+        VALUES (${listing.seller_id}, ${sellerPayout}, NOW())
+        ON CONFLICT (player_id)
+        DO UPDATE SET credits_balance = player_wallets.credits_balance + ${sellerPayout}, updated_at = NOW();
+      `;
+
+      // 5. Update listing quantity remaining & status
+      const newQtyRemaining = listing.quantity_remaining - quantityToBuy;
+      const nextStatus = newQtyRemaining === 0 ? 'sold_out' : 'active';
+
+      await sql`
+        UPDATE market_listings
+        SET
+          quantity_remaining = ${newQtyRemaining},
+          status = ${nextStatus}
+        WHERE id = ${listingId};
+      `;
+
+      // 6. Transfer bought items into buyer inventory (UPSERT)
+      const invId = `inv-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      await sql`
+        INSERT INTO player_inventory (id, player_id, item_slug, item_name, category, quantity)
+        VALUES (${invId}, ${buyerId}, ${listing.item_slug}, ${listing.item_name}, ${listing.category}, ${quantityToBuy})
+        ON CONFLICT (player_id, item_slug)
+        DO UPDATE SET quantity = player_inventory.quantity + EXCLUDED.quantity;
+      `;
+
+      // 7. Record transaction audit log
+      const txId = `tx-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const txRows = await sql`
+        INSERT INTO market_transactions (
+          id, listing_id, buyer_id, seller_id, item_slug, quantity_bought, total_price, market_tax_paid, executed_at
+        ) VALUES (
+          ${txId}, ${listingId}, ${buyerId}, ${listing.seller_id}, ${listing.item_slug},
+          ${quantityToBuy}, ${totalPrice}, ${taxPaid}, NOW()
+        )
+        RETURNING *;
+      `;
+
+      const tx = txRows[0];
+      return {
+        transaction: {
+          id: tx.id,
+          listingId: tx.listing_id,
+          buyerId: tx.buyer_id,
+          sellerId: tx.seller_id,
+          itemSlug: tx.item_slug,
+          quantityBought: tx.quantity_bought,
+          totalPrice: tx.total_price,
+          marketTaxPaid: tx.market_tax_paid,
+          executedAt: tx.executed_at,
+        },
+        remainingCredits: updatedBuyerWallet[0].credits_balance,
+        listingStatus: nextStatus,
+        quantityRemaining: newQtyRemaining,
+      };
+    } catch (err) {
+      console.error('[Neon Wallet Error] Failed in executePurchase:', err);
+      if (isNeonConfigured()) throw err;
     }
-    const listing = listings[0];
+  }
 
-    if (listing.status !== 'active') {
-      throw new Error(`Listing is no longer active (Status: ${listing.status})`);
-    }
-    if (listing.seller_id === buyerId) {
-      throw new Error('Colony regulations forbid buying your own market listing');
-    }
-    if (listing.quantity_remaining < quantityToBuy) {
-      throw new Error(
-        `Insufficient quantity remaining (Requested: ${quantityToBuy}, Available: ${listing.quantity_remaining})`
-      );
-    }
-
-    const totalPrice = quantityToBuy * listing.unit_price;
-    const taxPaid = Math.floor(totalPrice * MARKET_TAX_RATE);
-    const sellerPayout = totalPrice - taxPaid;
-
-    // 2. Fetch buyer wallet and lock for update
-    const wallets = await sql`
-      SELECT * FROM player_wallets
-      WHERE player_id = ${buyerId}
-      FOR UPDATE;
-    `;
-    const buyerWallet = wallets && wallets[0] ? wallets[0] : null;
-    const currentCredits = buyerWallet ? buyerWallet.credits_balance : 0;
-
-    if (currentCredits < totalPrice) {
-      throw new Error(
-        `Insufficient Galaxy Coins: Required ${totalPrice} GC, Balance is ${currentCredits} GC`
-      );
-    }
-
-    // 3. Deduct buyer credits
-    const updatedBuyerWallet = await sql`
-      UPDATE player_wallets
-      SET credits_balance = credits_balance - ${totalPrice}, updated_at = NOW()
-      WHERE player_id = ${buyerId} AND credits_balance >= ${totalPrice}
-      RETURNING credits_balance;
-    `;
-    if (!updatedBuyerWallet || updatedBuyerWallet.length === 0) {
-      throw new Error('Failed to deduct credits (insufficient balance or race condition)');
-    }
-
-    // 4. Credit seller with payout (after 5% colony tax)
-    await sql`
-      INSERT INTO player_wallets (player_id, credits_balance, updated_at)
-      VALUES (${listing.seller_id}, ${sellerPayout}, NOW())
-      ON CONFLICT (player_id)
-      DO UPDATE SET credits_balance = player_wallets.credits_balance + ${sellerPayout}, updated_at = NOW();
-    `;
-
-    // 5. Update listing quantity remaining & status
-    const newQtyRemaining = listing.quantity_remaining - quantityToBuy;
-    const nextStatus = newQtyRemaining === 0 ? 'sold_out' : 'active';
-
-    await sql`
-      UPDATE market_listings
-      SET
-        quantity_remaining = ${newQtyRemaining},
-        status = ${nextStatus}
-      WHERE id = ${listingId};
-    `;
-
-    // 6. Transfer bought items into buyer inventory (UPSERT)
-    const invId = `inv-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    await sql`
-      INSERT INTO player_inventory (id, player_id, item_slug, item_name, category, quantity)
-      VALUES (${invId}, ${buyerId}, ${listing.item_slug}, ${listing.item_name}, ${listing.category}, ${quantityToBuy})
-      ON CONFLICT (player_id, item_slug)
-      DO UPDATE SET quantity = player_inventory.quantity + EXCLUDED.quantity;
-    `;
-
-    // 7. Record transaction audit log
-    const txId = `tx-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    const txRows = await sql`
-      INSERT INTO market_transactions (
-        id, listing_id, buyer_id, seller_id, item_slug, quantity_bought, total_price, market_tax_paid, executed_at
-      ) VALUES (
-        ${txId}, ${listingId}, ${buyerId}, ${listing.seller_id}, ${listing.item_slug},
-        ${quantityToBuy}, ${totalPrice}, ${taxPaid}, NOW()
-      )
-      RETURNING *;
-    `;
-
-    const tx = txRows[0];
-    return {
-      transaction: {
-        id: tx.id,
-        listingId: tx.listing_id,
-        buyerId: tx.buyer_id,
-        sellerId: tx.seller_id,
-        itemSlug: tx.item_slug,
-        quantityBought: tx.quantity_bought,
-        totalPrice: tx.total_price,
-        marketTaxPaid: tx.market_tax_paid,
-        executedAt: tx.executed_at,
-      },
-      remainingCredits: updatedBuyerWallet[0].credits_balance,
-      listingStatus: nextStatus,
-      quantityRemaining: newQtyRemaining,
-    };
+  if (isNeonConfigured()) {
+    throw new Error('[Neon Wallet Error] Cannot fall back to in-memory store when Neon is configured');
   }
 
   // Memory fallback with atomic check
@@ -592,36 +656,45 @@ export async function cancelListing(options: {
   const sql = await getSqlClient();
 
   if (sql) {
-    // 1. Lock and cancel active listing
-    const rows = await sql`
-      UPDATE market_listings
-      SET status = 'cancelled'
-      WHERE id = ${listingId} AND seller_id = ${sellerId} AND status = 'active'
-      RETURNING item_slug, item_name, category, quantity_remaining;
-    `;
-
-    if (!rows || rows.length === 0) {
-      throw new Error('Listing not found or is no longer active');
-    }
-    const cancelled = rows[0];
-    const returnQty = cancelled.quantity_remaining;
-
-    // 2. Return remaining items to seller's inventory
-    if (returnQty > 0) {
-      const invId = `inv-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-      await sql`
-        INSERT INTO player_inventory (id, player_id, item_slug, item_name, category, quantity)
-        VALUES (${invId}, ${sellerId}, ${cancelled.item_slug}, ${cancelled.item_name}, ${cancelled.category}, ${returnQty})
-        ON CONFLICT (player_id, item_slug)
-        DO UPDATE SET quantity = player_inventory.quantity + EXCLUDED.quantity;
+    try {
+      // 1. Lock and cancel active listing
+      const rows = await sql`
+        UPDATE market_listings
+        SET status = 'cancelled'
+        WHERE id = ${listingId} AND seller_id = ${sellerId} AND status = 'active'
+        RETURNING item_slug, item_name, category, quantity_remaining;
       `;
-    }
 
-    return {
-      success: true,
-      returnedQuantity: returnQty,
-      itemSlug: cancelled.item_slug,
-    };
+      if (!rows || rows.length === 0) {
+        throw new Error('Listing not found or is no longer active');
+      }
+      const cancelled = rows[0];
+      const returnQty = cancelled.quantity_remaining;
+
+      // 2. Return remaining items to seller's inventory
+      if (returnQty > 0) {
+        const invId = `inv-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        await sql`
+          INSERT INTO player_inventory (id, player_id, item_slug, item_name, category, quantity)
+          VALUES (${invId}, ${sellerId}, ${cancelled.item_slug}, ${cancelled.item_name}, ${cancelled.category}, ${returnQty})
+          ON CONFLICT (player_id, item_slug)
+          DO UPDATE SET quantity = player_inventory.quantity + EXCLUDED.quantity;
+        `;
+      }
+
+      return {
+        success: true,
+        returnedQuantity: returnQty,
+        itemSlug: cancelled.item_slug,
+      };
+    } catch (err) {
+      console.error('[Neon Wallet Error] Failed in cancelListing:', err);
+      if (isNeonConfigured()) throw err;
+    }
+  }
+
+  if (isNeonConfigured()) {
+    throw new Error('[Neon Wallet Error] Cannot fall back to in-memory store when Neon is configured');
   }
 
   // Memory fallback
@@ -677,49 +750,58 @@ export async function getMarketListings(options?: {
   const limit = options?.limit || 50;
 
   if (sql) {
-    let rows;
-    if (options?.category && options?.sellerId) {
-      rows = await sql`
-        SELECT * FROM market_listings
-        WHERE status = ${targetStatus} AND category = ${options.category} AND seller_id = ${options.sellerId}
-        ORDER BY created_at DESC LIMIT ${limit};
-      `;
-    } else if (options?.category) {
-      rows = await sql`
-        SELECT * FROM market_listings
-        WHERE status = ${targetStatus} AND category = ${options.category}
-        ORDER BY created_at DESC LIMIT ${limit};
-      `;
-    } else if (options?.sellerId) {
-      rows = await sql`
-        SELECT * FROM market_listings
-        WHERE seller_id = ${options.sellerId}
-        ORDER BY created_at DESC LIMIT ${limit};
-      `;
-    } else {
-      rows = await sql`
-        SELECT * FROM market_listings
-        WHERE status = ${targetStatus}
-        ORDER BY created_at DESC LIMIT ${limit};
-      `;
-    }
+    try {
+      let rows;
+      if (options?.category && options?.sellerId) {
+        rows = await sql`
+          SELECT * FROM market_listings
+          WHERE status = ${targetStatus} AND category = ${options.category} AND seller_id = ${options.sellerId}
+          ORDER BY created_at DESC LIMIT ${limit};
+        `;
+      } else if (options?.category) {
+        rows = await sql`
+          SELECT * FROM market_listings
+          WHERE status = ${targetStatus} AND category = ${options.category}
+          ORDER BY created_at DESC LIMIT ${limit};
+        `;
+      } else if (options?.sellerId) {
+        rows = await sql`
+          SELECT * FROM market_listings
+          WHERE seller_id = ${options.sellerId}
+          ORDER BY created_at DESC LIMIT ${limit};
+        `;
+      } else {
+        rows = await sql`
+          SELECT * FROM market_listings
+          WHERE status = ${targetStatus}
+          ORDER BY created_at DESC LIMIT ${limit};
+        `;
+      }
 
-    return rows.map((r) => ({
-      id: r.id,
-      sellerId: r.seller_id,
-      sellerName: r.seller_name,
-      sellerAvatar: r.seller_avatar,
-      itemSlug: r.item_slug,
-      itemName: r.item_name,
-      category: r.category as ItemCategory,
-      quantityRemaining: r.quantity_remaining,
-      initialQuantity: r.initial_quantity,
-      unitPrice: r.unit_price,
-      status: r.status,
-      createdAt: r.created_at,
-      expiresAt: r.expires_at,
-      icon: CATALOG_ITEMS[r.item_slug]?.icon || '📦',
-    }));
+      return rows.map((r) => ({
+        id: r.id,
+        sellerId: r.seller_id,
+        sellerName: r.seller_name,
+        sellerAvatar: r.seller_avatar,
+        itemSlug: r.item_slug,
+        itemName: r.item_name,
+        category: r.category as ItemCategory,
+        quantityRemaining: r.quantity_remaining,
+        initialQuantity: r.initial_quantity,
+        unitPrice: r.unit_price,
+        status: r.status,
+        createdAt: r.created_at,
+        expiresAt: r.expires_at,
+        icon: CATALOG_ITEMS[r.item_slug]?.icon || '📦',
+      }));
+    } catch (err) {
+      console.error('[Neon Wallet Error] Failed in getMarketListings:', err);
+      if (isNeonConfigured()) throw err;
+    }
+  }
+
+  if (isNeonConfigured()) {
+    throw new Error('[Neon Wallet Error] Cannot fall back to in-memory store when Neon is configured');
   }
 
   // Memory fallback
@@ -820,30 +902,39 @@ export async function consumePlayerItem(
   const sql = await getSqlClient();
 
   if (sql) {
-    const rows = await sql`
-      SELECT id, quantity FROM player_inventory
-      WHERE player_id = ${playerId} AND item_slug = ${itemSlug};
-    `;
-
-    if (!rows || rows.length === 0 || rows[0].quantity < count) {
-      return { success: false, remainingQuantity: 0, error: 'Insufficient quantity in inventory' };
-    }
-
-    const newQty = rows[0].quantity - count;
-    if (newQty <= 0) {
-      await sql`
-        DELETE FROM player_inventory
+    try {
+      const rows = await sql`
+        SELECT id, quantity FROM player_inventory
         WHERE player_id = ${playerId} AND item_slug = ${itemSlug};
       `;
-    } else {
-      await sql`
-        UPDATE player_inventory
-        SET quantity = ${newQty}
-        WHERE player_id = ${playerId} AND item_slug = ${itemSlug};
-      `;
-    }
 
-    return { success: true, remainingQuantity: Math.max(0, newQty) };
+      if (!rows || rows.length === 0 || rows[0].quantity < count) {
+        return { success: false, remainingQuantity: 0, error: 'Insufficient quantity in inventory' };
+      }
+
+      const newQty = rows[0].quantity - count;
+      if (newQty <= 0) {
+        await sql`
+          DELETE FROM player_inventory
+          WHERE player_id = ${playerId} AND item_slug = ${itemSlug};
+        `;
+      } else {
+        await sql`
+          UPDATE player_inventory
+          SET quantity = ${newQty}
+          WHERE player_id = ${playerId} AND item_slug = ${itemSlug};
+        `;
+      }
+
+      return { success: true, remainingQuantity: Math.max(0, newQty) };
+    } catch (err) {
+      console.error('[Neon Wallet Error] Failed in consumePlayerItem:', err);
+      if (isNeonConfigured()) throw err;
+    }
+  }
+
+  if (isNeonConfigured()) {
+    throw new Error('[Neon Wallet Error] Cannot fall back to in-memory store when Neon is configured');
   }
 
   // Memory fallback
@@ -879,15 +970,26 @@ export async function rewardPlayerCredits(
   const sql = await getSqlClient();
 
   if (sql) {
-    const rows = await sql`
-      INSERT INTO player_wallets (player_id, credits_balance, is_five_star_general, updated_at)
-      VALUES (${playerId}, ${500 + credits}, FALSE, NOW())
-      ON CONFLICT (player_id) DO UPDATE
-      SET credits_balance = player_wallets.credits_balance + ${credits},
-          updated_at = NOW()
-      RETURNING credits_balance;
-    `;
-    return { success: true, newBalance: Number(rows[0].credits_balance) };
+    try {
+      const rows = await sql`
+        INSERT INTO player_wallets (player_id, credits_balance, is_five_star_general, updated_at)
+        VALUES (${playerId}, ${500 + credits}, FALSE, NOW())
+        ON CONFLICT (player_id) DO UPDATE
+        SET credits_balance = player_wallets.credits_balance + ${credits},
+            updated_at = NOW()
+        RETURNING credits_balance;
+      `;
+      return { success: true, newBalance: Number(rows[0].credits_balance) };
+    } catch (err) {
+      console.error('[Neon Wallet Error] Failed in rewardPlayerCredits:', err);
+      if (isNeonConfigured()) {
+        throw err;
+      }
+    }
+  }
+
+  if (isNeonConfigured()) {
+    throw new Error('[Neon Wallet Error] Cannot fall back to in-memory store when Neon is configured');
   }
 
   const mem = getMemoryStore();
@@ -916,22 +1018,33 @@ export async function deductPlayerCredits(
   const sql = await getSqlClient();
 
   if (sql) {
-    // Ensure wallet exists first
-    await ensurePlayerWallet(playerId);
+    try {
+      // Ensure wallet exists first
+      await ensurePlayerWallet(playerId);
 
-    const rows = await sql`
-      UPDATE player_wallets
-      SET credits_balance = credits_balance - ${amount},
-          updated_at = NOW()
-      WHERE player_id = ${playerId} AND credits_balance >= ${amount}
-      RETURNING credits_balance;
-    `;
+      const rows = await sql`
+        UPDATE player_wallets
+        SET credits_balance = credits_balance - ${amount},
+            updated_at = NOW()
+        WHERE player_id = ${playerId} AND credits_balance >= ${amount}
+        RETURNING credits_balance;
+      `;
 
-    if (!rows || rows.length === 0) {
-      throw new Error(`Insufficient Galaxy Coins: required ${amount} GC`);
+      if (!rows || rows.length === 0) {
+        throw new Error(`Insufficient Galaxy Coins: required ${amount} GC`);
+      }
+
+      return { success: true, remainingCredits: Number(rows[0].credits_balance) };
+    } catch (err) {
+      console.error('[Neon Wallet Error] Failed in deductPlayerCredits:', err);
+      if (isNeonConfigured()) {
+        throw err;
+      }
     }
+  }
 
-    return { success: true, remainingCredits: Number(rows[0].credits_balance) };
+  if (isNeonConfigured()) {
+    throw new Error('[Neon Wallet Error] Cannot fall back to in-memory store when Neon is configured');
   }
 
   const wallet = await ensurePlayerWallet(playerId);
@@ -974,43 +1087,54 @@ export async function executeStorePurchase(options: {
   const sql = await getSqlClient();
 
   if (sql) {
-    // 1. Ensure wallet exists and check balance
-    let currentWallet = await getPlayerWallet(playerId);
+    try {
+      // 1. Ensure wallet exists and check balance
+      let currentWallet = await getPlayerWallet(playerId);
 
-    if (totalCost > 0) {
-      const updatedWallets = await sql`
-        UPDATE player_wallets
-        SET credits_balance = credits_balance - ${totalCost}, updated_at = NOW()
-        WHERE player_id = ${playerId} AND credits_balance >= ${totalCost}
-        RETURNING credits_balance;
+      if (totalCost > 0) {
+        const updatedWallets = await sql`
+          UPDATE player_wallets
+          SET credits_balance = credits_balance - ${totalCost}, updated_at = NOW()
+          WHERE player_id = ${playerId} AND credits_balance >= ${totalCost}
+          RETURNING credits_balance;
+        `;
+
+        if (!updatedWallets || updatedWallets.length === 0) {
+          currentWallet = await getPlayerWallet(playerId);
+          throw new Error(
+            `Insufficient Galaxy Coins: required ${totalCost} GC, available ${currentWallet.creditsBalance} GC`
+          );
+        }
+        currentWallet = { ...currentWallet, creditsBalance: updatedWallets[0].credits_balance };
+      }
+
+      // 2. Upsert bought quantity into inventory
+      const invId = `inv-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const updatedInv = await sql`
+        INSERT INTO player_inventory (id, player_id, item_slug, item_name, category, quantity)
+        VALUES (${invId}, ${playerId}, ${itemDef.slug}, ${itemDef.name}, ${itemDef.category}, ${quantity})
+        ON CONFLICT (player_id, item_slug)
+        DO UPDATE SET quantity = player_inventory.quantity + EXCLUDED.quantity
+        RETURNING quantity;
       `;
 
-      if (!updatedWallets || updatedWallets.length === 0) {
-        currentWallet = await getPlayerWallet(playerId);
-        throw new Error(
-          `Insufficient Galaxy Coins: required ${totalCost} GC, available ${currentWallet.creditsBalance} GC`
-        );
+      return {
+        success: true,
+        remainingCredits: currentWallet.creditsBalance,
+        newInventoryQuantity: updatedInv[0].quantity,
+        totalCost,
+        itemSlug,
+      };
+    } catch (err) {
+      console.error('[Neon Wallet Error] Failed in executeStorePurchase:', err);
+      if (isNeonConfigured()) {
+        throw err;
       }
-      currentWallet = { ...currentWallet, creditsBalance: updatedWallets[0].credits_balance };
     }
+  }
 
-    // 2. Upsert bought quantity into inventory
-    const invId = `inv-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    const updatedInv = await sql`
-      INSERT INTO player_inventory (id, player_id, item_slug, item_name, category, quantity)
-      VALUES (${invId}, ${playerId}, ${itemDef.slug}, ${itemDef.name}, ${itemDef.category}, ${quantity})
-      ON CONFLICT (player_id, item_slug)
-      DO UPDATE SET quantity = player_inventory.quantity + EXCLUDED.quantity
-      RETURNING quantity;
-    `;
-
-    return {
-      success: true,
-      remainingCredits: currentWallet.creditsBalance,
-      newInventoryQuantity: updatedInv[0].quantity,
-      totalCost,
-      itemSlug,
-    };
+  if (isNeonConfigured()) {
+    throw new Error('[Neon Wallet Error] Cannot fall back to in-memory store when Neon is configured');
   }
 
   // Memory fallback
@@ -1086,34 +1210,45 @@ export async function executeRecycleItem(options: {
   const sql = await getSqlClient();
 
   if (sql) {
-    // 1. Check & deduct inventory
-    const updatedInv = await sql`
-      UPDATE player_inventory
-      SET quantity = quantity - ${quantity}
-      WHERE player_id = ${playerId} AND item_slug = ${itemSlug} AND quantity >= ${quantity}
-      RETURNING quantity;
-    `;
+    try {
+      // 1. Check & deduct inventory
+      const updatedInv = await sql`
+        UPDATE player_inventory
+        SET quantity = quantity - ${quantity}
+        WHERE player_id = ${playerId} AND item_slug = ${itemSlug} AND quantity >= ${quantity}
+        RETURNING quantity;
+      `;
 
-    if (!updatedInv || updatedInv.length === 0) {
-      throw new Error(`Insufficient inventory to recycle (requested ${quantity}x)`);
+      if (!updatedInv || updatedInv.length === 0) {
+        throw new Error(`Insufficient inventory to recycle (requested ${quantity}x)`);
+      }
+
+      // 2. Refund credits to wallet
+      const updatedWallets = await sql`
+        INSERT INTO player_wallets (player_id, credits_balance, updated_at)
+        VALUES (${playerId}, ${totalRefund}, NOW())
+        ON CONFLICT (player_id)
+        DO UPDATE SET credits_balance = player_wallets.credits_balance + ${totalRefund}, updated_at = NOW()
+        RETURNING credits_balance;
+      `;
+
+      return {
+        success: true,
+        refundCredits: totalRefund,
+        remainingCredits: updatedWallets[0].credits_balance,
+        remainingInventoryQuantity: updatedInv[0].quantity,
+        itemSlug,
+      };
+    } catch (err) {
+      console.error('[Neon Wallet Error] Failed in executeRecycleItem:', err);
+      if (isNeonConfigured()) {
+        throw err;
+      }
     }
+  }
 
-    // 2. Refund credits to wallet
-    const updatedWallets = await sql`
-      INSERT INTO player_wallets (player_id, credits_balance, updated_at)
-      VALUES (${playerId}, ${totalRefund}, NOW())
-      ON CONFLICT (player_id)
-      DO UPDATE SET credits_balance = player_wallets.credits_balance + ${totalRefund}, updated_at = NOW()
-      RETURNING credits_balance;
-    `;
-
-    return {
-      success: true,
-      refundCredits: totalRefund,
-      remainingCredits: updatedWallets[0].credits_balance,
-      remainingInventoryQuantity: updatedInv[0].quantity,
-      itemSlug,
-    };
+  if (isNeonConfigured()) {
+    throw new Error('[Neon Wallet Error] Cannot fall back to in-memory store when Neon is configured');
   }
 
   // Memory fallback
@@ -1152,24 +1287,35 @@ export async function redeemPromoCode(playerId: string, rawCode: string) {
 
   if (code === 'DEVTEST26') {
     if (sql) {
-      // 1. Set 999,999 credits and VIP in Postgres
-      await sql`
-        INSERT INTO player_wallets (player_id, credits_balance, is_five_star_general, updated_at)
-        VALUES (${playerId}, 999999, TRUE, NOW())
-        ON CONFLICT (player_id)
-        DO UPDATE SET credits_balance = 999999, is_five_star_general = TRUE, updated_at = NOW();
-      `;
-
-      // 2. Grant 999 of all catalog items
-      for (const item of Object.values(CATALOG_ITEMS)) {
+      try {
+        // 1. Set 999,999 credits and VIP in Postgres
         await sql`
-          INSERT INTO player_inventory (id, player_id, item_slug, item_name, category, quantity, metadata_json)
-          VALUES (${'inv_' + playerId + '_' + item.slug}, ${playerId}, ${item.slug}, ${item.name}, ${item.category}, 999, '{}'::jsonb)
-          ON CONFLICT (player_id, item_slug)
-          DO UPDATE SET quantity = 999;
+          INSERT INTO player_wallets (player_id, credits_balance, is_five_star_general, updated_at)
+          VALUES (${playerId}, 999999, TRUE, NOW())
+          ON CONFLICT (player_id)
+          DO UPDATE SET credits_balance = 999999, is_five_star_general = TRUE, updated_at = NOW();
         `;
+
+        // 2. Grant 999 of all catalog items
+        for (const item of Object.values(CATALOG_ITEMS)) {
+          await sql`
+            INSERT INTO player_inventory (id, player_id, item_slug, item_name, category, quantity, metadata_json)
+            VALUES (${'inv_' + playerId + '_' + item.slug}, ${playerId}, ${item.slug}, ${item.name}, ${item.category}, 999, '{}'::jsonb)
+            ON CONFLICT (player_id, item_slug)
+            DO UPDATE SET quantity = 999;
+          `;
+        }
+      } catch (err) {
+        console.error('[Neon Wallet Error] Failed in redeemPromoCode DEVTEST26:', err);
+        if (isNeonConfigured()) {
+          throw err;
+        }
       }
     } else {
+      if (isNeonConfigured()) {
+        throw new Error('[Neon Wallet Error] Cannot fall back to in-memory store when Neon is configured');
+      }
+
       const mem = getMemoryStore();
       const wallet = await getPlayerWallet(playerId);
       wallet.creditsBalance = 999999;

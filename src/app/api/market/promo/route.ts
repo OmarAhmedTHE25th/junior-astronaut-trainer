@@ -4,7 +4,14 @@ import { redeemPromoCode } from '@/lib/marketplace';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { playerId = 'cadet-nova-01', code = '' } = body;
+    const { playerId, code = '' } = body;
+
+    if (!playerId || playerId === 'cadet-nova-01') {
+      return NextResponse.json(
+        { success: false, error: 'A valid persistent playerId is required to redeem promo codes' },
+        { status: 400 }
+      );
+    }
 
     const result = await redeemPromoCode(playerId, code);
 

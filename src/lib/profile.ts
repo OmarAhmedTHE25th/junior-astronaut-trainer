@@ -86,27 +86,12 @@ export function getPersistentPlayerId(): string {
     return 'cadet-nova-01';
   }
 
-  // 1. Direct check of permanent stable key
-  try {
-    const stable = localStorage.getItem(PERSISTENT_PLAYER_ID_KEY);
-    if (
-      stable &&
-      typeof stable === 'string' &&
-      stable.trim().length > 0 &&
-      stable !== 'undefined' &&
-      stable !== 'null' &&
-      stable !== 'cadet-nova-01'
-    ) {
-      return stable.trim();
-    }
-  } catch {}
-
-  // 2. Fallback to existing active profile in localStorage (e.g. CDR-NOVA-53 or stored cadetId)
+  // 1. Direct check of existing active profile in localStorage (jat_profile_v1)
   try {
     const rawProfile = localStorage.getItem(PROFILE_KEY);
     if (rawProfile) {
       const parsed = JSON.parse(rawProfile) as CadetProfile;
-      const candidateId = parsed?.cadetId || parsed?.callsign;
+      const candidateId = parsed?.cadetId;
       if (
         candidateId &&
         typeof candidateId === 'string' &&
@@ -119,6 +104,21 @@ export function getPersistentPlayerId(): string {
         } catch {}
         return cleanId;
       }
+    }
+  } catch {}
+
+  // 2. Direct check of permanent stable key
+  try {
+    const stable = localStorage.getItem(PERSISTENT_PLAYER_ID_KEY);
+    if (
+      stable &&
+      typeof stable === 'string' &&
+      stable.trim().length > 0 &&
+      stable !== 'undefined' &&
+      stable !== 'null' &&
+      stable !== 'cadet-nova-01'
+    ) {
+      return stable.trim();
     }
   } catch {}
 

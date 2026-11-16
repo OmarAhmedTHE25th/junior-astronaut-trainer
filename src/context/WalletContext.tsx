@@ -98,9 +98,10 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [cadetId, setCadetId] = useState<string>(() => {
     if (typeof window === 'undefined') return 'cadet-nova-01';
     try {
-      return getPersistentPlayerId();
+      const p = getOrCreateCadetProfile();
+      return (p?.cadetId && p.cadetId !== 'cadet-nova-01') ? p.cadetId : getPersistentPlayerId();
     } catch {
-      return 'cadet-nova-01';
+      return getPersistentPlayerId();
     }
   });
 
@@ -114,13 +115,22 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   // Background silent revalidation against /api/market/wallet
   const revalidate = useCallback(async (targetId?: string) => {
-    const idToFetch = targetId || cadetId || (typeof window !== 'undefined' ? getPersistentPlayerId() : undefined);
+    let idToFetch = targetId || cadetId;
+    if (!idToFetch || idToFetch === 'cadet-nova-01') {
+      if (typeof window !== 'undefined') {
+        const active = getOrCreateCadetProfile();
+        idToFetch = (active?.cadetId && active.cadetId !== 'cadet-nova-01') ? active.cadetId : getPersistentPlayerId();
+      }
+    }
     if (!idToFetch || idToFetch === 'cadet-nova-01' || inFlightRef.current) return;
     inFlightRef.current = true;
 
     try {
       const res = await fetch(`/api/market/wallet?playerId=${encodeURIComponent(idToFetch)}`);
-      if (!res.ok) return;
+      if (!res.ok) {
+        console.error(`[Wallet Revalidate Error] Server returned HTTP ${res.status}`);
+        return;
+      }
       const data = await res.json();
       if (data.success && data.wallet) {
         const serverBalance = Number(data.wallet.creditsBalance ?? data.creditsBalance ?? 500);
@@ -146,8 +156,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
           setInventory(data.inventory);
         }
       }
-    } catch {
-      // Offline resilience
+    } catch (err) {
+      console.warn('[Wallet Revalidate Offline]', err);
     } finally {
       inFlightRef.current = false;
       setIsLoading(false);
@@ -160,7 +170,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     setCreditsBalance(finalBalance);
 
     let nextVip = isFiveStarGeneral;
-    const currentId = cadetId && cadetId !== 'cadet-nova-01' ? cadetId : getPersistentPlayerId();
+    const currentId = (cadetId && cadetId !== 'cadet-nova-01') ? cadetId : getPersistentPlayerId();
     if (typeof isVip === 'boolean') {
       nextVip = isVip;
       setIsFiveStarGeneral(isVip);
@@ -188,7 +198,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   // Optimistic instant delta adjustment (for quick actions)
   const adjustBalanceOptimistic = useCallback((delta: number) => {
-    const currentId = cadetId && cadetId !== 'cadet-nova-01' ? cadetId : getPersistentPlayerId();
+    const currentId = (cadetId && cadetId !== 'cadet-nova-01') ? cadetId : getPersistentPlayerId();
     setCreditsBalance((prev) => {
       const next = Math.max(0, prev + delta);
       writeSynchronousWallet(currentId, { creditsBalance: next, isFiveStarGeneral });
@@ -208,7 +218,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         unlockFiveStarGeneral();
       } catch {}
     }
-    const currentId = cadetId && cadetId !== 'cadet-nova-01' ? cadetId : getPersistentPlayerId();
+    const currentId = (cadetId && cadetId !== 'cadet-nova-01') ? cadetId : getPersistentPlayerId();
     writeSynchronousWallet(currentId, { creditsBalance, isFiveStarGeneral: isVip });
     // Persist to Neon Postgres in background
     if (currentId && currentId !== 'cadet-nova-01') {
@@ -226,30 +236,43 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   // Revalidate on mount & listen to profile changes / focus / custom events
   useEffect(() => {
-    // 1. Initial silent background revalidation
-    revalidate(cadetId);
+    // 1. Synchronize canonical cadetId from getOrCreateCadetProfile / localStorage
+    const active = getOrCreateCadetProfile();
+    const effectiveId = (active?.cadetId && active.cadetId !== 'cadet-nova-01')
+      ? active.cadetId
+      : getPersistentPlayerId();
+
+    if (effectiveId && effectiveId !== cadetId) {
+      setCadetId(effectiveId);
+      const cached = readSynchronousWallet(effectiveId);
+      setCreditsBalance(cached.creditsBalance);
+      setIsFiveStarGeneral(cached.isFiveStarGeneral);
+    }
+
+    revalidate(effectiveId);
 
     // 2. Listen for profile switches
     const handleProfileChange = () => {
-      const active = getOrCreateCadetProfile();
-      if (active.cadetId && active.cadetId !== cadetId) {
-        setCadetId(active.cadetId);
-        const cached = readSynchronousWallet(active.cadetId);
+      const nextActive = getOrCreateCadetProfile();
+      if (nextActive.cadetId && nextActive.cadetId !== 'cadet-nova-01') {
+        setCadetId(nextActive.cadetId);
+        const cached = readSynchronousWallet(nextActive.cadetId);
         setCreditsBalance(cached.creditsBalance);
         setIsFiveStarGeneral(cached.isFiveStarGeneral);
-        revalidate(active.cadetId);
+        revalidate(nextActive.cadetId);
       }
     };
 
     // 3. Listen for external wallet update events (e.g. from other tabs or components)
     const handleExternalWalletUpdate = () => {
-      const cached = readSynchronousWallet(cadetId);
+      const currentId = effectiveId || cadetId;
+      const cached = readSynchronousWallet(currentId);
       setCreditsBalance(cached.creditsBalance);
       setIsFiveStarGeneral(cached.isFiveStarGeneral);
     };
 
     const handleFocus = () => {
-      revalidate(cadetId);
+      revalidate(effectiveId || cadetId);
     };
 
     window.addEventListener('jat-profile-updated', handleProfileChange);
@@ -263,7 +286,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('storage', handleExternalWalletUpdate);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [cadetId, revalidate]);
+  }, []);
 
   return (
     <WalletContext.Provider

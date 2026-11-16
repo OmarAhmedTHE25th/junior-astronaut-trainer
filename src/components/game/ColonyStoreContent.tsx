@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSound } from '@/lib/sound';
-import { useProfile, DEFAULT_PROFILE, unlockAllBadgesGodMode } from '@/lib/profile';
+import { useProfile, DEFAULT_PROFILE, unlockAllBadgesGodMode, getOrCreateCadetProfile, getPersistentPlayerId } from '@/lib/profile';
 import { unlockAllPlanetsGodMode } from '@/lib/planetCartridges';
 import {
   CATALOG_ITEMS,
@@ -58,6 +58,7 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
     adjustBalanceOptimistic,
     refreshWallet,
     inventory: walletInventory,
+    cadetId: walletCadetId,
   } = useWallet();
 
   const isFiveStarGeneral = walletVip || bpFiveStar;
@@ -68,7 +69,19 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
     setMounted(true);
   }, []);
 
-  const activeCadet = mounted && isLoaded ? profile : DEFAULT_PROFILE;
+  const activeCadet = useMemo(() => {
+    if (mounted && isLoaded && profile?.cadetId && profile.cadetId !== 'cadet-nova-01') {
+      return profile;
+    }
+    if (typeof window !== 'undefined') {
+      const p = getOrCreateCadetProfile();
+      if (p?.cadetId && p.cadetId !== 'cadet-nova-01') return p;
+    }
+    if (walletCadetId && walletCadetId !== 'cadet-nova-01') {
+      return { ...DEFAULT_PROFILE, cadetId: walletCadetId };
+    }
+    return DEFAULT_PROFILE;
+  }, [mounted, isLoaded, profile, walletCadetId]);
 
   // View state: 4 tabs
   const [activeTab, setActiveTab] = useState<'store' | 'inventory' | 'battlepass' | 'crates'>('store');
@@ -121,11 +134,16 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
     }
   }, [walletInventory]);
 
-  // Fetch player wallet and inventory
+  // Fetch player wallet and inventory using the canonical persistent ID
   const fetchWalletAndInventory = useCallback(async () => {
-    if (!isLoaded || !profile?.cadetId) return;
+    const idToFetch = (activeCadet?.cadetId && activeCadet.cadetId !== 'cadet-nova-01')
+      ? activeCadet.cadetId
+      : (typeof window !== 'undefined' ? getPersistentPlayerId() : null);
+
+    if (!idToFetch || idToFetch === 'cadet-nova-01') return;
+
     try {
-      const res = await fetch(`/api/market/wallet?playerId=${encodeURIComponent(profile.cadetId)}`);
+      const res = await fetch(`/api/market/wallet?playerId=${encodeURIComponent(idToFetch)}`);
       if (!res.ok) return;
       const data = await res.json();
       if (data.success) {
@@ -135,14 +153,14 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
         setInventory(data.inventory || []);
       }
     } catch {}
-  }, [isLoaded, profile?.cadetId, syncWallet]);
+  }, [activeCadet?.cadetId, syncWallet]);
 
   useEffect(() => {
-    if (isLoaded && profile?.cadetId) {
+    if (activeCadet?.cadetId && activeCadet.cadetId !== 'cadet-nova-01') {
       setIsLoading(true);
       fetchWalletAndInventory().finally(() => setIsLoading(false));
     }
-  }, [fetchWalletAndInventory, isLoaded, profile?.cadetId]);
+  }, [fetchWalletAndInventory, activeCadet?.cadetId]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;

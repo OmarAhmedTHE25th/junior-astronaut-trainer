@@ -221,9 +221,14 @@ async function getSqlClient(): Promise<NeonQueryFunction<false, false> | null> {
     await ensureSchema(sql);
     return sql;
   } catch (err) {
-    console.error('Failed to initialize Neon client:', err);
+    console.error('[Neon Storage Error] Failed to initialize Neon client:', err);
     return null;
   }
+}
+
+/** Get authenticated Neon SQL client directly */
+export async function getNeonSql(): Promise<NeonQueryFunction<false, false> | null> {
+  return getSqlClient();
 }
 
 // ── Storage Operations ───────────────────────────────────────
