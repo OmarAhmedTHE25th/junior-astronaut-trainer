@@ -60,22 +60,26 @@ interface FloatingText {
 }
 
 export default function MercuryMeteorDefense() {
-  const { dispatch } = useGame();
+  const { state, dispatch } = useGame();
   const { playAlert, playSuccess } = useSound();
+  const isTimed = Boolean(state.isTimedMode);
+  const hasKineticOvercharger = state.equippedTacticalItem === 'kinetic-overcharger';
+  const hasAegisHullMatrix = state.equippedTacticalItem === 'aegis-hull-matrix';
+  const hasChronoStabilizer = state.equippedTacticalItem === 'chrono-stabilizer';
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Game status states for HUD
-  const [shield, setShield] = useState<number>(100);
+  const [shield, setShield] = useState<number>(() => (hasAegisHullMatrix ? 135 : 100));
   const [score, setScore] = useState<number>(0);
   const [wave, setWave] = useState<number>(1);
-  const [waveTimeRemaining, setWaveTimeRemaining] = useState<number>(15);
+  const [waveTimeRemaining, setWaveTimeRemaining] = useState<number>(() => ((isTimed ? 10 : 15) + (hasChronoStabilizer ? 10 : 0)));
   const [combo, setCombo] = useState<number>(1);
   const [interceptorsFired, setInterceptorsFired] = useState<number>(0);
   const [meteorsDestroyed, setMeteorsDestroyed] = useState<number>(0);
 
   // Internal mutable refs for 60fps canvas loop
-  const shieldRef = useRef<number>(100);
+  const shieldRef = useRef<number>(hasAegisHullMatrix ? 135 : 100);
   const scoreRef = useRef<number>(0);
   const waveRef = useRef<number>(1);
   const comboRef = useRef<number>(1);
@@ -163,9 +167,10 @@ export default function MercuryMeteorDefense() {
     isGameOverRef.current = true;
 
     const finalShield = shieldRef.current;
-    const finalScore = victory
+    const baseScore = victory
       ? scoreRef.current + finalShield * 15 + 1200
       : scoreRef.current;
+    const finalScore = isTimed && victory ? Math.round(baseScore * 1.5) : baseScore;
 
     setTimeout(() => {
       dispatch({
@@ -174,11 +179,11 @@ export default function MercuryMeteorDefense() {
         score: Math.max(250, finalScore),
         solsCompleted: victory ? 30 : waveRef.current * 8,
         summaryLog: victory
-          ? `Mercury Polar Outpost defended against 3 sungrazing meteor waves! Shield held at ${finalShield}%. Earned ${finalScore} PTS.`
+          ? `Mercury Polar Outpost defended against 3 sungrazing meteor waves! Shield held at ${finalShield}%${isTimed ? ' (Blitz 1.5x Multiplier Applied)' : ''}. Earned ${finalScore} PTS.`
           : `Mercury Outpost shield collapsed under sustained meteor impacts during Wave ${waveRef.current}.`,
       });
     }, 600);
-  }, [dispatch]);
+  }, [dispatch, isTimed]);
 
   // Click to fire interceptor
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -252,7 +257,7 @@ export default function MercuryMeteorDefense() {
               scale: 1.5,
             });
 
-            return 15;
+            return isTimed ? 10 : 15;
           }
         }
         return prev - 1;
@@ -260,7 +265,7 @@ export default function MercuryMeteorDefense() {
     }, 1000);
 
     return () => clearInterval(waveTimer);
-  }, [finishGame, playSuccess]);
+  }, [finishGame, playSuccess, isTimed]);
 
   // Main 60fps Game Loop
   useEffect(() => {
@@ -457,7 +462,7 @@ export default function MercuryMeteorDefense() {
             x: p.targetX,
             y: p.targetY,
             radius: 2,
-            maxRadius: 44, // shockwave radius
+            maxRadius: hasKineticOvercharger ? 88 : 44, // double blast radius with Kinetic Railgun Overcharger
             alpha: 1,
             kills: 0,
           });
@@ -622,6 +627,15 @@ export default function MercuryMeteorDefense() {
 
         {/* Wave & Timer Gauges */}
         <div className="flex items-center gap-2 sm:gap-4">
+          {isTimed && (
+            <div className="px-2.5 py-1.5 rounded-xl bg-rose-950/80 border border-rose-500/50 text-center animate-pulse">
+              <span className="text-[9px] uppercase tracking-wider text-rose-300 block">Blitz Clock</span>
+              <span className="text-xl font-black text-rose-400 tabular-nums">
+                {waveTimeRemaining}s
+              </span>
+            </div>
+          )}
+
           <div className="px-3 py-1.5 rounded-xl bg-black/60 border border-amber-500/30 text-center">
             <span className="text-[9px] uppercase tracking-wider text-amber-300 block">Defense Wave</span>
             <span className="text-xl font-black text-amber-400 tabular-nums">
@@ -629,12 +643,14 @@ export default function MercuryMeteorDefense() {
             </span>
           </div>
 
-          <div className="px-3 py-1.5 rounded-xl bg-black/60 border border-cyan-500/30 text-center">
-            <span className="text-[9px] uppercase tracking-wider text-cyan-300 block">Wave Clock</span>
-            <span className={`text-xl font-black tabular-nums ${waveTimeRemaining <= 3 ? 'text-rose-400 animate-pulse' : 'text-cyan-400'}`}>
-              {waveTimeRemaining}s
-            </span>
-          </div>
+          {!isTimed && (
+            <div className="px-3 py-1.5 rounded-xl bg-black/60 border border-cyan-500/30 text-center">
+              <span className="text-[9px] uppercase tracking-wider text-cyan-300 block">Wave Clock</span>
+              <span className={`text-xl font-black tabular-nums ${waveTimeRemaining <= 3 ? 'text-rose-400 animate-pulse' : 'text-cyan-400'}`}>
+                {waveTimeRemaining}s
+              </span>
+            </div>
+          )}
 
           <div className="px-3 py-1.5 rounded-xl bg-black/60 border border-emerald-500/30 text-center">
             <span className="text-[9px] uppercase tracking-wider text-emerald-300 block">Score</span>

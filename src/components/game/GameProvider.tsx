@@ -66,6 +66,7 @@ interface GameProviderProps {
   initialState?: GameState;
   isTimedMode?: boolean;
   planetId?: PlanetId;
+  equippedTacticalItem?: string;
   tournament?: {
     tournamentId?: string;
     matchId?: string;
@@ -86,6 +87,7 @@ export function GameProvider({
   initialState,
   isTimedMode,
   planetId = 'mars',
+  equippedTacticalItem,
   tournament,
 }: GameProviderProps) {
   const [state, rawDispatch] = useReducer(
@@ -112,7 +114,8 @@ export function GameProvider({
               }
             : undefined,
           typeof window !== 'undefined' ? getStoredGuild() : undefined,
-          planetId
+          planetId,
+          equippedTacticalItem
         )
   );
   const [factIndex, setFactIndex] = useState(0);

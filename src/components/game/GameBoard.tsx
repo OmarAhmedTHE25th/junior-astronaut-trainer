@@ -117,7 +117,39 @@ export default function GameBoard({
             playerName={cadetName || 'Astronaut'}
           />
         )}
-        <HUD onOpenMenu={() => setIsPauseMenuOpen(true)} />
+        <HUD
+          onOpenMenu={() => setIsPauseMenuOpen(true)}
+          onOpenFacts={() => setShowFact(true)}
+        />
+
+        {/* Real-Time PvP Sabotage Warfare Overlays in Mini-Games & Mars */}
+        {state.activeDebuffs && (state.activeDebuffs.empJammedSols > 0 || state.activeDebuffs.solarBlindedSols > 0 || state.activeDebuffs.spoofedAlertActive) && (
+          <div className="pointer-events-none fixed inset-0 z-40 overflow-hidden select-none">
+            {/* EMP Microwave Static Interference */}
+            {state.activeDebuffs.empJammedSols > 0 && (
+              <div className="absolute inset-0 bg-purple-950/25 mix-blend-color-dodge animate-pulse flex flex-col justify-between p-4">
+                <div className="w-full bg-purple-900/80 border border-purple-400/80 p-2 text-center text-xs font-mono font-black text-purple-200 tracking-widest uppercase shadow-lg backdrop-blur-xs">
+                  ⚡ HOSTILE EMP JAM ACTIVE — RADAR SENSORS SCRAMBLED ⚡
+                </div>
+                <div className="w-full h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-80" />
+              </div>
+            )}
+            {/* Solar Flare / Regolith Dust Blinding Screen Mask */}
+            {state.activeDebuffs.solarBlindedSols > 0 && (
+              <div className="absolute inset-0 bg-amber-950/30 backdrop-blur-[1px] animate-pulse flex items-center justify-center">
+                <div className="bg-black/80 border border-amber-500/80 px-4 py-2 rounded-xl text-center text-xs font-mono font-black text-amber-300 tracking-wider shadow-lg">
+                  🌪️ SOLAR FLARE / REGOLITH BLINDING ACTIVE 🌪️
+                </div>
+              </div>
+            )}
+            {/* Comms Spoof Alert Warning */}
+            {state.activeDebuffs.spoofedAlertActive && (
+              <div className="absolute top-16 right-4 bg-rose-950/80 border border-rose-500 px-3 py-1.5 rounded-lg text-xs font-mono text-rose-300 animate-bounce shadow-lg">
+                ⚠️ COMMS SPOOF DETECTED: TELEMETRY DRIFT
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Main content area: Route dedicated mini-games per planet, preserving classic 30-sol survival for Mars */}
         {state.planetId === 'earth' ? (

@@ -87,15 +87,46 @@ function playSyntheticRadarTone(type: 'ping' | 'lock' | 'beacon' | 'error' | 'wi
 }
 
 export default function EarthImpactTriangulation() {
-  const { dispatch } = useGame();
+  const { state, dispatch } = useGame();
   const { playSuccess, playAlert } = useSound();
+  const isTimed = Boolean(state.isTimedMode);
+  const hasQuantumScanner = state.equippedTacticalItem === 'quantum-scanner';
+  const hasChronoStabilizer = state.equippedTacticalItem === 'chrono-stabilizer';
 
-  const [scansRemaining, setScansRemaining] = useState(INITIAL_SCANS);
+  const [scansRemaining, setScansRemaining] = useState(INITIAL_SCANS + (hasQuantumScanner ? 3 : 0));
   const [mode, setMode] = useState<'scan' | 'beacon'>('scan');
   const [beaconBonus, setBeaconBonus] = useState(0);
+  const [blitzSeconds, setBlitzSeconds] = useState<number>(35 + (hasChronoStabilizer ? 10 : 0));
+  const isGameOverRef = React.useRef(false);
   const [lastTelemetry, setLastTelemetry] = useState<string>(
     'TDRS-12 Satellite constellation active. 3 bolide impact fragments entered low atmosphere. Triangulate all impact coordinates.'
   );
+
+  // Blitz Countdown Timer
+  useEffect(() => {
+    if (!isTimed) return;
+    const interval = setInterval(() => {
+      if (isGameOverRef.current) return;
+      setBlitzSeconds((prev) => {
+        if (prev <= 1) {
+          isGameOverRef.current = true;
+          playSyntheticRadarTone('error');
+          setTimeout(() => {
+            dispatch({
+              type: 'COMPLETE_MINIGAME',
+              victory: false,
+              score: 300,
+              solsCompleted: 10,
+              summaryLog: 'Blitz speed-run timer expired! Orbital window closed before all impact bolides were triangulated.',
+            });
+          }, 600);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isTimed, dispatch]);
 
   // Generate 3 unique impact sites on mount
   const [sites, setSites] = useState<ImpactSite[]>(() => {
@@ -298,18 +329,21 @@ export default function EarthImpactTriangulation() {
 
   // Evaluate victory / defeat
   const checkGameOutcome = (currentSites: ImpactSite[], currentScans: number, currentBonus: number) => {
+    if (isGameOverRef.current) return;
     const foundAll = currentSites.every((s) => s.found);
 
     if (foundAll) {
+      isGameOverRef.current = true;
       playSyntheticRadarTone('win');
-      const earnedScore = 1800 + currentScans * 250 + currentBonus;
+      const baseScore = 1800 + currentScans * 250 + currentBonus;
+      const earnedScore = isTimed ? Math.round(baseScore * 1.5) : baseScore;
       setTimeout(() => {
         dispatch({
           type: 'COMPLETE_MINIGAME',
           victory: true,
           score: earnedScore,
           solsCompleted: 30,
-          summaryLog: `TDRS Orbital Triangulation success! All 3 kinetic impact fragments located. Evacuation routes cleared with ${currentScans} scans remaining. Earned ${earnedScore} PTS.`,
+          summaryLog: `TDRS Orbital Triangulation success! All 3 kinetic impact fragments located. Evacuation routes cleared with ${currentScans} scans remaining${isTimed ? ' (Blitz 1.5x Multiplier Applied)' : ''}. Earned ${earnedScore} PTS.`,
         });
       }, 700);
       return;
@@ -317,6 +351,7 @@ export default function EarthImpactTriangulation() {
 
     if (currentScans <= 0) {
       // Scans exhausted
+      isGameOverRef.current = true;
       playSyntheticRadarTone('error');
       const unfoundCount = currentSites.filter((s) => !s.found).length;
       const partialScore = currentSites.filter((s) => s.found).length * 400;
@@ -353,8 +388,17 @@ export default function EarthImpactTriangulation() {
           </div>
         </div>
 
-        {/* Scan & Site Gauges */}
+        {/* Scan, Blitz & Site Gauges */}
         <div className="flex items-center gap-2 sm:gap-4">
+          {isTimed && (
+            <div className="px-3 py-1.5 rounded-xl bg-rose-950/80 border border-rose-500/50 text-center animate-pulse">
+              <span className="text-[9px] uppercase tracking-wider text-rose-300 block">Blitz Clock</span>
+              <span className="text-xl font-black text-rose-400 tabular-nums">
+                {blitzSeconds}s
+              </span>
+            </div>
+          )}
+
           <div className="px-3 py-1.5 rounded-xl bg-black/60 border border-cyan-500/30 text-center">
             <span className="text-[9px] uppercase tracking-wider text-cyan-300 block">Radar Scans</span>
             <span className={`text-xl font-black tabular-nums ${scansRemaining <= 3 ? 'text-rose-400 animate-pulse' : 'text-cyan-400'}`}>

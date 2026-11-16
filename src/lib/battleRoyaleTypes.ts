@@ -265,7 +265,69 @@ export interface BRMatch {
   createdAt: string;
   sectors: BRSector[];
   players: BRMatchPlayer[];
+  arenaTheme?: BRArenaTheme;
 }
+
+export type BRArenaTheme = 'mars' | 'venus' | 'saturn' | 'planet_x';
+
+export interface BRArenaMeta {
+  id: BRArenaTheme;
+  name: string;
+  subtitle: string;
+  icon: string;
+  stormName: string;
+  stormHazard: string;
+  bgGradient: string;
+  borderColor: string;
+  accentColor: string;
+}
+
+export const BR_ARENAS: Record<BRArenaTheme, BRArenaMeta> = {
+  mars: {
+    id: 'mars',
+    name: 'Olympus Mons Outpost',
+    subtitle: 'Mars Red Planet Caldera',
+    icon: '🪐',
+    stormName: 'Global Regolith Dust Storm',
+    stormHazard: 'Atmospheric particulate abrasion',
+    bgGradient: 'from-orange-950/40 via-slate-950 to-black',
+    borderColor: 'border-orange-500/40',
+    accentColor: 'text-orange-400',
+  },
+  venus: {
+    id: 'venus',
+    name: 'HAVOC Cloud Deck',
+    subtitle: 'Venus Super-Rotation Zone',
+    icon: '☁️',
+    stormName: 'Sulfuric Acid Vortices',
+    stormHazard: '464°C thermal wave & acid precipitation',
+    bgGradient: 'from-amber-950/40 via-yellow-950/30 to-black',
+    borderColor: 'border-amber-400/40',
+    accentColor: 'text-amber-300',
+  },
+  saturn: {
+    id: 'saturn',
+    name: 'Cassini Ring Sector',
+    subtitle: 'Saturn B-Ring Debris Field',
+    icon: '💍',
+    stormName: 'Ice B-Ring Shrapnel Front',
+    stormHazard: 'High-velocity water-ice micro-impacts',
+    bgGradient: 'from-yellow-950/40 via-slate-950 to-black',
+    borderColor: 'border-yellow-500/40',
+    accentColor: 'text-yellow-300',
+  },
+  planet_x: {
+    id: 'planet_x',
+    name: 'Oort Void Singularity',
+    subtitle: 'Planet X Deep Gravitational Well',
+    icon: '🌌',
+    stormName: 'Quantum Entropic Collapse',
+    stormHazard: 'Tidal distortion & telemetry corruption',
+    bgGradient: 'from-purple-950/40 via-slate-950 to-black',
+    borderColor: 'border-purple-500/40',
+    accentColor: 'text-purple-300',
+  },
+};
 
 export interface CommanderProfile {
   playerId: string;

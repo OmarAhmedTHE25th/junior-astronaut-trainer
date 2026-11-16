@@ -947,10 +947,19 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
                           {item.icon}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-cyan-400/10 text-cyan-300 border border-cyan-400/30 uppercase tracking-wider shrink-0">
                               {getCategoryLabel(item.category)}
                             </span>
+                            {item.scope === 'all_worlds' ? (
+                              <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 uppercase tracking-wider shrink-0 flex items-center gap-1">
+                                <span>🌌</span> [ALL WORLDS]
+                              </span>
+                            ) : (
+                              <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase tracking-wider shrink-0 flex items-center gap-1">
+                                <span>🪐</span> [MARS SURVIVAL]
+                              </span>
+                            )}
                           </div>
                           <h4 className="font-heading font-extrabold text-sm text-white mt-1 leading-tight break-words">
                             {item.name}
@@ -975,6 +984,13 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
                         <span className="shrink-0">⚡</span>
                         <span className="truncate">{item.effectSummary}</span>
                       </div>
+                      {item.scope === 'all_worlds' && item.arcadeEffect && (
+                        <div className="text-[10px] font-mono text-emerald-300/90 flex items-center gap-1.5 bg-emerald-950/30 border border-emerald-500/20 px-2 py-0.5 rounded">
+                          <span className="shrink-0">🎮</span>
+                          <span className="font-semibold text-emerald-200">Arcade Mini-Games:</span>
+                          <span className="truncate">{item.arcadeEffect}</span>
+                        </div>
+                      )}
                       <p className="text-xs text-starlight/75 leading-relaxed break-words">
                         {item.description}
                       </p>
@@ -1108,10 +1124,19 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
                           {item.icon || itemDef?.icon || '📦'}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-cyan-400/10 text-cyan-300 border border-cyan-400/30 uppercase tracking-wider shrink-0">
                               {getCategoryLabel(item.category)}
                             </span>
+                            {itemDef?.scope === 'all_worlds' ? (
+                              <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 uppercase tracking-wider shrink-0 flex items-center gap-1">
+                                <span>🌌</span> [ALL WORLDS]
+                              </span>
+                            ) : (
+                              <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase tracking-wider shrink-0 flex items-center gap-1">
+                                <span>🪐</span> [MARS SURVIVAL]
+                              </span>
+                            )}
                           </div>
                           <h4 className="font-heading font-extrabold text-sm text-white mt-1 leading-tight break-words">
                             {item.itemName}
@@ -1132,8 +1157,15 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
                         <span className="shrink-0">✓</span>
                         <span className="truncate">{itemDef?.effectSummary || 'Survival Equipment'}</span>
                       </div>
+                      {itemDef?.scope === 'all_worlds' && itemDef.arcadeEffect && (
+                        <div className="text-[10px] font-mono text-emerald-300/90 flex items-center gap-1.5 bg-emerald-950/30 border border-emerald-500/20 px-2 py-0.5 rounded">
+                          <span className="shrink-0">🎮</span>
+                          <span className="font-semibold text-emerald-200">Arcade Mini-Games:</span>
+                          <span className="truncate">{itemDef.arcadeEffect}</span>
+                        </div>
+                      )}
                       <p className="text-xs text-starlight/75 leading-relaxed break-words">
-                        {itemDef?.description || 'Equippable survival asset. Deployable mid-mission during Sol action phases without ending your turn.'}
+                        {itemDef?.description || (itemDef?.scope === 'all_worlds' ? 'Universal tactical module. Equippable before launching any solar system planetary mission.' : 'Equippable survival asset. Deployable mid-mission during Sol action phases without ending your turn.')}
                       </p>
                     </div>
 

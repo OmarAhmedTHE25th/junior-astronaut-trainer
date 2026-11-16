@@ -44,18 +44,21 @@ interface Particle {
 }
 
 export default function UranusDiamondHarvester() {
-  const { dispatch } = useGame();
+  const { state, dispatch } = useGame();
   const { playSuccess, playAlert } = useSound();
+  const isTimed = Boolean(state.isTimedMode);
+  const hasAegisHullMatrix = state.equippedTacticalItem === 'aegis-hull-matrix';
+  const hasChronoStabilizer = state.equippedTacticalItem === 'chrono-stabilizer';
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const [hull, setHull] = useState<number>(100);
+  const [hull, setHull] = useState<number>(() => (hasAegisHullMatrix ? 135 : 100));
   const [score, setScore] = useState<number>(0);
-  const [timeRemaining, setTimeRemaining] = useState<number>(40);
+  const [timeRemaining, setTimeRemaining] = useState<number>(() => (isTimed ? 30 : 40) + (hasChronoStabilizer ? 10 : 0));
   const [diamondsHarvested, setDiamondsHarvested] = useState<number>(0);
   const [combo, setCombo] = useState<number>(1);
 
-  const hullRef = useRef<number>(100);
+  const hullRef = useRef<number>(hasAegisHullMatrix ? 135 : 100);
   const scoreRef = useRef<number>(0);
   const diamondsRef = useRef<number>(0);
   const comboRef = useRef<number>(1);
@@ -119,9 +122,10 @@ export default function UranusDiamondHarvester() {
     isGameOverRef.current = true;
 
     const finalHull = hullRef.current;
-    const finalScore = victory
+    const baseScore = victory
       ? scoreRef.current + diamondsRef.current * 200 + finalHull * 25 + 2600
       : scoreRef.current;
+    const finalScore = isTimed && victory ? Math.round(baseScore * 1.5) : baseScore;
 
     setTimeout(() => {
       dispatch({
@@ -130,11 +134,11 @@ export default function UranusDiamondHarvester() {
         score: Math.max(300, finalScore),
         solsCompleted: 30,
         summaryLog: victory
-          ? `Uranus Mantle Descent successful! Harvested ${diamondsRef.current} crystalline methane diamonds with ${finalHull}% tungsten scoop integrity. Earned ${finalScore} PTS.`
+          ? `Uranus Mantle Descent successful! Harvested ${diamondsRef.current} crystalline methane diamonds with ${finalHull}% tungsten scoop integrity${isTimed ? ' (Blitz 1.5x Multiplier Applied)' : ''}. Earned ${finalScore} PTS.`
           : `Tungsten scoop crushed by 98-degree magnetosphere lightning discharge in Uranus's lower mantle.`,
       });
     }, 600);
-  }, [dispatch]);
+  }, [dispatch, isTimed]);
 
   // Mouse / Touch Steering
   const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
@@ -492,12 +496,23 @@ export default function UranusDiamondHarvester() {
 
         {/* Harvest Gauges */}
         <div className="flex items-center gap-2 sm:gap-4">
-          <div className="px-3 py-1.5 rounded-xl bg-black/60 border border-cyan-500/30 text-center">
-            <span className="text-[9px] uppercase tracking-wider text-cyan-300 block">Descent Clock</span>
-            <span className={`text-xl font-black tabular-nums ${timeRemaining <= 5 ? 'text-rose-400 animate-pulse' : 'text-cyan-400'}`}>
-              {timeRemaining}s
-            </span>
-          </div>
+          {isTimed && (
+            <div className="px-2.5 py-1.5 rounded-xl bg-rose-950/80 border border-rose-500/50 text-center animate-pulse">
+              <span className="text-[9px] uppercase tracking-wider text-rose-300 block">Blitz Clock</span>
+              <span className="text-xl font-black text-rose-400 tabular-nums">
+                {timeRemaining}s
+              </span>
+            </div>
+          )}
+
+          {!isTimed && (
+            <div className="px-3 py-1.5 rounded-xl bg-black/60 border border-cyan-500/30 text-center">
+              <span className="text-[9px] uppercase tracking-wider text-cyan-300 block">Descent Clock</span>
+              <span className={`text-xl font-black tabular-nums ${timeRemaining <= 5 ? 'text-rose-400 animate-pulse' : 'text-cyan-400'}`}>
+                {timeRemaining}s
+              </span>
+            </div>
+          )}
 
           <div className="px-3 py-1.5 rounded-xl bg-black/60 border border-amber-500/30 text-center">
             <span className="text-[9px] uppercase tracking-wider text-amber-300 block">Diamonds Caught</span>

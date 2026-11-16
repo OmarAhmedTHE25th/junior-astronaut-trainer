@@ -44,11 +44,13 @@ const BOSS_INTENTS: BossIntent[] = [
 ];
 
 export default function PlanetXAnomalyBoss() {
-  const { dispatch } = useGame();
+  const { state, dispatch } = useGame();
   const { playSuccess, playAlert } = useSound();
+  const isTimed = Boolean(state.isTimedMode);
+  const hasAegisHullMatrix = state.equippedTacticalItem === 'aegis-hull-matrix';
 
   // Core Combat Stats
-  const [hull, setHull] = useState<number>(100);
+  const [hull, setHull] = useState<number>(() => (hasAegisHullMatrix ? 135 : 100));
   const [driveCharge, setDriveCharge] = useState<number>(0);
   const [energy, setEnergy] = useState<number>(3);
   const [turn, setTurn] = useState<number>(1);
@@ -188,13 +190,14 @@ export default function PlanetXAnomalyBoss() {
       if (newDrive >= 100) {
         // VICTORY! Alcubierre Warp Jump Initiated
         playSuccess();
-        const finalScore = newScore + newHull * 40 + 6000;
+        const baseScore = newScore + newHull * 40 + 6000;
+        const finalScore = isTimed ? Math.round(baseScore * 1.5) : baseScore;
         dispatch({
           type: 'COMPLETE_MINIGAME',
           victory: true,
           score: finalScore,
           solsCompleted: 30,
-          summaryLog: `ALCUBIERRE WARP SUCCESSFUL! Escaped Planet Nine's gravitational well at 600 AU with ${newHull}% hull intact. Earned ${finalScore} PTS!`,
+          summaryLog: `ALCUBIERRE WARP SUCCESSFUL! Escaped Planet Nine's gravitational well at 600 AU with ${newHull}% hull intact${isTimed ? ' (Blitz 1.5x Multiplier Applied)' : ''}. Earned ${finalScore} PTS!`,
         });
         return;
       }
@@ -207,6 +210,18 @@ export default function PlanetXAnomalyBoss() {
           score: newScore,
           solsCompleted: turn * 3,
           summaryLog: `Vessel crushed under Planet Nine's singularity field during Phase ${bossPhase}. Warp drive offline.`,
+        });
+        return;
+      }
+
+      if (isTimed && turn >= 4) {
+        // Blitz turn limit reached
+        dispatch({
+          type: 'COMPLETE_MINIGAME',
+          victory: false,
+          score: newScore,
+          solsCompleted: 20,
+          summaryLog: `Emergency reactor overload! 4-turn operational blitz limit reached before Alcubierre drive reached 100%.`,
         });
         return;
       }
@@ -244,6 +259,15 @@ export default function PlanetXAnomalyBoss() {
 
         {/* Combat Gauges */}
         <div className="flex items-center gap-2 sm:gap-4">
+          {isTimed && (
+            <div className="px-2.5 py-1.5 rounded-xl bg-rose-950/80 border border-rose-500/50 text-center animate-pulse">
+              <span className="text-[9px] uppercase tracking-wider text-rose-300 block">Blitz Limit</span>
+              <span className="text-xl font-black text-rose-400 tabular-nums">
+                Turn {turn}/4
+              </span>
+            </div>
+          )}
+
           <div className="px-3 py-1.5 rounded-xl bg-black/60 border border-purple-500/30 text-center">
             <span className="text-[9px] uppercase tracking-wider text-purple-300 block">Warp Charge</span>
             <span className="text-xl font-black text-purple-400 tabular-nums">
@@ -251,12 +275,14 @@ export default function PlanetXAnomalyBoss() {
             </span>
           </div>
 
-          <div className="px-3 py-1.5 rounded-xl bg-black/60 border border-amber-500/30 text-center">
-            <span className="text-[9px] uppercase tracking-wider text-amber-300 block">Turn</span>
-            <span className="text-xl font-black text-amber-400 tabular-nums">
-              {turn}
-            </span>
-          </div>
+          {!isTimed && (
+            <div className="px-3 py-1.5 rounded-xl bg-black/60 border border-amber-500/30 text-center">
+              <span className="text-[9px] uppercase tracking-wider text-amber-300 block">Turn</span>
+              <span className="text-xl font-black text-amber-400 tabular-nums">
+                {turn}
+              </span>
+            </div>
+          )}
 
           <div className="px-3 py-1.5 rounded-xl bg-black/60 border border-emerald-500/30 text-center">
             <span className="text-[9px] uppercase tracking-wider text-emerald-300 block">Score</span>

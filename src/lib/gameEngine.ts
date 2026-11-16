@@ -95,7 +95,8 @@ export function createInitialState(
     buffLevel?: number;
     name?: string;
   } | null,
-  planetId: PlanetId = 'mars'
+  planetId: PlanetId = 'mars',
+  equippedTacticalItem?: string
 ): GameState {
   const isEndless = Boolean(tournament?.tournamentId);
   const cartridge = getPlanetCartridge(planetId);
@@ -105,6 +106,15 @@ export function createInitialState(
   let startOxygen: number = INITIAL_RESOURCES.oxygen + (location?.bonusStats?.oxygen ?? 0);
   let startShielding: number = INITIAL_RESOURCES.shielding + (location?.bonusStats?.shielding ?? 0);
   let startMorale: number = INITIAL_RESOURCES.morale;
+
+  // Pre-mission universal tactical module buffs
+  if (equippedTacticalItem === 'kinetic-overcharger') {
+    startPower = Math.min(100, startPower + 15);
+  } else if (equippedTacticalItem === 'aegis-hull-matrix') {
+    startShielding = Math.min(100, startShielding + 20);
+  } else if (equippedTacticalItem === 'chrono-stabilizer') {
+    startMorale = Math.min(100, startMorale + 10);
+  }
 
   const initialPlanetMetrics: Record<string, number> = {};
   for (const m of cartridge.customMetrics) {
@@ -224,6 +234,7 @@ export function createInitialState(
     isFiveStarGeneral: battlePass?.isFiveStarGeneral,
     retriesRemaining: battlePass?.retriesRemaining ?? (battlePass?.isFiveStarGeneral ? 3 : 0),
     planetId,
+    equippedTacticalItem,
     planetMetrics: initialPlanetMetrics,
     frozenActions: [],
     isGlitchedEntropy: false,
@@ -329,6 +340,13 @@ export function calculateScore(state: GameState): number {
 
   // Difficulty multiplier
   score = Math.round(score * diff.scoreMultiplier);
+
+  // Universal Tactical Module Bonuses
+  if (state.equippedTacticalItem === 'quantum-scanner') {
+    score = Math.round(score * 1.15); // +15% Mars Research & Exploration Score
+  } else if (state.equippedTacticalItem === 'kinetic-overcharger') {
+    score = Math.round(score * 1.25); // +25% Score Multiplier
+  }
 
   return score;
 }
@@ -1727,7 +1745,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     // ── Dedicated Non-Mars Mini-Game Completion ──────────────
     case 'COMPLETE_MINIGAME': {
       const finalSol = action.solsCompleted ?? state.maxSol;
-      const finalScore = Math.max(0, action.score);
+      let finalScore = Math.max(0, action.score);
+      if (state.equippedTacticalItem === 'kinetic-overcharger') {
+        finalScore = Math.round(finalScore * 1.25);
+      }
       const isVic = Boolean(action.victory);
       const logEntry: LogEntry = {
         sol: finalSol,
@@ -1786,7 +1807,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           isFiveStarGeneral: state.isFiveStarGeneral,
           retriesRemaining: state.isFiveStarGeneral ? 3 : 0,
         },
-        state.guild
+        state.guild,
+        state.planetId || 'mars',
+        state.equippedTacticalItem
       );
     }
 

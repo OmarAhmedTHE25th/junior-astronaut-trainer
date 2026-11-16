@@ -8,7 +8,20 @@ import { useSound } from '@/lib/sound';
 import { useProfile, getOrCreateCadetProfile } from '@/lib/profile';
 import { LANDING_SITES } from '@/lib/constants';
 import { SPECIALTY_METAS } from '@/lib/types';
-import type { LandingSiteId, SquadRoom } from '@/lib/types';
+import type { LandingSiteId, SquadRoom, PlanetId } from '@/lib/types';
+import { ORDERED_PLANET_IDS, PLANET_CARTRIDGES, getPlanetCartridge } from '@/lib/planetCartridges';
+
+const PLANET_ICONS: Record<PlanetId, string> = {
+  mercury: '☿️',
+  venus: '☁️',
+  earth: '🌍',
+  mars: '🪐',
+  jupiter: '🟡',
+  saturn: '💍',
+  uranus: '💎',
+  neptune: '🌊',
+  planet_x: '🌌',
+};
 
 interface SquadRaceModalProps {
   isOpen: boolean;
@@ -29,6 +42,7 @@ export default function SquadRaceModal({ isOpen, onClose, initialJoinCode }: Squ
       : profile;
 
   const [tab, setTab] = useState<'create' | 'join'>('create');
+  const [selectedPlanet, setSelectedPlanet] = useState<PlanetId>('mars');
   const [landingZone, setLandingZone] = useState<LandingSiteId>('jezero');
   const [isTimedMode, setIsTimedMode] = useState<boolean>(false);
   const [callsign, setCallsign] = useState(activeCadet.callsign || 'CDR-NOVA-01');
@@ -77,7 +91,8 @@ export default function SquadRaceModal({ isOpen, onClose, initialJoinCode }: Squ
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
           onClose();
           const timedSuffix = data.room.isTimedMode ? '&timed=true' : '';
-          router.push(`/game?squad=${data.room.roomCode}${timedSuffix}`);
+          const planetSuffix = data.room.planetId ? `&planet=${data.room.planetId}` : '&planet=mars';
+          router.push(`/game?squad=${data.room.roomCode}${planetSuffix}${timedSuffix}`);
         }
       }
     } catch {
@@ -111,7 +126,8 @@ export default function SquadRaceModal({ isOpen, onClose, initialJoinCode }: Squ
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'CREATE',
-          landingZone,
+          landingZone: selectedPlanet === 'mars' ? landingZone : 'site_1',
+          planetId: selectedPlanet,
           isTimedMode,
           cadet: {
             cadetId: activeCadet.cadetId,
@@ -204,7 +220,8 @@ export default function SquadRaceModal({ isOpen, onClose, initialJoinCode }: Squ
         if (pollTimerRef.current) clearInterval(pollTimerRef.current);
         onClose();
         const timedSuffix = data.room.isTimedMode ? '&timed=true' : '';
-        router.push(`/game?squad=${data.room.roomCode}${timedSuffix}`);
+        const planetSuffix = data.room.planetId ? `&planet=${data.room.planetId}` : '&planet=mars';
+        router.push(`/game?squad=${data.room.roomCode}${planetSuffix}${timedSuffix}`);
       } else {
         setErrorMsg(data.error || 'Failed to start squad mission');
       }
@@ -278,10 +295,12 @@ export default function SquadRaceModal({ isOpen, onClose, initialJoinCode }: Squ
             {/* Room Telemetry Specs */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs font-mono">
               <div className="p-3 rounded-xl bg-[#0B1026]/70 border border-white/5">
-                <span className="text-[#F8FAFC]/50 block text-[10px]">LANDING ZONE:</span>
+                <span className="text-[#F8FAFC]/50 block text-[10px]">MISSION THEATER:</span>
                 <span className="text-amber-300 font-bold flex items-center gap-1.5 mt-0.5 truncate">
-                  <span>🪐</span>
-                  {LANDING_SITES[currentRoom.landingZone]?.name || 'Jezero Crater'}
+                  <span>{currentRoom.planetId ? (PLANET_ICONS[currentRoom.planetId] || '🪐') : '🪐'}</span>
+                  {currentRoom.planetId && currentRoom.planetId !== 'mars'
+                    ? `${getPlanetCartridge(currentRoom.planetId).name} Sector`
+                    : (LANDING_SITES[currentRoom.landingZone]?.name || 'Jezero Crater')}
                 </span>
               </div>
               <div className="p-3 rounded-xl bg-[#0B1026]/70 border border-white/5">
@@ -479,47 +498,112 @@ export default function SquadRaceModal({ isOpen, onClose, initialJoinCode }: Squ
             {/* CREATE TAB CONTENT */}
             {tab === 'create' && (
               <div className="space-y-4 animate-slide-up">
+                {/* 1. Planetary Mission Target Selector (All 9 Worlds) */}
                 <div>
-                  <label className="block text-xs font-mono font-bold uppercase tracking-wider text-white mb-2">
-                    Select Mars Landing Zone
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                    {(['jezero', 'gale', 'olympus'] as LandingSiteId[]).map((siteId) => {
-                      const site = LANDING_SITES[siteId];
-                      const isSelected = landingZone === siteId;
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-mono font-bold uppercase tracking-wider text-white">
+                      1. Select Planetary Target (All 9 Worlds)
+                    </label>
+                    <span className="text-[10px] font-mono text-cyan-300">
+                      {selectedPlanet === 'mars' ? 'Classic 30-Sol Survival' : 'Seeded Arcade Challenge'}
+                    </span>
+                  </div>
 
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                    {ORDERED_PLANET_IDS.map((pId) => {
+                      const cart = PLANET_CARTRIDGES[pId];
+                      const isSelected = selectedPlanet === pId;
                       return (
                         <button
-                          key={siteId}
+                          key={pId}
                           type="button"
                           onClick={() => {
                             playClick();
-                            setLandingZone(siteId);
+                            setSelectedPlanet(pId);
                           }}
                           className={`
-                            p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between min-h-[90px]
-                            ${isSelected
-                              ? 'bg-[#E87040]/15 border-[#E87040] shadow-md shadow-[#E87040]/20'
-                              : 'bg-[#1a1f3d]/70 border-white/10 hover:border-white/30'
+                            p-2 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-between min-h-[64px]
+                            ${
+                              isSelected
+                                ? 'bg-cyan-500/20 border-cyan-400 text-white shadow-md ring-1 ring-cyan-400/50'
+                                : 'bg-[#1a1f3d]/70 border-white/10 hover:border-white/30 text-starlight/70'
                             }
                           `}
                         >
-                          <div>
-                            <span className="text-xs font-bold text-white block">
-                              {site.name}
-                            </span>
-                            <span className="text-[10px] text-white/50 block mt-0.5 font-mono">
-                              {site.elevation}
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-[#E87040] font-medium mt-1">
-                            {site.perksSummary}
+                          <span className="text-xl">{PLANET_ICONS[pId] || '🪐'}</span>
+                          <span className="text-[11px] font-bold block truncate max-w-full">
+                            {cart.name}
+                          </span>
+                          <span className="text-[8px] font-mono text-white/50 uppercase">
+                            {pId === 'mars' ? 'Survival' : 'Arcade'}
                           </span>
                         </button>
                       );
                     })}
                   </div>
                 </div>
+
+                {/* 2. Mars Landing Zone OR Planetary Arcade Briefing */}
+                {selectedPlanet === 'mars' ? (
+                  <div>
+                    <label className="block text-xs font-mono font-bold uppercase tracking-wider text-white mb-2">
+                      2. Select Mars Landing Zone
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      {(['jezero', 'gale', 'olympus'] as LandingSiteId[]).map((siteId) => {
+                        const site = LANDING_SITES[siteId];
+                        const isSelected = landingZone === siteId;
+
+                        return (
+                          <button
+                            key={siteId}
+                            type="button"
+                            onClick={() => {
+                              playClick();
+                              setLandingZone(siteId);
+                            }}
+                            className={`
+                              p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between min-h-[90px]
+                              ${isSelected
+                                ? 'bg-[#E87040]/15 border-[#E87040] shadow-md shadow-[#E87040]/20'
+                                : 'bg-[#1a1f3d]/70 border-white/10 hover:border-white/30'
+                              }
+                            `}
+                          >
+                            <div>
+                              <span className="text-xs font-bold text-white block">
+                                {site.name}
+                              </span>
+                              <span className="text-[10px] text-white/50 block mt-0.5 font-mono">
+                                {site.elevation}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-[#E87040] font-medium mt-1">
+                              {site.perksSummary}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3.5 rounded-2xl bg-cyan-950/40 border border-cyan-500/30 flex items-start gap-3">
+                    <span className="text-2xl shrink-0">{PLANET_ICONS[selectedPlanet] || '🪐'}</span>
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-heading font-black text-cyan-200 uppercase tracking-wide">
+                          {PLANET_CARTRIDGES[selectedPlanet].name} Squad Arcade Gauntlet
+                        </span>
+                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-400/20 text-cyan-300 border border-cyan-400/30">
+                          {PLANET_CARTRIDGES[selectedPlanet].tagline || 'Arcade Mini-Game'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-starlight/80 leading-relaxed font-sans">
+                        All squad members will launch into the identical seeded challenge. Highest final score wins the squad championship!
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Squad Crisis Protocol Mode Selector */}
                 <div>

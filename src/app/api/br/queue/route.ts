@@ -4,7 +4,7 @@ import { createOrQueueBRMatch } from '@/lib/battleRoyale';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { playerId, username, avatar, equippedPetId, activeBoosts } = body;
+    const { playerId, username, avatar, equippedPetId, activeBoosts, arenaTheme } = body;
 
     if (!playerId) {
       return NextResponse.json({ success: false, error: 'playerId is required' }, { status: 400 });
@@ -16,6 +16,7 @@ export async function POST(request: Request) {
       avatar: avatar || '👨‍🚀',
       equippedPetId,
       activeBoosts: activeBoosts || [],
+      arenaTheme: arenaTheme || 'mars',
     });
 
     return NextResponse.json({ success: true, match });

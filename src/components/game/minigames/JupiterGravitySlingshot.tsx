@@ -22,18 +22,20 @@ interface Particle {
 }
 
 export default function JupiterGravitySlingshot() {
-  const { dispatch } = useGame();
+  const { state, dispatch } = useGame();
   const { playSuccess, playAlert } = useSound();
+  const isTimed = Boolean(state.isTimedMode);
+  const hasAegisHullMatrix = state.equippedTacticalItem === 'aegis-hull-matrix';
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const [shield, setShield] = useState<number>(100);
+  const [shield, setShield] = useState<number>(() => (hasAegisHullMatrix ? 135 : 100));
   const [score, setScore] = useState<number>(0);
   const [passCount, setPassCount] = useState<number>(1);
   const [perijoveDist, setPerijoveDist] = useState<number>(4200); // km above clouds
   const [scienceCollected, setScienceCollected] = useState<number>(0);
 
-  const shieldRef = useRef<number>(100);
+  const shieldRef = useRef<number>(hasAegisHullMatrix ? 135 : 100);
   const scoreRef = useRef<number>(0);
   const passCountRef = useRef<number>(1);
   const isGameOverRef = useRef<boolean>(false);
@@ -49,7 +51,7 @@ export default function JupiterGravitySlingshot() {
     angle: 0,
     radius: 120,
     baseRadius: 120,
-    angularVelocity: 0.032,
+    angularVelocity: isTimed ? 0.046 : 0.032,
     eccentricity: 0.25,
   });
 
@@ -137,9 +139,10 @@ export default function JupiterGravitySlingshot() {
     isGameOverRef.current = true;
 
     const finalShield = shieldRef.current;
-    const finalScore = victory
+    const baseScore = victory
       ? scoreRef.current + finalShield * 30 + 2500
       : scoreRef.current;
+    const finalScore = isTimed && victory ? Math.round(baseScore * 1.5) : baseScore;
 
     setTimeout(() => {
       dispatch({
@@ -148,11 +151,11 @@ export default function JupiterGravitySlingshot() {
         score: Math.max(300, finalScore),
         solsCompleted: 30,
         summaryLog: victory
-          ? `Juno-style gravity assist complete! 5 perijove passes survived with ${finalShield}% radiation shielding intact. Earned ${finalScore} PTS.`
+          ? `Juno-style gravity assist complete! 5 perijove passes survived with ${finalShield}% radiation shielding intact${isTimed ? ' (Blitz 1.5x Multiplier Applied)' : ''}. Earned ${finalScore} PTS.`
           : `Probe titanium radiation vault breached during Jovian magnetosphere perijove pass. Telemetry lost.`,
       });
     }, 600);
-  }, [dispatch]);
+  }, [dispatch, isTimed]);
 
   // Click / Space perijove burn: toggles between high altitude & tight low perijove skim
   const handleThrusterBurn = useCallback(() => {
@@ -472,6 +475,15 @@ export default function JupiterGravitySlingshot() {
 
         {/* Orbit Gauges */}
         <div className="flex items-center gap-2 sm:gap-4">
+          {isTimed && (
+            <div className="px-2.5 py-1.5 rounded-xl bg-rose-950/80 border border-rose-500/50 text-center animate-pulse">
+              <span className="text-[9px] uppercase tracking-wider text-rose-300 block">Blitz Mode</span>
+              <span className="text-sm font-black text-rose-400">
+                1.4x SPEED
+              </span>
+            </div>
+          )}
+
           <div className="px-3 py-1.5 rounded-xl bg-black/60 border border-amber-500/30 text-center">
             <span className="text-[9px] uppercase tracking-wider text-amber-300 block">Perijove Pass</span>
             <span className="text-xl font-black text-amber-400 tabular-nums">

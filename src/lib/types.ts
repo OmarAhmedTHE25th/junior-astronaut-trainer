@@ -185,6 +185,8 @@ export interface GameState {
   hasUsedSponsorRation?: boolean;
   /** Active planetary cartridge */
   planetId?: PlanetId;
+  /** Slotted pre-mission universal tactical module (e.g. kinetic-overcharger, quantum-scanner, aegis-hull-matrix, chrono-stabilizer) */
+  equippedTacticalItem?: string;
   /** Custom dynamic planetary metrics for slots 3 & 4 (e.g. altitude, coreTemp, radLoad, etc.) */
   planetMetrics?: Record<string, number>;
   /** Frozen action IDs (e.g. Uranus cryo-hydraulics freeze mechanic) */
@@ -451,6 +453,7 @@ export interface SquadRoom {
   cadets: SquadCadetState[];
   createdAt: string;
   isTimedMode?: boolean;
+  planetId?: PlanetId;
 }
 
 export * from './matchmakingTypes';

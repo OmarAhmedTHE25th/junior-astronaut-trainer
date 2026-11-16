@@ -8,6 +8,7 @@ import { useGame } from './GameProvider';
 import { useSound } from '@/lib/sound';
 import { getOrCreateCadetProfile } from '@/lib/profile';
 import { getPlanetCartridge } from '@/lib/planetCartridges';
+import { getPlanetFacts } from '@/lib/planetFacts';
 
 interface PauseMenuProps {
   isOpen: boolean;
@@ -22,6 +23,8 @@ export default function PauseMenu({ isOpen, onClose, onChangeDifficulty }: Pause
   const [activeTab, setActiveTab] = useState<'menu' | 'rules' | 'science'>('menu');
   const cartridge = getPlanetCartridge(state.planetId || 'earth');
   const dayUnit = cartridge.dayUnit || { singular: 'Sol', plural: 'Sols' };
+  const isMars = (state.planetId || 'mars') === 'mars';
+  const planetFacts = getPlanetFacts(cartridge.id);
 
   const handleRestart = () => {
     playClick();
@@ -100,12 +103,33 @@ export default function PauseMenu({ isOpen, onClose, onChangeDifficulty }: Pause
             {/* Mission Status Header */}
             <div className="bg-[#0B1026]/80 rounded-xl p-3 border border-white/10 flex items-center justify-between text-xs">
               <span className="text-[#F8FAFC]/70">
-                Current Outpost: <strong className="text-white">{cartridge.name} • {state.sol} / {state.maxSol} {dayUnit.plural.toLowerCase()}</strong>
+                Current Sector: <strong className="text-white">{cartridge.name} • {isMars ? `${state.sol} / ${state.maxSol} ${dayUnit.plural.toLowerCase()}` : 'Tactical Arcade Operation'}</strong>
               </span>
               <span className="px-2.5 py-1 rounded bg-[#6B3FA0]/30 text-[#E87040] font-mono font-bold uppercase">
-                {state.difficulty} Mode
+                {state.isTimedMode ? '⏱️ Blitz Mode' : `${state.difficulty} Mode`}
               </span>
             </div>
+
+            {/* View Planetary Science Facts Pill */}
+            {planetFacts.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  playClick();
+                  setActiveTab('science');
+                }}
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/40 hover:border-cyan-400 text-cyan-200 text-xs font-mono font-bold transition-all cursor-pointer min-h-[44px]"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xl">🛰️</span>
+                  <div className="text-left">
+                    <span className="block text-white">NASA Planetary Science Telemetry</span>
+                    <span className="text-[10px] text-cyan-300/70">{planetFacts.length} authenticated science facts for {cartridge.name}</span>
+                  </div>
+                </div>
+                <span>→</span>
+              </button>
+            )}
 
             {(state.equippedPet || state.isFiveStarGeneral) && (
               <div className="flex items-center gap-2 flex-wrap">
@@ -191,26 +215,67 @@ export default function PauseMenu({ isOpen, onClose, onChangeDifficulty }: Pause
         {/* Tab 2: Quick Rules */}
         {activeTab === 'rules' && (
           <div className="space-y-3 text-xs text-[#F8FAFC]/80 max-h-[55vh] overflow-y-auto pr-1">
-            <div className="p-3 bg-[#0B1026]/70 rounded-xl border border-white/10 space-y-1">
-              <strong className="text-white text-sm block">Survival Conditions</strong>
-              <p>Survive {state.maxSol || 30} {dayUnit.plural.toLowerCase()}. If Power ⚡, Oxygen 🫁, or Shielding 🛡️ reaches 0%, mission ends.</p>
-            </div>
-            <div className="p-3 bg-[#0B1026]/70 rounded-xl border border-white/10 space-y-1">
-              <strong className="text-white text-sm block">Natural {dayUnit.singular} Consumption</strong>
-              <p>Each {dayUnit.singular.toLowerCase()} uses Power (-8%), Oxygen (-6%), and Shielding (-3%).</p>
-            </div>
-            <div className="p-3 bg-[#0B1026]/70 rounded-xl border border-white/10 space-y-1">
-              <strong className="text-white text-sm block">Crew Morale</strong>
-              <p>Morale above 70% grants +15% efficiency to resource production. Don&apos;t neglect crew wellbeing!</p>
-            </div>
+            {isMars ? (
+              <>
+                <div className="p-3 bg-[#0B1026]/70 rounded-xl border border-white/10 space-y-1">
+                  <strong className="text-white text-sm block">Survival Conditions</strong>
+                  <p>Survive {state.maxSol || 30} {dayUnit.plural.toLowerCase()}. If Power ⚡, Oxygen 🫁, or Shielding 🛡️ reaches 0%, mission ends.</p>
+                </div>
+                <div className="p-3 bg-[#0B1026]/70 rounded-xl border border-white/10 space-y-1">
+                  <strong className="text-white text-sm block">Natural {dayUnit.singular} Consumption</strong>
+                  <p>Each {dayUnit.singular.toLowerCase()} uses Power (-8%), Oxygen (-6%), and Shielding (-3%).</p>
+                </div>
+                <div className="p-3 bg-[#0B1026]/70 rounded-xl border border-white/10 space-y-1">
+                  <strong className="text-white text-sm block">Crew Morale</strong>
+                  <p>Morale above 70% grants +15% efficiency to resource production. Don&apos;t neglect crew wellbeing!</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="p-3 bg-[#0B1026]/70 rounded-xl border border-white/10 space-y-1">
+                  <strong className="text-white text-sm block">Arcade Tactical Objective</strong>
+                  <p>{cartridge.tagline} — Complete the sector&apos;s simulation quota to unlock campaign clearance and earn Galaxy Coins.</p>
+                </div>
+                <div className="p-3 bg-[#0B1026]/70 rounded-xl border border-white/10 space-y-1">
+                  <strong className="text-amber-300 text-sm block">Signature Planetary Hazard</strong>
+                  <p>{cartridge.signatureMechanic.hazardAlert}</p>
+                </div>
+                {state.isTimedMode && (
+                  <div className="p-3 bg-rose-950/40 rounded-xl border border-rose-500/40 space-y-1">
+                    <strong className="text-rose-300 text-sm block">⏱️ Blitz Speed-Run Multiplier</strong>
+                    <p>Blitz Mode active! High-speed obstacle waves with an automatic 1.5x score multiplier on successful completion.</p>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
 
-        {/* Tab 3: NASA Science Sources */}
+        {/* Tab 3: NASA Science Sources & Authenticated Facts */}
         {activeTab === 'science' && (
           <div className="space-y-3 text-xs text-[#F8FAFC]/80 max-h-[55vh] overflow-y-auto pr-1">
-            <p className="text-[#F8FAFC]/60">
-              The mission scenarios and data models in this trainer are powered by real NASA open datasets:
+            {planetFacts.length > 0 && (
+              <div className="space-y-2 mb-3">
+                <span className="text-xs font-bold text-cyan-300 font-mono uppercase tracking-wider block">
+                  🛰️ Authenticated {cartridge.name} Planetary Telemetry
+                </span>
+                {planetFacts.map((f, idx) => (
+                  <div key={idx} className="p-3 bg-black/60 rounded-xl border border-cyan-500/30 space-y-1">
+                    <div className="flex items-center justify-between text-xs font-mono text-amber-300 font-bold">
+                      <span>{f.title}</span>
+                      <span className="text-[10px] text-starlight/60">{f.category.toUpperCase()}</span>
+                    </div>
+                    <p className="text-xs text-starlight/90 leading-relaxed font-sans">{f.fact}</p>
+                    <div className="text-[10px] font-mono text-cyan-300/70 pt-1">
+                      NASA Source: {f.nasaSource}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <p className="text-[#F8FAFC]/60 font-mono text-[11px] pt-1 border-t border-white/10">
+              NASA open scientific telemetry models driving our simulation engine:
             </p>
             <div className="p-3 bg-[#0B1026]/70 rounded-xl border border-white/10 space-y-1">
               <strong className="text-[#E87040] block">☀️ NASA DONKI</strong>

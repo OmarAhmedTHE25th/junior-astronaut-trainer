@@ -42,6 +42,7 @@ export default function GamePage() {
   const [savedRun, setSavedRun] = useState<GameState | null>(null);
   const [isResuming, setIsResuming] = useState<boolean>(false);
   const [isTimedMode, setIsTimedMode] = useState<boolean>(false);
+  const [equippedTactical, setEquippedTactical] = useState<string | null>(null);
   const [launchNonce, setLaunchNonce] = useState<number>(0);
   const [tournamentMeta, setTournamentMeta] = useState<{
     tournamentId?: string;
@@ -64,6 +65,10 @@ export default function GamePage() {
       const squadParam = params.get("squad");
       const matchParam = params.get("matchId");
       const timedParam = params.get("timed");
+      const tacticalParam = params.get("tactical");
+      if (tacticalParam) {
+        setEquippedTactical(tacticalParam);
+      }
       const tournamentIdParam = params.get("tournamentId");
       const autoLaunchParam = params.get("launch") === "true";
       const planetParam = params.get("planet") as PlanetId | null;
@@ -502,6 +507,7 @@ export default function GamePage() {
           : undefined
       }
       isTimedMode={isTimedMode}
+      equippedTacticalItem={equippedTactical || undefined}
       tournament={tournamentMeta || undefined}
     >
       <GameBoard

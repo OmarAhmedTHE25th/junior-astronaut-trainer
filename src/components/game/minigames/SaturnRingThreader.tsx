@@ -36,17 +36,21 @@ interface Particle {
 }
 
 export default function SaturnRingThreader() {
-  const { dispatch } = useGame();
+  const { state, dispatch } = useGame();
   const { playSuccess, playAlert } = useSound();
+  const isTimed = Boolean(state.isTimedMode);
+  const hasAegisHullMatrix = state.equippedTacticalItem === 'aegis-hull-matrix';
+  const hasChronoStabilizer = state.equippedTacticalItem === 'chrono-stabilizer';
+  const hasQuantumScanner = state.equippedTacticalItem === 'quantum-scanner';
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const [shield, setShield] = useState<number>(100);
+  const [shield, setShield] = useState<number>(() => (hasAegisHullMatrix ? 135 : 100));
   const [score, setScore] = useState<number>(0);
-  const [timeRemaining, setTimeRemaining] = useState<number>(45);
+  const [timeRemaining, setTimeRemaining] = useState<number>(() => (isTimed ? 30 : 45) + (hasChronoStabilizer ? 10 : 0));
   const [geysersSkimmed, setGeysersSkimmed] = useState<number>(0);
 
-  const shieldRef = useRef<number>(100);
+  const shieldRef = useRef<number>(hasAegisHullMatrix ? 135 : 100);
   const scoreRef = useRef<number>(0);
   const isGameOverRef = useRef<boolean>(false);
 
@@ -106,9 +110,10 @@ export default function SaturnRingThreader() {
     isGameOverRef.current = true;
 
     const finalShield = shieldRef.current;
-    const finalScore = victory
+    const baseScore = victory
       ? scoreRef.current + finalShield * 35 + 2800
       : scoreRef.current;
+    const finalScore = isTimed && victory ? Math.round(baseScore * 1.5) : baseScore;
 
     setTimeout(() => {
       dispatch({
@@ -117,11 +122,11 @@ export default function SaturnRingThreader() {
         score: Math.max(300, finalScore),
         solsCompleted: 30,
         summaryLog: victory
-          ? `Cassini Division transit successful! Threaded Saturn's ring-plane at 70,000 km/h with ${finalShield}% shield intact. Earned ${finalScore} PTS.`
+          ? `Cassini Division transit successful! Threaded Saturn's ring-plane at 70,000 km/h with ${finalShield}% shield intact${isTimed ? ' (Blitz 1.5x Multiplier Applied)' : ''}. Earned ${finalScore} PTS.`
           : `Probe pulverized by dense water-ice ring-plane debris during Cassini Division crossing.`,
       });
     }, 600);
-  }, [dispatch]);
+  }, [dispatch, isTimed]);
 
   // Mouse / Touch Steering
   const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
@@ -343,6 +348,17 @@ export default function SaturnRingThreader() {
           ctx.stroke();
         }
 
+        // Quantum Deep-Scan Radar Hazard Aura
+        if (hasQuantumScanner) {
+          ctx.strokeStyle = 'rgba(34, 211, 238, 0.7)';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.arc(0, 0, b.radius + 6, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
         ctx.restore();
 
         // Collision with Probe
@@ -454,12 +470,23 @@ export default function SaturnRingThreader() {
 
         {/* Transit Gauges */}
         <div className="flex items-center gap-2 sm:gap-4">
-          <div className="px-3 py-1.5 rounded-xl bg-black/60 border border-cyan-500/30 text-center">
-            <span className="text-[9px] uppercase tracking-wider text-cyan-300 block">Transit Clock</span>
-            <span className={`text-xl font-black tabular-nums ${timeRemaining <= 5 ? 'text-rose-400 animate-pulse' : 'text-cyan-400'}`}>
-              {timeRemaining}s
-            </span>
-          </div>
+          {isTimed && (
+            <div className="px-2.5 py-1.5 rounded-xl bg-rose-950/80 border border-rose-500/50 text-center animate-pulse">
+              <span className="text-[9px] uppercase tracking-wider text-rose-300 block">Blitz Clock</span>
+              <span className="text-xl font-black text-rose-400 tabular-nums">
+                {timeRemaining}s
+              </span>
+            </div>
+          )}
+
+          {!isTimed && (
+            <div className="px-3 py-1.5 rounded-xl bg-black/60 border border-cyan-500/30 text-center">
+              <span className="text-[9px] uppercase tracking-wider text-cyan-300 block">Transit Clock</span>
+              <span className={`text-xl font-black tabular-nums ${timeRemaining <= 5 ? 'text-rose-400 animate-pulse' : 'text-cyan-400'}`}>
+                {timeRemaining}s
+              </span>
+            </div>
+          )}
 
           <div className="px-3 py-1.5 rounded-xl bg-black/60 border border-amber-500/30 text-center">
             <span className="text-[9px] uppercase tracking-wider text-amber-300 block">Geysers Skimmed</span>

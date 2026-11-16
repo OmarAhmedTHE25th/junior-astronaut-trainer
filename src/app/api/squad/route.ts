@@ -62,8 +62,9 @@ export async function POST(req: NextRequest) {
         }
 
         const isTimedMode = Boolean(body.isTimedMode);
+        const planetId = body.planetId || 'mars';
 
-        const room = await createSquadRoom(roomCode, landingZone, weatherSeed, hostCadet, isTimedMode);
+        const room = await createSquadRoom(roomCode, landingZone, weatherSeed, hostCadet, isTimedMode, planetId);
         if (!room) {
           return NextResponse.json(
             { success: false, error: 'Failed to create squad room' },

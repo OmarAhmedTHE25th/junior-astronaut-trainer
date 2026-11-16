@@ -3,6 +3,8 @@
 
 export type ItemCategory = 'life_support' | 'power' | 'hull_shielding' | 'rare_tech';
 
+export type ItemScope = 'all_worlds' | 'mars_survival';
+
 export type ListingStatus = 'active' | 'sold_out' | 'cancelled' | 'expired';
 
 export interface MarketplaceItemDef {
@@ -13,6 +15,9 @@ export interface MarketplaceItemDef {
   basePrice: number;
   description: string;
   effectSummary: string;
+  scope?: ItemScope;
+  arcadeEffect?: string;
+  marsEffect?: string;
 }
 
 export interface PlayerWallet {
@@ -74,14 +79,67 @@ export interface MarketScarcityTrend {
 }
 
 export const CATALOG_ITEMS: Record<string, MarketplaceItemDef> = {
+  // ── Universal Arcade & Tactical Power-Ups [ALL WORLDS] ───────
+  'kinetic-overcharger': {
+    slug: 'kinetic-overcharger',
+    name: 'Kinetic Railgun Overcharger',
+    category: 'rare_tech',
+    icon: '💥',
+    basePrice: 95,
+    scope: 'all_worlds',
+    description: 'Electromagnetic railgun capacitor boost. Doubles projectile blast radius and grants a +25% score multiplier across all planetary mini-games (+15 Power on Mars).',
+    effectSummary: '+25% Score & Double Blast Radius / +15 Mars Power',
+    arcadeEffect: 'Double Blast Radius & +25% Score Multiplier',
+    marsEffect: '+15 Power Reserves',
+  },
+  'quantum-scanner': {
+    slug: 'quantum-scanner',
+    name: 'Quantum Deep-Scan Pulse',
+    category: 'rare_tech',
+    icon: '📡',
+    basePrice: 90,
+    scope: 'all_worlds',
+    description: 'Sub-space radar resonance array. Grants +3 extra scan sweeps on Earth, highlights ring ice & jetstream hazards on Saturn and Neptune, and boosts Mars research by +15%.',
+    effectSummary: '+3 Scans / Hazard Sensor / +15% Mars Research',
+    arcadeEffect: '+3 Scans & Hazard Detection Warning',
+    marsEffect: '+15% Research Discovery Score',
+  },
+  'aegis-hull-matrix': {
+    slug: 'aegis-hull-matrix',
+    name: 'Aegis Hull Reinforcement',
+    category: 'hull_shielding',
+    icon: '🛡️',
+    basePrice: 85,
+    scope: 'all_worlds',
+    description: 'Nanite-hardened reactive alloy plating. Provides +35% starting hull/shield buffer across all arcade mini-games (+20 Shielding on Mars).',
+    effectSummary: '+35% Mini-Game Hull / +20 Mars Shielding',
+    arcadeEffect: '+35% Initial Hull & Shield Buffer',
+    marsEffect: '+20 Shielding Integrity',
+  },
+  'chrono-stabilizer': {
+    slug: 'chrono-stabilizer',
+    name: 'Chrono-Stasis Capacitor',
+    category: 'rare_tech',
+    icon: '⏱️',
+    basePrice: 110,
+    scope: 'all_worlds',
+    description: 'Relativistic temporal buffer field. Adds +10 seconds of extra clock time to Timed Mode countdowns and arcade survival timers (+10 Morale on Mars).',
+    effectSummary: '+10s Clock Buffer / +10 Mars Morale',
+    arcadeEffect: '+10s Countdown Clock Extension',
+    marsEffect: '+10 Crew Morale',
+  },
+
+  // ── Colony Survival Consumables [MARS SURVIVAL] ───────────────
   'oxygen-canister': {
     slug: 'oxygen-canister',
     name: 'Liquid O₂ Pressure Canister',
     category: 'life_support',
     icon: '🫁',
     basePrice: 45,
+    scope: 'mars_survival',
     description: 'High-density cryogenic oxygen flask. Critical for habitat atmosphere balancing.',
     effectSummary: '+20% Oxygen Reserve',
+    marsEffect: '+20% Oxygen Reserve',
   },
   'fuel-cell': {
     slug: 'fuel-cell',
@@ -89,8 +147,10 @@ export const CATALOG_ITEMS: Record<string, MarketplaceItemDef> = {
     category: 'power',
     icon: '⚡',
     basePrice: 50,
+    scope: 'mars_survival',
     description: 'Compact fuel cell for solar array backup and night-cycle heating.',
     effectSummary: '+25% Power Reserve',
+    marsEffect: '+25% Power Reserve',
   },
   'hydroponic-rations': {
     slug: 'hydroponic-rations',
@@ -98,8 +158,10 @@ export const CATALOG_ITEMS: Record<string, MarketplaceItemDef> = {
     category: 'life_support',
     icon: '🥗',
     basePrice: 30,
+    scope: 'mars_survival',
     description: 'Nutrient-rich algae nutrient block that stabilizes crew psychological stress.',
     effectSummary: '+15% Morale Boost',
+    marsEffect: '+15% Morale Boost',
   },
   'hull-plating': {
     slug: 'hull-plating',
@@ -107,8 +169,10 @@ export const CATALOG_ITEMS: Record<string, MarketplaceItemDef> = {
     category: 'hull_shielding',
     icon: '🛡️',
     basePrice: 65,
+    scope: 'mars_survival',
     description: 'Impact-absorbing composite armor against micrometeorite collisions.',
     effectSummary: '+25% Hull Integrity',
+    marsEffect: '+25% Hull Integrity',
   },
   'rad-shielding': {
     slug: 'rad-shielding',
@@ -116,8 +180,10 @@ export const CATALOG_ITEMS: Record<string, MarketplaceItemDef> = {
     category: 'hull_shielding',
     icon: '🧲',
     basePrice: 80,
+    scope: 'mars_survival',
     description: 'Heavy hydrogenous polymer lining engineered to stop solar flare protons.',
     effectSummary: '+30% Radiation Deflection',
+    marsEffect: '+30% Radiation Deflection',
   },
   'solar-concentrator': {
     slug: 'solar-concentrator',
@@ -125,8 +191,10 @@ export const CATALOG_ITEMS: Record<string, MarketplaceItemDef> = {
     category: 'rare_tech',
     icon: '☀️',
     basePrice: 150,
+    scope: 'mars_survival',
     description: 'Precision optical lens module that doubles photovoltaic yield during dust storms.',
     effectSummary: 'Passive: +10% Solar Efficiency',
+    marsEffect: 'Passive: +10% Solar Efficiency',
   },
   'emergency-scrubber': {
     slug: 'emergency-scrubber',
@@ -134,8 +202,10 @@ export const CATALOG_ITEMS: Record<string, MarketplaceItemDef> = {
     category: 'rare_tech',
     icon: '🧪',
     basePrice: 140,
+    scope: 'mars_survival',
     description: 'Instant chemical CO₂ absorption kit for sudden life support failures.',
     effectSummary: 'Emergency: Zero O₂ depletion for 3 Sols',
+    marsEffect: 'Emergency: Zero O₂ depletion for 3 Sols',
   },
   'telemetry-decoy': {
     slug: 'telemetry-decoy',
@@ -143,8 +213,10 @@ export const CATALOG_ITEMS: Record<string, MarketplaceItemDef> = {
     category: 'rare_tech',
     icon: '📡',
     basePrice: 120,
+    scope: 'mars_survival',
     description: 'Broadband transponder spoofing rival sensor arrays in squad race heats.',
     effectSummary: 'Tactical: Jam rival telemetry pings',
+    marsEffect: 'Tactical: Jam rival telemetry pings',
   },
 };
 

@@ -18,6 +18,7 @@ import {
   getPlanetCartridge,
   type PlanetCartridge,
 } from '@/lib/planetCartridges';
+import { getPlanetFacts } from '@/lib/planetFacts';
 import {
   useProfile,
   evaluateBadges,
@@ -80,6 +81,8 @@ export default function EndScreen() {
   const finalScore = useMemo(() => calculateScore(state), [state]);
   const cartridge = useMemo(() => getPlanetCartridge(state.planetId), [state.planetId]);
   const dayUnit = cartridge.dayUnit || { singular: 'SOL', plural: 'SOLS' };
+  const isMars = (state.planetId || 'mars') === 'mars';
+  const planetFacts = useMemo(() => getPlanetFacts(state.planetId || 'mars'), [state.planetId]);
 
   const activeGuild = state.guild || (typeof window !== 'undefined' ? getStoredGuild() : null);
   const guildTag = activeGuild?.tag;
@@ -369,18 +372,24 @@ export default function EndScreen() {
             }`}
           >
             {isVictory
-              ? 'Mars Outpost Mission Complete!'
+              ? (isMars ? 'Mars Outpost Mission Complete!' : `${cartridge.name} Mission Operation Complete!`)
               : state.gameOverReason === 'timeout'
-              ? 'Mission Failure: Decision Timeout'
-              : 'Mission Depletion: Abort'}
+              ? (isMars ? 'Mission Failure: Decision Timeout' : 'Mission Failure: Blitz Timeout')
+              : (isMars ? 'Mission Depletion: Abort' : `${cartridge.name} Operation Aborted`)}
           </h2>
 
           <p className="text-sm text-[#F8FAFC]/70 mb-4">
             {isVictory
-              ? `Commander ${displayCallsign}, you successfully survived all ${state.maxSol} ${dayUnit.plural.toLowerCase()} on ${cartridge.name}!`
+              ? (isMars
+                  ? `Commander ${displayCallsign}, you successfully survived all ${state.maxSol} ${dayUnit.plural.toLowerCase()} on ${cartridge.name}!`
+                  : `Commander ${displayCallsign}, tactical mission objective on ${cartridge.name} successfully cleared with a score of ${finalScore.toLocaleString()} PTS!`)
               : state.gameOverReason === 'timeout'
-              ? `Commander ${displayCallsign}, life-support collapsed on ${dayUnit.singular} ${state.sol} after failing to commit countermeasures before the 15s timer expired.`
-              : `Commander ${displayCallsign}, your outpost sustained operations for ${state.sol} ${dayUnit.plural.toLowerCase()} before mission abort.`}
+              ? (isMars
+                  ? `Commander ${displayCallsign}, life-support collapsed on ${dayUnit.singular} ${state.sol} after failing to commit countermeasures before the 15s timer expired.`
+                  : `Commander ${displayCallsign}, tactical mission timer expired during rapid blitz operation.`)
+              : (isMars
+                  ? `Commander ${displayCallsign}, your outpost sustained operations for ${state.sol} ${dayUnit.plural.toLowerCase()} before mission abort.`
+                  : `Commander ${displayCallsign}, tactical mission aborted on ${cartridge.name}. Score: ${finalScore.toLocaleString()} PTS.`)}
           </p>
 
           {/* Stars & Score */}
@@ -552,25 +561,27 @@ export default function EndScreen() {
             </div>
           )}
 
-          {/* Telemetry Sparkline & Analytics Debrief */}
-          <div className="mb-6 text-left">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-mono font-extrabold text-[#38BDF8] uppercase tracking-wider flex items-center gap-1.5">
-                <span>📊</span> Outpost {dayUnit.singular} Telemetry Analysis
-              </span>
-              <span className="text-[10px] font-mono text-white/50">
-                {state.telemetryHistory?.length || 0} {dayUnit.plural} Logged
-              </span>
+          {/* Telemetry Sparkline & Analytics Debrief (Mars Survival Only) */}
+          {isMars && (
+            <div className="mb-6 text-left">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-mono font-extrabold text-[#38BDF8] uppercase tracking-wider flex items-center gap-1.5">
+                  <span>📊</span> Outpost {dayUnit.singular} Telemetry Analysis
+                </span>
+                <span className="text-[10px] font-mono text-white/50">
+                  {state.telemetryHistory?.length || 0} {dayUnit.plural} Logged
+                </span>
+              </div>
+              <TelemetryChart history={state.telemetryHistory ?? []} maxSol={state.maxSol} />
             </div>
-            <TelemetryChart history={state.telemetryHistory ?? []} maxSol={state.maxSol} />
-          </div>
+          )}
 
-          {/* Official Mars Outpost Completion Certificate Preview on Victory */}
+          {/* Official Outpost Completion Certificate Preview on Victory */}
           {isVictory && (
             <div className="mb-6 text-left">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-mono font-extrabold text-[#22C55E] uppercase tracking-wider flex items-center gap-1">
-                  <span>📜</span> Official Mars Outpost Certificate
+                  <span>📜</span> {isMars ? 'Official Mars Outpost Certificate' : `Official ${cartridge.name} Mission Certificate`}
                 </span>
                 <button
                   type="button"
@@ -605,7 +616,7 @@ export default function EndScreen() {
                   </div>
                   <div className="text-right">
                     <span className="text-xs font-mono font-bold text-[#22C55E] block">
-                      {dayUnit.singular} 30 VERIFIED
+                      {isMars ? `${dayUnit.singular} 30 VERIFIED` : 'MISSION VERIFIED'}
                     </span>
                     <span className="text-[10px] text-white/50">{currentDateFormatted}</span>
                   </div>
@@ -644,7 +655,9 @@ export default function EndScreen() {
 
                 {/* Body Text */}
                 <p className="text-xs text-white/80 text-center my-3 leading-relaxed max-w-md mx-auto">
-                  For outstanding courage, resource management, and scientific resilience demonstrated during the 30-{dayUnit.singular} {cartridge.name} Outpost Expedition under NASA DONKI solar event conditions.
+                  {isMars
+                    ? `For outstanding courage, resource management, and scientific resilience demonstrated during the 30-${dayUnit.singular} ${cartridge.name} Outpost Expedition under NASA DONKI solar event conditions.`
+                    : `For outstanding operational reflexes, precision tactical maneuvers, and scientific mission completion demonstrated during the ${cartridge.name} Tactical Operation.`}
                 </p>
 
                 {/* Earned Badges & Rank on Certificate */}
@@ -666,7 +679,7 @@ export default function EndScreen() {
                 {/* Seal & Verification */}
                 <div className="mt-4 pt-3 border-t border-amber-400/20 flex items-center justify-between text-[10px] text-white/40 font-mono">
                   <span>EXPEDITION ID: {activeCadet.cadetId.substring(0, 14)}</span>
-                  <span className="text-amber-300/80 font-bold">★ SEAL OF MARS BASE ALPHA ★</span>
+                  <span className="text-amber-300/80 font-bold">★ SEAL OF {cartridge.name.toUpperCase()} COMMAND ★</span>
                 </div>
               </div>
 
@@ -680,6 +693,30 @@ export default function EndScreen() {
                 >
                   <span>🖨️</span> Print / Save Certificate
                 </Button>
+              </div>
+            </div>
+          )}
+
+          {/* NASA Planetary Science Debrief Transmission Card */}
+          {planetFacts.length > 0 && (
+            <div className="mb-5 p-4 rounded-2xl bg-gradient-to-r from-[#0B132B] via-[#1C2541] to-[#0B132B] border border-cyan-500/30 text-left space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-bold text-cyan-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>🛰️</span> NASA Planetary Science Transmission // {cartridge.name.toUpperCase()}
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-200 border border-cyan-400/30">
+                  AUTHENTICATED
+                </span>
+              </div>
+              <div className="text-xs font-mono text-amber-300 font-bold">
+                📌 {planetFacts[0]?.title}
+              </div>
+              <p className="text-xs text-starlight/90 leading-relaxed font-sans">
+                {planetFacts[0]?.fact}
+              </p>
+              <div className="text-[10px] font-mono text-cyan-300/70 pt-1 flex items-center justify-between border-t border-white/5">
+                <span>NASA Telemetry: {planetFacts[0]?.nasaSource}</span>
+                <span className="text-amber-400">{'★'.repeat(planetFacts[0]?.funRating || 5)}</span>
               </div>
             </div>
           )}
@@ -737,33 +774,62 @@ export default function EndScreen() {
             </div>
           )}
 
-          {/* Outpost Telemetry Stats */}
-          <div className="grid grid-cols-2 gap-2.5 mb-6 text-xs sm:text-sm">
-            <div className="bg-[#0B1026]/70 rounded-xl p-3 border border-white/5">
-              <div className="text-[#F8FAFC]/50 text-[11px]">{dayUnit.plural} Survived</div>
-              <div className="text-lg font-extrabold text-[#F8FAFC] tabular-nums">
-                {isVictory ? state.maxSol : state.sol} / {state.maxSol}
+          {/* Outpost Telemetry Stats (Mars Survival) OR Arcade Mission Performance Grid (Other Worlds) */}
+          {isMars ? (
+            <div className="grid grid-cols-2 gap-2.5 mb-6 text-xs sm:text-sm">
+              <div className="bg-[#0B1026]/70 rounded-xl p-3 border border-white/5">
+                <div className="text-[#F8FAFC]/50 text-[11px]">{dayUnit.plural} Survived</div>
+                <div className="text-lg font-extrabold text-[#F8FAFC] tabular-nums">
+                  {isVictory ? state.maxSol : state.sol} / {state.maxSol}
+                </div>
+              </div>
+              <div className="bg-[#0B1026]/70 rounded-xl p-3 border border-white/5">
+                <div className="text-[#F8FAFC]/50 text-[11px]">Final Power</div>
+                <div className="text-lg font-extrabold text-[#E87040] tabular-nums">
+                  {state.power}%
+                </div>
+              </div>
+              <div className="bg-[#0B1026]/70 rounded-xl p-3 border border-white/5">
+                <div className="text-[#F8FAFC]/50 text-[11px]">Final Oxygen</div>
+                <div className="text-lg font-extrabold text-[#3B82F6] tabular-nums">
+                  {state.oxygen}%
+                </div>
+              </div>
+              <div className="bg-[#0B1026]/70 rounded-xl p-3 border border-white/5">
+                <div className="text-[#F8FAFC]/50 text-[11px]">Shielding</div>
+                <div className="text-lg font-extrabold text-[#22C55E] tabular-nums">
+                  {state.shielding}%
+                </div>
               </div>
             </div>
-            <div className="bg-[#0B1026]/70 rounded-xl p-3 border border-white/5">
-              <div className="text-[#F8FAFC]/50 text-[11px]">Final Power</div>
-              <div className="text-lg font-extrabold text-[#E87040] tabular-nums">
-                {state.power}%
+          ) : (
+            <div className="grid grid-cols-2 gap-2.5 mb-6 text-xs sm:text-sm font-mono">
+              <div className="bg-[#0B1026]/70 rounded-xl p-3 border border-white/5 text-left">
+                <div className="text-[#F8FAFC]/50 text-[11px]">Objective Outcome</div>
+                <div className={`text-base font-extrabold ${isVictory ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {isVictory ? 'SECTOR CLEARED' : 'OPERATION ABORTED'}
+                </div>
+              </div>
+              <div className="bg-[#0B1026]/70 rounded-xl p-3 border border-white/5 text-left">
+                <div className="text-[#F8FAFC]/50 text-[11px]">Mission Rating</div>
+                <div className="text-base font-extrabold text-amber-300">
+                  {starDisplay}
+                </div>
+              </div>
+              <div className="bg-[#0B1026]/70 rounded-xl p-3 border border-white/5 text-left">
+                <div className="text-[#F8FAFC]/50 text-[11px]">Operational Mode</div>
+                <div className="text-base font-extrabold text-cyan-300">
+                  {state.isTimedMode ? 'BLITZ 1.5x' : 'STANDARD ARCADE'}
+                </div>
+              </div>
+              <div className="bg-[#0B1026]/70 rounded-xl p-3 border border-white/5 text-left">
+                <div className="text-[#F8FAFC]/50 text-[11px]">Total Score</div>
+                <div className="text-base font-extrabold text-[#E87040] tabular-nums">
+                  {finalScore.toLocaleString()} PTS
+                </div>
               </div>
             </div>
-            <div className="bg-[#0B1026]/70 rounded-xl p-3 border border-white/5">
-              <div className="text-[#F8FAFC]/50 text-[11px]">Final Oxygen</div>
-              <div className="text-lg font-extrabold text-[#3B82F6] tabular-nums">
-                {state.oxygen}%
-              </div>
-            </div>
-            <div className="bg-[#0B1026]/70 rounded-xl p-3 border border-white/5">
-              <div className="text-[#F8FAFC]/50 text-[11px]">Shielding</div>
-              <div className="text-lg font-extrabold text-[#22C55E] tabular-nums">
-                {state.shielding}%
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Action Buttons */}
           <div className="space-y-2.5 no-print">

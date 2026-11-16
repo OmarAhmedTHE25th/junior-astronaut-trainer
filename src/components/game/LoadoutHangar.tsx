@@ -6,9 +6,11 @@ import {
   RANK_TIERS,
   PET_CATALOG,
   BOOST_CATALOG,
+  BR_ARENAS,
   type PlayerPet,
   type BoostSlug,
   type CommanderProfile,
+  type BRArenaTheme,
 } from '@/lib/battleRoyaleTypes';
 import { useSound } from '@/lib/sound';
 
@@ -18,6 +20,8 @@ interface LoadoutHangarProps {
   onSelectPet: (petId: string) => void;
   selectedBoosts: BoostSlug[];
   onToggleBoost: (boostSlug: BoostSlug) => void;
+  selectedArena?: BRArenaTheme;
+  onSelectArena?: (arena: BRArenaTheme) => void;
   onQueueBattleRoyale?: () => void;
   isQueueing?: boolean;
   standaloneMode?: boolean;
@@ -31,6 +35,8 @@ export default function LoadoutHangar({
   onSelectPet,
   selectedBoosts,
   onToggleBoost,
+  selectedArena = 'mars',
+  onSelectArena,
   onQueueBattleRoyale,
   isQueueing,
   standaloneMode = false,
@@ -244,6 +250,73 @@ export default function LoadoutHangar({
         </div>
       </div>
 
+      {/* ── PLANETARY DROP ZONE ARENA THEME (SOLAR SYSTEM BATTLE ROYALE) ── */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🪐</span>
+            <div>
+              <h3 className="font-heading font-black text-sm text-white uppercase tracking-wider">
+                Planetary Drop Zone Arena
+              </h3>
+              <p className="text-[11px] text-white/50">
+                Choose which planetary atmospheric theater your dropship deploys into
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-cyan-400/20 text-cyan-300 border border-cyan-400/30">
+            {BR_ARENAS[selectedArena]?.name}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          {(Object.keys(BR_ARENAS) as BRArenaTheme[]).map((arenaKey) => {
+            const arena = BR_ARENAS[arenaKey];
+            const isSelected = selectedArena === arenaKey;
+
+            return (
+              <button
+                key={arenaKey}
+                type="button"
+                onClick={() => {
+                  playClick();
+                  onSelectArena?.(arenaKey);
+                }}
+                className={`
+                  p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between min-h-[96px]
+                  ${
+                    isSelected
+                      ? `bg-cyan-950/60 border-cyan-400 ring-2 ring-cyan-400/40 text-white shadow-lg`
+                      : 'bg-[#111827] border-white/10 hover:border-white/20 text-slate-300'
+                  }
+                `}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-2xl">{arena.icon}</span>
+                    {isSelected && (
+                      <span className="text-[8px] font-mono font-black px-1.5 py-0.2 rounded bg-cyan-400 text-slate-950">
+                        DEPLOY
+                      </span>
+                    )}
+                  </div>
+                  <h4 className="font-heading font-bold text-xs text-white leading-tight">
+                    {arena.name}
+                  </h4>
+                  <p className="text-[9px] text-cyan-300/80 font-mono mt-0.5 truncate">
+                    {arena.subtitle}
+                  </p>
+                </div>
+
+                <div className="mt-2 pt-1 border-t border-white/10 text-[9px] font-mono text-white/50 truncate">
+                  ⚡ {arena.stormName}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* ── ACTION BUTTONS: STANDALONE MODE VS BATTLE ROYALE DROP ── */}
       {standaloneMode ? (
         <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
@@ -297,7 +370,7 @@ export default function LoadoutHangar({
           "
         >
           <span className="text-xl animate-bounce">🪂</span>
-          <span>{isQueueing ? 'Deploying Orbital Dropship...' : 'Drop into Mars Battle Royale (32-Cadet Lobby)'}</span>
+          <span>{isQueueing ? 'Deploying Orbital Dropship...' : `Drop into ${BR_ARENAS[selectedArena]?.name || 'Planetary'} Battle Royale (32-Cadet Lobby)`}</span>
         </button>
       )}
     </div>

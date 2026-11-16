@@ -9,7 +9,9 @@ import type {
   BRMatchPlayer,
   BoostSlug,
   CommanderProfile,
+  BRArenaTheme,
 } from '@/lib/battleRoyaleTypes';
+import { BR_ARENAS } from '@/lib/battleRoyaleTypes';
 import type { SabotageSlug, SabotagePaymentType } from '@/lib/sabotageTypes';
 import LoadoutHangar from './LoadoutHangar';
 import MarsDropMap from './MarsDropMap';
@@ -32,6 +34,7 @@ export default function BattleRoyaleModal({ isOpen, onClose }: BattleRoyaleModal
 
   // View mode: 'hangar' | 'match' | 'summary'
   const [viewMode, setViewMode] = useState<'hangar' | 'match' | 'summary'>('hangar');
+  const [selectedArena, setSelectedArena] = useState<BRArenaTheme>('mars');
   const [commanderProfile, setCommanderProfile] = useState<CommanderProfile | null>(null);
   const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
   const [selectedBoosts, setSelectedBoosts] = useState<BoostSlug[]>(['cryo-o2-stim', 'lead-lined-nanogel']);
@@ -93,6 +96,7 @@ export default function BattleRoyaleModal({ isOpen, onClose }: BattleRoyaleModal
           avatar: activeCadet.avatar || '👨‍🚀',
           equippedPetId: selectedPetId,
           activeBoosts: selectedBoosts,
+          arenaTheme: selectedArena,
         }),
       });
 
@@ -101,7 +105,8 @@ export default function BattleRoyaleModal({ isOpen, onClose }: BattleRoyaleModal
         playAction();
         setActiveMatch(data.match);
         setViewMode('match');
-        setEventLog('🪂 Orbital Dropship deployed! Landed in Sector [2,2] (Tharsis Plateau).');
+        const arenaMeta = BR_ARENAS[selectedArena] || BR_ARENAS.mars;
+        setEventLog(`🪂 Orbital Dropship deployed! Landed in ${arenaMeta.name} (${arenaMeta.subtitle}) Sector [2,2].`);
       } else {
         playAlert();
       }
@@ -202,13 +207,34 @@ export default function BattleRoyaleModal({ isOpen, onClose }: BattleRoyaleModal
 
   const currentPlayer = activeMatch?.players.find((p) => p.playerId === activeCadet.cadetId);
 
+  const activeArena = activeMatch?.arenaTheme ? BR_ARENAS[activeMatch.arenaTheme] : BR_ARENAS[selectedArena] || BR_ARENAS.mars;
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="🪂 DROP ZONE: OLYMPUS — MARS BATTLE ROYALE"
+      title="🪂 PLANETARY DROP ZONE — SOLAR SYSTEM BATTLE ROYALE"
     >
       <div className="space-y-4 max-h-[82vh] overflow-y-auto pr-1">
+        {/* Active Arena Header Badge */}
+        <div className="p-3 rounded-2xl bg-gradient-to-r from-slate-900 via-[#111827] to-slate-900 border border-white/10 flex items-center justify-between gap-3 text-xs font-mono">
+          <div className="flex items-center gap-2.5">
+            <span className="text-2xl">{activeArena.icon}</span>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-heading font-black text-white text-sm">{activeArena.name}</span>
+                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-cyan-400/20 text-cyan-300 border border-cyan-400/30">
+                  {activeArena.subtitle}
+                </span>
+              </div>
+              <span className="text-[10px] text-white/50 block">Hazard: {activeArena.stormHazard}</span>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold text-amber-300 uppercase shrink-0">
+            ⚡ {activeArena.stormName}
+          </span>
+        </div>
+
         {/* Event Notification Ticker */}
         {eventLog && (
           <div className="p-3 rounded-xl bg-cyan-950/40 border border-cyan-400/50 text-cyan-200 text-xs font-mono flex items-center justify-between animate-slide-up">
@@ -230,6 +256,8 @@ export default function BattleRoyaleModal({ isOpen, onClose }: BattleRoyaleModal
             onSelectPet={(id) => setSelectedPetId(id)}
             selectedBoosts={selectedBoosts}
             onToggleBoost={handleToggleBoost}
+            selectedArena={selectedArena}
+            onSelectArena={(a) => setSelectedArena(a)}
             onQueueBattleRoyale={handleQueueBR}
             isQueueing={isQueueing}
           />

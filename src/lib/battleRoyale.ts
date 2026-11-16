@@ -488,6 +488,7 @@ export async function createOrQueueBRMatch(options: {
   avatar?: string;
   equippedPetId?: string;
   activeBoosts?: BoostSlug[];
+  arenaTheme?: import('./battleRoyaleTypes').BRArenaTheme;
 }): Promise<BRMatch> {
   const matchId = `br-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   const stormCenterX = Math.floor(Math.random() * 3) + 1; // 1 to 3
@@ -576,6 +577,7 @@ export async function createOrQueueBRMatch(options: {
     createdAt: new Date().toISOString(),
     sectors,
     players,
+    arenaTheme: options.arenaTheme || 'mars',
   };
 
   const sql = await getSqlClient();
