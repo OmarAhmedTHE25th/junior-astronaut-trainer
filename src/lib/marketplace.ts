@@ -74,8 +74,11 @@ export async function ensureMarketplaceSchema(sql: NeonQueryFunction<false, fals
           CREATE TABLE IF NOT EXISTS player_wallets (
             player_id VARCHAR(64) PRIMARY KEY,
             credits_balance INT NOT NULL DEFAULT 500 CHECK (credits_balance >= 0),
+            is_five_star_general BOOLEAN NOT NULL DEFAULT FALSE,
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
           );
+
+          ALTER TABLE player_wallets ADD COLUMN IF NOT EXISTS is_five_star_general BOOLEAN NOT NULL DEFAULT FALSE;
 
           CREATE TABLE IF NOT EXISTS player_inventory (
             id VARCHAR(64) PRIMARY KEY,
@@ -133,24 +136,36 @@ export async function ensureMarketplaceSchema(sql: NeonQueryFunction<false, fals
 }
 
 /**
- * 1. Get or Initialize Player Wallet (starts with 500 Mars Credits)
+ * 1. Ensure or retrieve player wallet.
+ * Non-destructive: NEVER overwrites existing balance or VIP on conflict.
  */
-export async function getPlayerWallet(playerId: string): Promise<PlayerWallet> {
+export async function ensurePlayerWallet(playerId: string): Promise<PlayerWallet> {
   const sql = await getSqlClient();
   const now = new Date().toISOString();
 
   if (sql) {
-    const rows = await sql`
-      INSERT INTO player_wallets (player_id, credits_balance, updated_at)
-      VALUES (${playerId}, 500, NOW())
-      ON CONFLICT (player_id) DO UPDATE SET updated_at = NOW()
-      RETURNING player_id, credits_balance, updated_at;
+    // Non-destructive insert: DO NOTHING if wallet already exists
+    await sql`
+      INSERT INTO player_wallets (player_id, credits_balance, is_five_star_general, updated_at)
+      VALUES (${playerId}, 500, FALSE, NOW())
+      ON CONFLICT (player_id) DO NOTHING;
     `;
-    return {
-      playerId: rows[0].player_id,
-      creditsBalance: rows[0].credits_balance,
-      updatedAt: rows[0].updated_at,
-    };
+
+    const rows = await sql`
+      SELECT player_id, credits_balance, is_five_star_general, updated_at
+      FROM player_wallets
+      WHERE player_id = ${playerId}
+      LIMIT 1;
+    `;
+
+    if (rows && rows.length > 0) {
+      return {
+        playerId: rows[0].player_id,
+        creditsBalance: Number(rows[0].credits_balance),
+        isFiveStarGeneral: Boolean(rows[0].is_five_star_general),
+        updatedAt: rows[0].updated_at,
+      };
+    }
   }
 
   const mem = getMemoryStore();
@@ -159,10 +174,40 @@ export async function getPlayerWallet(playerId: string): Promise<PlayerWallet> {
     wallet = {
       playerId,
       creditsBalance: 500,
+      isFiveStarGeneral: false,
       updatedAt: now,
     };
     mem.wallets.set(playerId, wallet);
   }
+  return wallet;
+}
+
+export async function getPlayerWallet(playerId: string): Promise<PlayerWallet> {
+  return ensurePlayerWallet(playerId);
+}
+
+export async function setPlayerVipStatus(playerId: string, isVip: boolean): Promise<PlayerWallet> {
+  const sql = await getSqlClient();
+  if (sql) {
+    const rows = await sql`
+      INSERT INTO player_wallets (player_id, credits_balance, is_five_star_general, updated_at)
+      VALUES (${playerId}, 500, ${isVip}, NOW())
+      ON CONFLICT (player_id)
+      DO UPDATE SET is_five_star_general = ${isVip}, updated_at = NOW()
+      RETURNING player_id, credits_balance, is_five_star_general, updated_at;
+    `;
+    return {
+      playerId: rows[0].player_id,
+      creditsBalance: Number(rows[0].credits_balance),
+      isFiveStarGeneral: Boolean(rows[0].is_five_star_general),
+      updatedAt: rows[0].updated_at,
+    };
+  }
+
+  const mem = getMemoryStore();
+  const wallet = await getPlayerWallet(playerId);
+  wallet.isFiveStarGeneral = isVip;
+  wallet.updatedAt = new Date().toISOString();
   return wallet;
 }
 
@@ -827,25 +872,28 @@ export async function rewardPlayerCredits(
   playerId: string,
   credits: number
 ): Promise<{ success: boolean; newBalance: number }> {
-  if (credits <= 0) return { success: true, newBalance: 0 };
+  if (credits <= 0) {
+    const w = await ensurePlayerWallet(playerId);
+    return { success: true, newBalance: w.creditsBalance };
+  }
   const sql = await getSqlClient();
 
   if (sql) {
     const rows = await sql`
-      INSERT INTO player_wallets (player_id, credits_balance, updated_at)
-      VALUES (${playerId}, ${500 + credits}, NOW())
+      INSERT INTO player_wallets (player_id, credits_balance, is_five_star_general, updated_at)
+      VALUES (${playerId}, ${500 + credits}, FALSE, NOW())
       ON CONFLICT (player_id) DO UPDATE
       SET credits_balance = player_wallets.credits_balance + ${credits},
           updated_at = NOW()
       RETURNING credits_balance;
     `;
-    return { success: true, newBalance: rows[0].credits_balance };
+    return { success: true, newBalance: Number(rows[0].credits_balance) };
   }
 
   const mem = getMemoryStore();
   let wallet = mem.wallets.get(playerId);
   if (!wallet) {
-    wallet = { playerId, creditsBalance: 500 + credits, updatedAt: new Date().toISOString() };
+    wallet = { playerId, creditsBalance: 500 + credits, isFiveStarGeneral: false, updatedAt: new Date().toISOString() };
     mem.wallets.set(playerId, wallet);
   } else {
     wallet.creditsBalance += credits;
@@ -861,12 +909,15 @@ export async function deductPlayerCredits(
   playerId: string,
   amount: number
 ): Promise<{ success: boolean; remainingCredits: number }> {
-  if (amount <= 0) return { success: true, remainingCredits: 0 };
+  if (amount <= 0) {
+    const w = await ensurePlayerWallet(playerId);
+    return { success: true, remainingCredits: w.creditsBalance };
+  }
   const sql = await getSqlClient();
 
   if (sql) {
     // Ensure wallet exists first
-    await getPlayerWallet(playerId);
+    await ensurePlayerWallet(playerId);
 
     const rows = await sql`
       UPDATE player_wallets
@@ -880,10 +931,10 @@ export async function deductPlayerCredits(
       throw new Error(`Insufficient Galaxy Coins: required ${amount} GC`);
     }
 
-    return { success: true, remainingCredits: rows[0].credits_balance };
+    return { success: true, remainingCredits: Number(rows[0].credits_balance) };
   }
 
-  const wallet = await getPlayerWallet(playerId);
+  const wallet = await ensurePlayerWallet(playerId);
   if (wallet.creditsBalance < amount) {
     throw new Error(`Insufficient Galaxy Coins: required ${amount} GC (balance: ${wallet.creditsBalance} GC)`);
   }
@@ -1101,12 +1152,12 @@ export async function redeemPromoCode(playerId: string, rawCode: string) {
 
   if (code === 'DEVTEST26') {
     if (sql) {
-      // 1. Set 999,999 credits in Postgres
+      // 1. Set 999,999 credits and VIP in Postgres
       await sql`
-        INSERT INTO player_wallets (player_id, credits_balance, updated_at)
-        VALUES (${playerId}, 999999, NOW())
+        INSERT INTO player_wallets (player_id, credits_balance, is_five_star_general, updated_at)
+        VALUES (${playerId}, 999999, TRUE, NOW())
         ON CONFLICT (player_id)
-        DO UPDATE SET credits_balance = 999999, updated_at = NOW();
+        DO UPDATE SET credits_balance = 999999, is_five_star_general = TRUE, updated_at = NOW();
       `;
 
       // 2. Grant 999 of all catalog items
@@ -1122,6 +1173,7 @@ export async function redeemPromoCode(playerId: string, rawCode: string) {
       const mem = getMemoryStore();
       const wallet = await getPlayerWallet(playerId);
       wallet.creditsBalance = 999999;
+      wallet.isFiveStarGeneral = true;
       wallet.updatedAt = new Date().toISOString();
 
       let pInv = mem.inventory.get(playerId);

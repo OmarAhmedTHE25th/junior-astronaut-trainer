@@ -56,6 +56,14 @@ export interface PlanetLandingLocation {
   icon: string;
 }
 
+/**
+ * Format a bonus stat percentage with explicit plus/minus sign (prevents +- bugs).
+ */
+export function formatBonusStat(val: number, icon = ''): string {
+  if (!val) return '';
+  return `${val > 0 ? `+${val}` : `${val}`}%${icon}`;
+}
+
 export interface PlanetExclusiveAction {
   id: string;
   title: string;
@@ -349,8 +357,8 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
         name: 'Equatorial Graveyard Orbit',
         tagline: 'Geostationary Transfer Crossing',
         description: 'High-density junk orbit with abundant salvageable micro-electronics.',
-        perksSummary: '+20% Salvage Yield • -5% Starting Shielding',
-        bonusStats: { power: 10, oxygen: 0, shielding: -5 },
+        perksSummary: '+20% Salvage Yield • +5% Starting Shielding',
+        bonusStats: { power: 10, oxygen: 0, shielding: 5 },
         pinColor: '#10B981',
         icon: '⚙️',
       },
@@ -515,8 +523,8 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
         name: 'Ishtar Polar Vortex Shelf',
         tagline: 'High-Velocity Jetstream Harness',
         description: 'Ferocious 360 km/h super-rotation winds spin high-output drag turbines.',
-        perksSummary: '+25% Wind Power • -5% Starting Shielding',
-        bonusStats: { power: 25, oxygen: 0, shielding: -5 },
+        perksSummary: '+25% Wind Power • +5% Starting Shielding',
+        bonusStats: { power: 25, oxygen: 0, shielding: 5 },
         pinColor: '#D97706',
         icon: '🌪️',
       },
@@ -851,7 +859,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
         tagline: 'Million-Ampere Plasma Highway',
         description: 'Electromagnetic conduit connecting Io to Jupiter. Unrivaled raw power generation.',
         perksSummary: '+35% Power Generation • High Radiation Drift',
-        bonusStats: { power: 30, oxygen: -5, shielding: -5 },
+        bonusStats: { power: 30, oxygen: 0, shielding: 5 },
         pinColor: '#F59E0B',
         icon: '⚡',
       },
@@ -1016,8 +1024,8 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
         name: 'Enceladus Cryo-Plume Field',
         tagline: 'Active Geyser E-Ring Halo',
         description: 'Geysers blasting pure salty water-ice into orbit. Maximum ice harvesting yield.',
-        perksSummary: '+30% Starting Ice Cargo • -5% Shielding',
-        bonusStats: { oxygen: 15, power: 5, shielding: -5 },
+        perksSummary: '+30% Starting Ice Cargo • +5% Shielding',
+        bonusStats: { oxygen: 15, power: 5, shielding: 5 },
         pinColor: '#38BDF8',
         icon: '⛲',
       },

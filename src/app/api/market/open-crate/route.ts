@@ -13,6 +13,7 @@ import {
   getPlayerWallet,
   executeStorePurchase,
   rewardPlayerCredits,
+  deductPlayerCredits,
 } from '@/lib/marketplace';
 
 const COMMON_POOL = ['oxygen-canister', 'fuel-cell', 'hydroponic-rations'];
@@ -69,18 +70,9 @@ export async function POST(request: Request) {
         );
       }
 
-      // Deduct cost (we do a net debit or charge full and return rebate)
-      // Deduct crateCost via a purchase or direct wallet update
-      // We can deduct crateCost by debiting wallet
-      await executeStorePurchase({
-        playerId,
-        itemSlug: 'oxygen-canister', // dummy for wallet check/debit
-        quantity: 1,
-        isGrant: true,
-      });
-      // Direct debit using rewardPlayerCredits with negative amount or direct SQL
-      const debitRes = await rewardPlayerCredits(playerId, -crateCost);
-      currentWallet = { ...currentWallet, creditsBalance: debitRes.newBalance };
+      // Direct debit using deductPlayerCredits
+      const debitRes = await deductPlayerCredits(playerId, crateCost);
+      currentWallet = { ...currentWallet, creditsBalance: debitRes.remainingCredits };
     }
 
     // Apply Elite Pod instant rebate if applicable

@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { PlayerInventoryItem } from '@/lib/marketplaceTypes';
-import { getOrCreateCadetProfile } from '@/lib/profile';
+import { getOrCreateCadetProfile, getPersistentPlayerId } from '@/lib/profile';
 import { getBattlePassState, unlockFiveStarGeneral } from '@/lib/battlePass';
 
 export interface WalletCacheData {
@@ -29,12 +29,13 @@ export function getWalletCacheKey(cadetId: string): string {
   return `jat_wallet_cache_${cadetId}`;
 }
 
-export function readSynchronousWallet(cadetId: string): WalletCacheData {
+export function readSynchronousWallet(targetCadetId?: string): WalletCacheData {
   if (typeof window === 'undefined') {
     return { creditsBalance: 500, isFiveStarGeneral: false };
   }
+  const id = targetCadetId && targetCadetId !== 'cadet-nova-01' ? targetCadetId : getPersistentPlayerId();
   try {
-    const raw = localStorage.getItem(getWalletCacheKey(cadetId));
+    const raw = localStorage.getItem(getWalletCacheKey(id));
     if (raw) {
       const parsed = JSON.parse(raw);
       if (typeof parsed.creditsBalance === 'number') {
@@ -43,6 +44,26 @@ export function readSynchronousWallet(cadetId: string): WalletCacheData {
           isFiveStarGeneral: Boolean(parsed.isFiveStarGeneral),
           updatedAt: parsed.updatedAt,
         };
+      }
+    }
+  } catch {}
+
+  // Fallback scan across any existing jat_wallet_cache_* keys in localStorage
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('jat_wallet_cache_')) {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (typeof parsed.creditsBalance === 'number' && parsed.creditsBalance !== 500) {
+            return {
+              creditsBalance: parsed.creditsBalance,
+              isFiveStarGeneral: Boolean(parsed.isFiveStarGeneral),
+              updatedAt: parsed.updatedAt,
+            };
+          }
+        }
       }
     }
   } catch {}
@@ -60,9 +81,11 @@ export function readSynchronousWallet(cadetId: string): WalletCacheData {
 }
 
 export function writeSynchronousWallet(cadetId: string, data: WalletCacheData): void {
-  if (typeof window === 'undefined' || !cadetId) return;
+  if (typeof window === 'undefined') return;
+  const id = cadetId && cadetId !== 'cadet-nova-01' ? cadetId : getPersistentPlayerId();
+  if (!id) return;
   try {
-    localStorage.setItem(getWalletCacheKey(cadetId), JSON.stringify({
+    localStorage.setItem(getWalletCacheKey(id), JSON.stringify({
       creditsBalance: data.creditsBalance,
       isFiveStarGeneral: data.isFiveStarGeneral,
       updatedAt: Date.now(),
@@ -71,11 +94,11 @@ export function writeSynchronousWallet(cadetId: string, data: WalletCacheData): 
 }
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
-  // Read active cadet profile synchronously
+  // Read active cadet profile / persistent player ID synchronously
   const [cadetId, setCadetId] = useState<string>(() => {
     if (typeof window === 'undefined') return 'cadet-nova-01';
     try {
-      return getOrCreateCadetProfile().cadetId || 'cadet-nova-01';
+      return getPersistentPlayerId();
     } catch {
       return 'cadet-nova-01';
     }
@@ -91,8 +114,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   // Background silent revalidation against /api/market/wallet
   const revalidate = useCallback(async (targetId?: string) => {
-    const idToFetch = targetId || cadetId;
-    if (!idToFetch || inFlightRef.current) return;
+    const idToFetch = targetId || cadetId || (typeof window !== 'undefined' ? getPersistentPlayerId() : undefined);
+    if (!idToFetch || idToFetch === 'cadet-nova-01' || inFlightRef.current) return;
     inFlightRef.current = true;
 
     try {
@@ -101,13 +124,24 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       const data = await res.json();
       if (data.success && data.wallet) {
         const serverBalance = Number(data.wallet.creditsBalance ?? data.creditsBalance ?? 500);
+        const serverVip = Boolean(data.wallet.isFiveStarGeneral ?? data.isFiveStarGeneral);
+
         setCreditsBalance((prev) => {
           if (prev !== serverBalance) {
-            writeSynchronousWallet(idToFetch, { creditsBalance: serverBalance, isFiveStarGeneral });
+            writeSynchronousWallet(idToFetch, { creditsBalance: serverBalance, isFiveStarGeneral: serverVip || isFiveStarGeneral });
             return serverBalance;
           }
           return prev;
         });
+
+        if (serverVip && !isFiveStarGeneral) {
+          setIsFiveStarGeneral(true);
+          try {
+            unlockFiveStarGeneral();
+          } catch {}
+          writeSynchronousWallet(idToFetch, { creditsBalance: serverBalance, isFiveStarGeneral: true });
+        }
+
         if (Array.isArray(data.inventory)) {
           setInventory(data.inventory);
         }
@@ -126,15 +160,26 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     setCreditsBalance(finalBalance);
 
     let nextVip = isFiveStarGeneral;
+    const currentId = cadetId && cadetId !== 'cadet-nova-01' ? cadetId : getPersistentPlayerId();
     if (typeof isVip === 'boolean') {
       nextVip = isVip;
       setIsFiveStarGeneral(isVip);
       if (isVip) {
-        unlockFiveStarGeneral();
+        try {
+          unlockFiveStarGeneral();
+        } catch {}
+      }
+      // Persist to Neon Postgres in background
+      if (currentId && currentId !== 'cadet-nova-01') {
+        fetch('/api/market/wallet', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ playerId: currentId, isFiveStarGeneral: isVip }),
+        }).catch(() => {});
       }
     }
 
-    writeSynchronousWallet(cadetId, { creditsBalance: finalBalance, isFiveStarGeneral: nextVip });
+    writeSynchronousWallet(currentId, { creditsBalance: finalBalance, isFiveStarGeneral: nextVip });
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('jat-wallet-updated'));
@@ -143,9 +188,10 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   // Optimistic instant delta adjustment (for quick actions)
   const adjustBalanceOptimistic = useCallback((delta: number) => {
+    const currentId = cadetId && cadetId !== 'cadet-nova-01' ? cadetId : getPersistentPlayerId();
     setCreditsBalance((prev) => {
       const next = Math.max(0, prev + delta);
-      writeSynchronousWallet(cadetId, { creditsBalance: next, isFiveStarGeneral });
+      writeSynchronousWallet(currentId, { creditsBalance: next, isFiveStarGeneral });
       return next;
     });
 
@@ -158,9 +204,20 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const setVipStatus = useCallback((isVip: boolean) => {
     setIsFiveStarGeneral(isVip);
     if (isVip) {
-      unlockFiveStarGeneral();
+      try {
+        unlockFiveStarGeneral();
+      } catch {}
     }
-    writeSynchronousWallet(cadetId, { creditsBalance, isFiveStarGeneral: isVip });
+    const currentId = cadetId && cadetId !== 'cadet-nova-01' ? cadetId : getPersistentPlayerId();
+    writeSynchronousWallet(currentId, { creditsBalance, isFiveStarGeneral: isVip });
+    // Persist to Neon Postgres in background
+    if (currentId && currentId !== 'cadet-nova-01') {
+      fetch('/api/market/wallet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerId: currentId, isFiveStarGeneral: isVip }),
+      }).catch(() => {});
+    }
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('jat-wallet-updated'));
       window.dispatchEvent(new Event('jat-planet-unlocked'));

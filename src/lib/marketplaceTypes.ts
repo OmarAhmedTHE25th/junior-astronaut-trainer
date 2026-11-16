@@ -18,6 +18,7 @@ export interface MarketplaceItemDef {
 export interface PlayerWallet {
   playerId: string;
   creditsBalance: number;
+  isFiveStarGeneral?: boolean;
   updatedAt: string;
 }
 

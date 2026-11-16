@@ -47,6 +47,7 @@ export const CADET_BADGES: CadetBadge[] = [
 export const AVATAR_OPTIONS = ['🚀', '🛸', '🪐', '🛰️', '👨‍🚀', '👩‍🚀'] as const;
 
 export const PROFILE_KEY = 'jat_profile_v1';
+export const PERSISTENT_PLAYER_ID_KEY = 'jat_persistent_player_id_v1';
 
 const profileListeners = new Set<(profile: CadetProfile) => void>();
 
@@ -76,6 +77,75 @@ export function generateCadetId(): string {
   return 'cadet-' + Math.random().toString(36).substring(2, 9) + '-' + Date.now().toString(36);
 }
 
+/**
+ * Permanently get or initialize a stable player ID that persists across builds,
+ * deployments, and profile migrations. Never tied to session ID or build hash.
+ */
+export function getPersistentPlayerId(): string {
+  if (typeof window === 'undefined') {
+    return 'cadet-nova-01';
+  }
+
+  // 1. Direct check of permanent stable key
+  try {
+    const stable = localStorage.getItem(PERSISTENT_PLAYER_ID_KEY);
+    if (
+      stable &&
+      typeof stable === 'string' &&
+      stable.trim().length > 0 &&
+      stable !== 'undefined' &&
+      stable !== 'null' &&
+      stable !== 'cadet-nova-01'
+    ) {
+      return stable.trim();
+    }
+  } catch {}
+
+  // 2. Fallback to existing active profile in localStorage (e.g. CDR-NOVA-53 or stored cadetId)
+  try {
+    const rawProfile = localStorage.getItem(PROFILE_KEY);
+    if (rawProfile) {
+      const parsed = JSON.parse(rawProfile) as CadetProfile;
+      const candidateId = parsed?.cadetId || parsed?.callsign;
+      if (
+        candidateId &&
+        typeof candidateId === 'string' &&
+        candidateId.trim().length > 0 &&
+        candidateId !== 'cadet-nova-01'
+      ) {
+        const cleanId = candidateId.trim();
+        try {
+          localStorage.setItem(PERSISTENT_PLAYER_ID_KEY, cleanId);
+        } catch {}
+        return cleanId;
+      }
+    }
+  } catch {}
+
+  // 3. Fallback to existing wallet cache keys in localStorage
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('jat_wallet_cache_')) {
+        const candidateId = key.replace('jat_wallet_cache_', '').trim();
+        if (candidateId && candidateId.length > 0 && candidateId !== 'cadet-nova-01') {
+          try {
+            localStorage.setItem(PERSISTENT_PLAYER_ID_KEY, candidateId);
+          } catch {}
+          return candidateId;
+        }
+      }
+    }
+  } catch {}
+
+  // 4. Generate once and permanently lock into localStorage
+  const freshId = generateCadetId();
+  try {
+    localStorage.setItem(PERSISTENT_PLAYER_ID_KEY, freshId);
+  } catch {}
+  return freshId;
+}
+
 /** Default cadet generator (for client-side new profiles) */
 export function createDefaultProfile(
   callsignPrefix = 'CDR-NOVA',
@@ -84,9 +154,10 @@ export function createDefaultProfile(
   if (typeof window === 'undefined') {
     return DEFAULT_PROFILE;
   }
+  const persistentId = getPersistentPlayerId();
   const randNum = Math.floor(10 + Math.random() * 90);
   return {
-    cadetId: generateCadetId(),
+    cadetId: persistentId,
     callsign: `${callsignPrefix}-${randNum}`,
     avatar: '🚀',
     specialty,
@@ -133,11 +204,23 @@ export function getOrCreateCadetProfile(): CadetProfile {
     localStorage.removeItem('jat_cadet_roster_v1');
   } catch {}
 
+  const persistentId = getPersistentPlayerId();
+
   try {
     const raw = localStorage.getItem(PROFILE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as CadetProfile;
       if (parsed.cadetId && parsed.callsign) {
+        if (parsed.cadetId !== 'cadet-nova-01') {
+          try {
+            localStorage.setItem(PERSISTENT_PLAYER_ID_KEY, parsed.cadetId);
+          } catch {}
+        } else if (persistentId && persistentId !== 'cadet-nova-01') {
+          parsed.cadetId = persistentId;
+          try {
+            localStorage.setItem(PROFILE_KEY, JSON.stringify(parsed));
+          } catch {}
+        }
         return {
           ...parsed,
           specialty: parsed.specialty || 'commander',
@@ -149,6 +232,7 @@ export function getOrCreateCadetProfile(): CadetProfile {
   const defaultProfile = createDefaultProfile();
   try {
     localStorage.setItem(PROFILE_KEY, JSON.stringify(defaultProfile));
+    localStorage.setItem(PERSISTENT_PLAYER_ID_KEY, defaultProfile.cadetId);
   } catch {}
   return defaultProfile;
 }
@@ -174,6 +258,9 @@ export function saveCadetProfile(profile: CadetProfile, syncCloud = true): void 
 
   try {
     localStorage.setItem(PROFILE_KEY, JSON.stringify(sanitized));
+    if (sanitized.cadetId && sanitized.cadetId !== 'cadet-nova-01') {
+      localStorage.setItem(PERSISTENT_PLAYER_ID_KEY, sanitized.cadetId);
+    }
   } catch {}
 
   profileListeners.forEach((fn) => fn(sanitized));

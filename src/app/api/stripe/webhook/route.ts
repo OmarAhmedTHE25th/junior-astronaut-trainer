@@ -2,7 +2,7 @@
 
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { rewardPlayerCredits } from '@/lib/marketplace';
+import { rewardPlayerCredits, setPlayerVipStatus } from '@/lib/marketplace';
 
 const processedSessions = new Set<string>();
 
@@ -43,13 +43,17 @@ export async function POST(request: Request) {
       }
 
       const metadata = session.metadata || {};
-      const { playerId, mcAmount } = metadata;
+      const { playerId, mcAmount, isBattlePass } = metadata;
 
       if (playerId && mcAmount) {
         const credits = Number(mcAmount);
         if (credits > 0) {
           await rewardPlayerCredits(playerId, credits);
         }
+      }
+
+      if (playerId && isBattlePass === 'true') {
+        await setPlayerVipStatus(playerId, true);
       }
     }
 

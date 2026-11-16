@@ -130,7 +130,7 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
       const data = await res.json();
       if (data.success) {
         if (data.wallet && typeof data.wallet.creditsBalance === 'number') {
-          syncWallet(data.wallet.creditsBalance);
+          syncWallet(data.wallet.creditsBalance, data.isFiveStarGeneral ?? data.wallet.isFiveStarGeneral);
         }
         setInventory(data.inventory || []);
       }

@@ -293,10 +293,25 @@ function PlanetBriefingContent() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {cartridge.locations.map((loc) => {
                 const isSelected = selectedSite === loc.id;
-                const perks: string[] = [];
-                if (loc.bonusStats.power) perks.push(`+${loc.bonusStats.power}%⚡`);
-                if (loc.bonusStats.oxygen) perks.push(`+${loc.bonusStats.oxygen}%🫁`);
-                if (loc.bonusStats.shielding) perks.push(`+${loc.bonusStats.shielding}%🛡️`);
+                const perks: { label: string; isNegative: boolean }[] = [];
+                if (loc.bonusStats.power) {
+                  perks.push({
+                    label: `${loc.bonusStats.power > 0 ? `+${loc.bonusStats.power}` : loc.bonusStats.power}%⚡`,
+                    isNegative: loc.bonusStats.power < 0,
+                  });
+                }
+                if (loc.bonusStats.oxygen) {
+                  perks.push({
+                    label: `${loc.bonusStats.oxygen > 0 ? `+${loc.bonusStats.oxygen}` : loc.bonusStats.oxygen}%🫁`,
+                    isNegative: loc.bonusStats.oxygen < 0,
+                  });
+                }
+                if (loc.bonusStats.shielding) {
+                  perks.push({
+                    label: `${loc.bonusStats.shielding > 0 ? `+${loc.bonusStats.shielding}` : loc.bonusStats.shielding}%🛡️`,
+                    isNegative: loc.bonusStats.shielding < 0,
+                  });
+                }
 
                 return (
                   <button
@@ -335,8 +350,19 @@ function PlanetBriefingContent() {
                       </p>
                     </div>
 
-                    <div className="mt-3 pt-2 border-t border-white/10 text-[10px] font-mono text-emerald-300 font-bold">
-                      {perks.join(' • ') || 'Standard Baseline'}
+                    <div className="mt-3 pt-2 border-t border-white/10 text-[10px] font-mono font-bold flex flex-wrap items-center gap-1">
+                      {perks.length > 0 ? (
+                        perks.map((p, idx) => (
+                          <span key={idx} className="inline-flex items-center">
+                            {idx > 0 && <span className="text-white/30 mx-1">•</span>}
+                            <span className={p.isNegative ? 'text-rose-400' : 'text-emerald-300'}>
+                              {p.label}
+                            </span>
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-emerald-300/80">Standard Baseline</span>
+                      )}
                     </div>
                   </button>
                 );
