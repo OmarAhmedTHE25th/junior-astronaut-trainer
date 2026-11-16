@@ -153,7 +153,7 @@ const CompactTelemetryGauge = React.memo(function CompactTelemetryGauge({
   return (
     <div
       className={`
-        px-2 py-1 rounded-lg flex flex-col justify-center min-w-0 transition-all duration-200
+        px-2 py-1 rounded-lg flex flex-col justify-center min-w-[68px] sm:min-w-[76px] transition-all duration-200
         ${
           isGlitching
             ? 'bg-fuchsia-950/40 border border-fuchsia-500/40 ring-1 ring-fuchsia-500/40 animate-pulse'
@@ -174,7 +174,7 @@ const CompactTelemetryGauge = React.memo(function CompactTelemetryGauge({
       {/* Top row: Metric Label cleanly spanning full pill width without truncation */}
       <div className="flex items-center justify-between gap-1 leading-none mb-0.5">
         <span
-          className="text-[8px] sm:text-[8.5px] uppercase tracking-wider text-slate-400 font-bold whitespace-nowrap overflow-hidden"
+          className="text-[8.5px] sm:text-[9px] uppercase tracking-wider text-slate-300 font-bold whitespace-nowrap overflow-hidden"
           title={label}
         >
           {displayName}
@@ -183,7 +183,7 @@ const CompactTelemetryGauge = React.memo(function CompactTelemetryGauge({
 
       {/* Middle row: Icon + Percentage Value */}
       <div className="flex items-center justify-between gap-1 leading-none">
-        <span className={`text-[11px] shrink-0 select-none ${isGlitching ? 'filter invert animate-spin' : ''}`} aria-hidden="true">
+        <span className={`text-[12px] shrink-0 select-none ${isGlitching ? 'filter invert animate-spin' : ''}`} aria-hidden="true">
           {icon}
         </span>
         <span
@@ -440,35 +440,10 @@ export default function HUD({ onOpenMenu }: HUDProps) {
               </span>
             </div>
           </div>
-
-          {/* Active Companion Pet Badge with Hover Tooltip */}
-          {state.equippedPet && (
-            <div
-              className="hidden md:flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-[#141b3d]/90 border border-cyan-500/40 text-[11px] cursor-help"
-              title={`${state.equippedPet.name} (Lv.${state.equippedPet.level}) — Passive Perk: ${state.equippedPet.perkType.replace(/_/g, ' ').toUpperCase()} (+${state.equippedPet.perkValue}%)`}
-            >
-              <span>{state.equippedPet.avatar}</span>
-              <span className="text-cyan-200 font-bold truncate max-w-[90px]">{state.equippedPet.name}</span>
-              <span className="text-[9px] text-cyan-400 bg-cyan-500/20 px-1 rounded font-bold">
-                +{state.equippedPet.perkValue}%
-              </span>
-            </div>
-          )}
-
-          {/* Five-Star General Emergency Life-Support Retries */}
-          {isFiveStarGeneral && (
-            <div
-              className="hidden lg:flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-[#1e1b10] border border-amber-400/70 text-amber-300 text-[10px] font-bold"
-              title="Emergency Life-Support Overrides: Auto-restores vitals to 45% upon fatal crisis or depletion."
-            >
-              <span className="text-xs">🔄</span>
-              <span>Retries: {retriesRemaining}/3</span>
-            </div>
-          )}
         </div>
 
-        {/* Center: Compact Horizontal Telemetry Grid (5 Gauges) */}
-        <div className="grid grid-cols-5 gap-1 sm:gap-1.5 flex-1 max-w-3xl min-w-0 mx-2">
+        {/* Center: Spacious Horizontal Telemetry Grid (5 Gauges) */}
+        <div className="grid grid-cols-5 gap-1.5 sm:gap-2 flex-1 max-w-2xl min-w-0 mx-2">
           {/* Core Life-Support 1: Power */}
           <CompactTelemetryGauge
             label="Power"

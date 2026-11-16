@@ -217,7 +217,7 @@ export default function OperationsDeck() {
             🎴
           </span>
           <div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <h2 className="font-heading font-black text-xs sm:text-sm text-white tracking-wide">
                 {cartridge.dayUnit?.singular || 'Sol'} {state.sol} Tactical Operations Hand
               </h2>
@@ -225,6 +225,27 @@ export default function OperationsDeck() {
                 <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded-full bg-rose-500/25 text-rose-300 border border-rose-500/40 uppercase animate-pulse">
                   🚨 Emergency Draw
                 </span>
+              )}
+              {/* Slotted Companion Pet Badge */}
+              {pet && (
+                <div
+                  className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-cyan-950/70 border border-cyan-400/40 text-[10px] text-cyan-200 font-bold cursor-help shadow-sm"
+                  title={`${pet.name} (Lv.${pet.level}) — Passive Perk: ${pet.perkType.replace(/_/g, ' ').toUpperCase()} (+${pet.perkValue}%)`}
+                >
+                  <span className="text-xs">{pet.avatar}</span>
+                  <span className="hidden md:inline">{pet.name}</span>
+                  <span className="text-[9px] text-cyan-400 font-extrabold">+{pet.perkValue}%</span>
+                </div>
+              )}
+              {/* Five-Star General VIP Retries Badge */}
+              {Boolean(state.isFiveStarGeneral) && (
+                <div
+                  className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-950/70 border border-amber-400/50 text-[10px] text-amber-200 font-mono font-bold cursor-help shadow-sm"
+                  title="Five-Star General VIP Perk: 3 Emergency Life-Support Revives per mission"
+                >
+                  <span className="text-xs">👑</span>
+                  <span>Retries: {state.retriesRemaining ?? 3}/3</span>
+                </div>
               )}
             </div>
             <p className="text-[10px] text-starlight/60 leading-none mt-0.5 hidden sm:block">

@@ -107,6 +107,26 @@ export default function PauseMenu({ isOpen, onClose, onChangeDifficulty }: Pause
               </span>
             </div>
 
+            {(state.equippedPet || state.isFiveStarGeneral) && (
+              <div className="flex items-center gap-2 flex-wrap">
+                {state.equippedPet && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-950/60 border border-cyan-400/30 text-xs text-cyan-200">
+                    <span>{state.equippedPet.avatar}</span>
+                    <span className="font-bold">{state.equippedPet.name}</span>
+                    <span className="text-[10px] text-cyan-400 bg-cyan-500/20 px-1.5 py-0.5 rounded font-extrabold">
+                      +{state.equippedPet.perkValue}% {state.equippedPet.perkType.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                )}
+                {state.isFiveStarGeneral && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-950/60 border border-amber-400/40 text-xs text-amber-200 font-mono">
+                    <span>👑</span>
+                    <span className="font-bold">VIP Revives: {state.retriesRemaining ?? 3}/3</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Sound Toggle Button */}
             <button
               onClick={toggleSound}
