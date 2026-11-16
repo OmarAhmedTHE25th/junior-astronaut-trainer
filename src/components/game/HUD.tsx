@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
-import ProgressBar from '@/components/ui/ProgressBar';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import LiveTelemetryTicker from './LiveTelemetryTicker';
@@ -89,6 +88,135 @@ const TimedCrisisTimerWidget = React.memo(function TimedCrisisTimerWidget({
             style={{ width: `${Math.max(0, Math.min(100, (timeRemaining / 15) * 100))}%` }}
           />
         </div>
+      </div>
+    </div>
+  );
+});
+
+interface CompactTelemetryGaugeProps {
+  label: string;
+  icon: string;
+  value: number;
+  displayOverride?: string;
+  colorScheme: 'orange' | 'blue' | 'green' | 'red' | 'purple' | 'cyan';
+  isPlanetary?: boolean;
+  showWarning?: boolean;
+  isGlitching?: boolean;
+  className?: string;
+}
+
+const GAUGE_COLOR_MAP: Record<string, { bar: string; track: string }> = {
+  orange: {
+    bar: 'bg-amber-400',
+    track: 'bg-amber-950/40 border-amber-500/20',
+  },
+  blue: {
+    bar: 'bg-sky-400',
+    track: 'bg-sky-950/40 border-sky-500/20',
+  },
+  green: {
+    bar: 'bg-emerald-400',
+    track: 'bg-emerald-950/40 border-emerald-500/20',
+  },
+  red: {
+    bar: 'bg-rose-500',
+    track: 'bg-rose-950/40 border-rose-500/20',
+  },
+  purple: {
+    bar: 'bg-fuchsia-400',
+    track: 'bg-fuchsia-950/40 border-fuchsia-500/20',
+  },
+  cyan: {
+    bar: 'bg-cyan-400',
+    track: 'bg-cyan-950/40 border-cyan-500/20',
+  },
+};
+
+const CompactTelemetryGauge = React.memo(function CompactTelemetryGauge({
+  label,
+  icon,
+  value,
+  displayOverride,
+  colorScheme,
+  isPlanetary = false,
+  showWarning = true,
+  isGlitching = false,
+  className = '',
+}: CompactTelemetryGaugeProps) {
+  const clamped = Math.max(0, Math.min(100, Math.round(value)));
+  const isLow = clamped < 20 && showWarning && !isGlitching;
+  const colors = GAUGE_COLOR_MAP[colorScheme] || GAUGE_COLOR_MAP.blue;
+
+  return (
+    <div
+      className={`
+        px-2.5 py-1.5 rounded-xl flex flex-col justify-center min-w-0 transition-all duration-200
+        ${
+          isGlitching
+            ? 'bg-fuchsia-950/40 border border-fuchsia-500/40 ring-1 ring-fuchsia-500/40 animate-pulse'
+            : isLow
+            ? 'bg-rose-950/50 border border-rose-500/60 ring-1 ring-rose-500/40'
+            : isPlanetary
+            ? 'bg-[#121832]/95 border border-dashed border-amber-400/50 border-l-[3px] border-l-amber-400 shadow-[inset_0_1px_0_rgba(251,191,36,0.1)]'
+            : 'bg-[#101730]/90 border border-white/10 hover:border-white/20 shadow-sm'
+        }
+        ${className}
+      `}
+      role="meter"
+      aria-label={`${label}: ${isGlitching ? 'SCRAMBLED' : displayOverride || `${clamped}%`}`}
+      aria-valuenow={isGlitching ? 50 : clamped}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
+      {/* Header row: Label + optional micro-tag, and Value */}
+      <div className="flex items-center justify-between gap-2 min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
+          <span className={`text-xs shrink-0 select-none ${isGlitching ? 'filter invert animate-spin' : ''}`} aria-hidden="true">
+            {icon}
+          </span>
+          <span
+            className="truncate text-[10px] tracking-wider uppercase font-semibold text-[#F8FAFC]/90"
+            title={label}
+          >
+            {label}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {isPlanetary && (
+            <span
+              className="text-[7.5px] font-mono font-black text-amber-300 bg-amber-500/20 border border-amber-400/40 px-1 py-0.2 rounded uppercase tracking-tighter shrink-0 leading-tight"
+              title="Planetary Hazard"
+            >
+              <span className="hidden sm:inline">PLANETARY</span>
+              <span className="sm:hidden">PLANET</span>
+            </span>
+          )}
+          <span
+            className={`font-mono font-bold tabular-nums text-xs shrink-0 ${
+              isGlitching
+                ? 'text-fuchsia-300 tracking-widest'
+                : isLow
+                ? 'text-rose-400 font-extrabold animate-pulse'
+                : 'text-[#F8FAFC]'
+            }`}
+          >
+            {isGlitching ? '??%' : displayOverride || `${clamped}%`}
+          </span>
+        </div>
+      </div>
+
+      {/* Slim high-contrast progress bar */}
+      <div className={`h-1.5 w-full rounded-full overflow-hidden mt-1 border border-white/10 ${colors.track}`}>
+        <div
+          className={`h-full rounded-full transition-all duration-500 ease-out ${
+            isGlitching
+              ? 'bg-fuchsia-500 animate-pulse'
+              : isLow
+              ? 'bg-rose-500 animate-pulse'
+              : colors.bar
+          }`}
+          style={{ width: `${isGlitching ? 60 : clamped}%` }}
+        />
       </div>
     </div>
   );
@@ -262,12 +390,14 @@ export default function HUD({ onOpenMenu }: HUDProps) {
       </div>
 
       <header
-        className="w-full bg-[#0B1026]/95 border-b border-white/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3 z-30"
+        className="w-full bg-[#0B1026]/95 border-b border-white/10 px-4 py-2.5 flex flex-col gap-2.5 z-30"
         role="banner"
         aria-label="Mission status"
       >
-      {/* Left: Sol counter & Cadet Profile Quick View */}
-      <div className="flex items-center gap-3">
+        {/* Top Control Bar: Cadet Status & Mission Systems */}
+        <div className="w-full flex flex-wrap items-center justify-between gap-3">
+          {/* Left: Sol counter & Cadet Profile Quick View */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <span className="text-2xl" aria-hidden="true">🪐</span>
           <div className="flex flex-col">
@@ -367,194 +497,211 @@ export default function HUD({ onOpenMenu }: HUDProps) {
                 <span className="font-extrabold text-emerald-300">({rem}s)</span>
               </div>
             ))}
-      </div>
+          </div>
 
-      {/* Center: Resource bars & Planetary Custom Telemetry Gauges */}
-      <div className="flex flex-wrap items-center gap-3 sm:gap-4 flex-1 justify-center min-w-0">
-        <ProgressBar
-          value={state.power}
-          label="Power"
-          icon="⚡"
-          color="orange"
-          showWarning
-          isGlitching={isEmpJammed || state.isGlitchedEntropy}
-        />
-        <ProgressBar
-          value={state.oxygen}
-          label="Oxygen"
-          icon="🫁"
-          color="blue"
-          showWarning
-          isGlitching={isEmpJammed || state.isGlitchedEntropy}
-        />
-        {/* Custom Planetary Telemetry Metric 1 */}
-        {cartridge.customMetrics[0] && (
-          <ProgressBar
-            value={
-              cartridge.customMetrics[0].max === 100
-                ? (state.planetMetrics?.[cartridge.customMetrics[0].key] ?? cartridge.customMetrics[0].defaultValue)
-                : Math.max(0, Math.min(100, (((state.planetMetrics?.[cartridge.customMetrics[0].key] ?? cartridge.customMetrics[0].defaultValue) - cartridge.customMetrics[0].min) / (cartridge.customMetrics[0].max - cartridge.customMetrics[0].min)) * 100))
-            }
-            label={cartridge.customMetrics[0].name}
-            icon={cartridge.customMetrics[0].icon}
-            color={
-              cartridge.customMetrics[0].color.includes('purple') || cartridge.customMetrics[0].color.includes('fuchsia')
-                ? 'purple'
-                : cartridge.customMetrics[0].color.includes('rose') || cartridge.customMetrics[0].color.includes('red')
-                ? 'red'
-                : cartridge.customMetrics[0].color.includes('amber') || cartridge.customMetrics[0].color.includes('orange') || cartridge.customMetrics[0].color.includes('yellow')
-                ? 'orange'
-                : cartridge.customMetrics[0].color.includes('emerald') || cartridge.customMetrics[0].color.includes('green')
-                ? 'green'
-                : 'blue'
-            }
-            displayOverride={`${Math.round(state.planetMetrics?.[cartridge.customMetrics[0].key] ?? cartridge.customMetrics[0].defaultValue)}${cartridge.customMetrics[0].unit}`}
-            showWarning={false}
-            isGlitching={state.isGlitchedEntropy}
-          />
-        )}
-        {/* Custom Planetary Telemetry Metric 2 */}
-        {cartridge.customMetrics[1] && (
-          <ProgressBar
-            value={
-              cartridge.customMetrics[1].max === 100
-                ? (state.planetMetrics?.[cartridge.customMetrics[1].key] ?? cartridge.customMetrics[1].defaultValue)
-                : Math.max(0, Math.min(100, (((state.planetMetrics?.[cartridge.customMetrics[1].key] ?? cartridge.customMetrics[1].defaultValue) - cartridge.customMetrics[1].min) / (cartridge.customMetrics[1].max - cartridge.customMetrics[1].min)) * 100))
-            }
-            label={cartridge.customMetrics[1].name}
-            icon={cartridge.customMetrics[1].icon}
-            color={
-              cartridge.customMetrics[1].color.includes('purple') || cartridge.customMetrics[1].color.includes('fuchsia')
-                ? 'purple'
-                : cartridge.customMetrics[1].color.includes('rose') || cartridge.customMetrics[1].color.includes('red')
-                ? 'red'
-                : cartridge.customMetrics[1].color.includes('amber') || cartridge.customMetrics[1].color.includes('orange') || cartridge.customMetrics[1].color.includes('yellow')
-                ? 'orange'
-                : cartridge.customMetrics[1].color.includes('emerald') || cartridge.customMetrics[1].color.includes('green')
-                ? 'green'
-                : 'blue'
-            }
-            displayOverride={`${Math.round(state.planetMetrics?.[cartridge.customMetrics[1].key] ?? cartridge.customMetrics[1].defaultValue)}${cartridge.customMetrics[1].unit}`}
-            showWarning={false}
-            isGlitching={state.isGlitchedEntropy}
-          />
-        )}
-        <ProgressBar
-          value={state.shielding}
-          label="Shielding"
-          icon="🛡️"
-          color="green"
-          showWarning
-          isGlitching={isEmpJammed || state.isGlitchedEntropy}
-        />
-      </div>
+          {/* Right: Morale, Score, Sound & Command Menu */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            {/* Morale */}
+            <div className="flex items-center gap-1" title="Crew Morale">
+              <span className="text-lg" aria-hidden="true">
+                {state.morale >= 70 ? '😊' : state.morale >= 40 ? '😐' : '😟'}
+              </span>
+              <span className="text-sm font-semibold text-[#F8FAFC] tabular-nums">
+                {state.morale}%
+              </span>
+            </div>
 
-      {/* Right: Morale, Score, Sound & Command Menu */}
-      <div className="flex items-center gap-3">
-        {/* Morale */}
-        <div className="flex items-center gap-1" title="Crew Morale">
-          <span className="text-lg" aria-hidden="true">
-            {state.morale >= 70 ? '😊' : state.morale >= 40 ? '😐' : '😟'}
-          </span>
-          <span className="text-sm font-semibold text-[#F8FAFC] tabular-nums">
-            {state.morale}%
-          </span>
+            {/* Score */}
+            <div
+              className="flex items-center gap-1 bg-[#6B3FA0]/20 px-3 py-1 rounded-lg"
+              title="Mission Score"
+            >
+              <span className="text-lg" aria-hidden="true">⭐</span>
+              <span className="text-sm font-bold text-[#F8FAFC] tabular-nums">
+                {state.score}
+              </span>
+            </div>
+
+            {/* Emergency Sponsor Ration Button (1 use per mission) */}
+            <button
+              onClick={() => {
+                if (!state.hasUsedSponsorRation) {
+                  playClick();
+                  setIsSponsorModalOpen(true);
+                }
+              }}
+              disabled={state.hasUsedSponsorRation}
+              title={
+                state.hasUsedSponsorRation
+                  ? 'Sponsor emergency ration already consumed for this mission'
+                  : 'Emergency Sponsor Broadcast: Watch BK Orbital transmission for +20% Power, O2 & Shields'
+              }
+              className={`
+                px-2.5 py-1.5 rounded-xl border font-mono font-bold text-xs shadow-md transition-all
+                flex items-center gap-1.5 min-h-[44px]
+                ${
+                  state.hasUsedSponsorRation
+                    ? 'bg-slate-900/40 border-white/5 text-white/30 cursor-not-allowed opacity-50'
+                    : 'bg-amber-950/40 border-amber-500/50 hover:border-amber-400 text-amber-300 hover:scale-105 active:scale-95 cursor-pointer animate-pulse'
+                }
+              `}
+            >
+              <span className="text-base select-none">🍔</span>
+              <span className="hidden xl:inline">
+                {state.hasUsedSponsorRation ? 'Ration Used' : 'Emergency Ration (+20%)'}
+              </span>
+            </button>
+
+            {/* Telemetry Curves Modal Button */}
+            <button
+              onClick={() => {
+                playClick();
+                setIsTelemetryOpen(true);
+              }}
+              title="View Real-Time Telemetry & Survival Curves"
+              aria-label="View Telemetry Curves"
+              className="
+                px-3 py-2 rounded-xl bg-[#1a1f3d] border border-white/10 hover:border-cyan-400
+                text-cyan-300 font-mono font-bold text-xs shadow-md transition-all
+                hover:scale-105 active:scale-95 cursor-pointer min-h-[44px] flex items-center gap-1.5
+              "
+            >
+              <span>📊</span>
+              <span className="hidden lg:inline">Telemetry</span>
+            </button>
+
+            {/* Audio Mute/Unmute Button */}
+            <button
+              onClick={toggleSound}
+              title={isMuted ? 'Unmute synthesized sound effects' : 'Mute sound effects'}
+              aria-label={isMuted ? 'Unmute sound effects' : 'Mute sound effects'}
+              className="
+                p-2 rounded-xl bg-[#1a1f3d] border border-white/10 hover:border-[#6B3FA0]
+                transition-transform hover:scale-105 active:scale-95 cursor-pointer
+                min-h-[44px] min-w-[44px] flex items-center justify-center text-lg
+              "
+            >
+              {isMuted ? '🔇' : '🔊'}
+            </button>
+
+            {/* Pause/Command Menu Button */}
+            {onOpenMenu && (
+              <button
+                onClick={() => {
+                  playClick();
+                  onOpenMenu();
+                }}
+                title="Open Outpost Command Menu (ESC)"
+                aria-label="Open Outpost Command Menu"
+                className="
+                  px-3.5 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-700
+                  text-slate-100 font-bold text-sm border border-slate-300/25 hover:border-slate-300/50 shadow-sm
+                  hover:scale-105 active:scale-95 transition-transform cursor-pointer
+                  min-h-[44px] flex items-center gap-2
+                "
+              >
+                <span aria-hidden="true">☰</span>
+                <span className="hidden sm:inline">Menu</span>
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Score */}
-        <div
-          className="flex items-center gap-1 bg-[#6B3FA0]/20 px-3 py-1 rounded-lg"
-          title="Mission Score"
-        >
-          <span className="text-lg" aria-hidden="true">⭐</span>
-          <span className="text-sm font-bold text-[#F8FAFC] tabular-nums">
-            {state.score}
-          </span>
+        {/* Center: Compact Horizontal Telemetry Grid */}
+        <div className="w-full flex justify-center">
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-2.5 flex-1 max-w-3xl mx-4 min-w-0">
+            {/* Core Life-Support 1: Power */}
+            <CompactTelemetryGauge
+              label="Power"
+              icon="⚡"
+              value={state.power}
+              colorScheme="orange"
+              showWarning
+              isGlitching={isEmpJammed || state.isGlitchedEntropy}
+            />
+
+            {/* Core Life-Support 2: Oxygen */}
+            <CompactTelemetryGauge
+              label="Oxygen"
+              icon="🫁"
+              value={state.oxygen}
+              colorScheme="blue"
+              showWarning
+              isGlitching={isEmpJammed || state.isGlitchedEntropy}
+            />
+
+            {/* Core Life-Support 3: Shielding */}
+            <CompactTelemetryGauge
+              label="Shielding"
+              icon="🛡️"
+              value={state.shielding}
+              colorScheme="green"
+              showWarning
+              isGlitching={isEmpJammed || state.isGlitchedEntropy}
+            />
+
+            {/* Planetary Hazard Metric 1 */}
+            {cartridge.customMetrics[0] && (
+              <CompactTelemetryGauge
+                label={cartridge.customMetrics[0].name}
+                icon={cartridge.customMetrics[0].icon}
+                value={
+                  cartridge.customMetrics[0].max === 100
+                    ? (state.planetMetrics?.[cartridge.customMetrics[0].key] ?? cartridge.customMetrics[0].defaultValue)
+                    : Math.max(0, Math.min(100, (((state.planetMetrics?.[cartridge.customMetrics[0].key] ?? cartridge.customMetrics[0].defaultValue) - cartridge.customMetrics[0].min) / (cartridge.customMetrics[0].max - cartridge.customMetrics[0].min)) * 100))
+                }
+                displayOverride={`${Math.round(state.planetMetrics?.[cartridge.customMetrics[0].key] ?? cartridge.customMetrics[0].defaultValue)}${cartridge.customMetrics[0].unit}`}
+                colorScheme={
+                  cartridge.customMetrics[0].color.includes('purple') || cartridge.customMetrics[0].color.includes('fuchsia')
+                    ? 'purple'
+                    : cartridge.customMetrics[0].color.includes('rose') || cartridge.customMetrics[0].color.includes('red')
+                    ? 'red'
+                    : cartridge.customMetrics[0].color.includes('amber') || cartridge.customMetrics[0].color.includes('orange') || cartridge.customMetrics[0].color.includes('yellow')
+                    ? 'orange'
+                    : cartridge.customMetrics[0].color.includes('emerald') || cartridge.customMetrics[0].color.includes('green')
+                    ? 'green'
+                    : cartridge.customMetrics[0].color.includes('cyan')
+                    ? 'cyan'
+                    : 'blue'
+                }
+                isPlanetary
+                showWarning={false}
+                isGlitching={state.isGlitchedEntropy}
+              />
+            )}
+
+            {/* Planetary Hazard Metric 2 */}
+            {cartridge.customMetrics[1] && (
+              <CompactTelemetryGauge
+                label={cartridge.customMetrics[1].name}
+                icon={cartridge.customMetrics[1].icon}
+                value={
+                  cartridge.customMetrics[1].max === 100
+                    ? (state.planetMetrics?.[cartridge.customMetrics[1].key] ?? cartridge.customMetrics[1].defaultValue)
+                    : Math.max(0, Math.min(100, (((state.planetMetrics?.[cartridge.customMetrics[1].key] ?? cartridge.customMetrics[1].defaultValue) - cartridge.customMetrics[1].min) / (cartridge.customMetrics[1].max - cartridge.customMetrics[1].min)) * 100))
+                }
+                displayOverride={`${Math.round(state.planetMetrics?.[cartridge.customMetrics[1].key] ?? cartridge.customMetrics[1].defaultValue)}${cartridge.customMetrics[1].unit}`}
+                colorScheme={
+                  cartridge.customMetrics[1].color.includes('purple') || cartridge.customMetrics[1].color.includes('fuchsia')
+                    ? 'purple'
+                    : cartridge.customMetrics[1].color.includes('rose') || cartridge.customMetrics[1].color.includes('red')
+                    ? 'red'
+                    : cartridge.customMetrics[1].color.includes('amber') || cartridge.customMetrics[1].color.includes('orange') || cartridge.customMetrics[1].color.includes('yellow')
+                    ? 'orange'
+                    : cartridge.customMetrics[1].color.includes('emerald') || cartridge.customMetrics[1].color.includes('green')
+                    ? 'green'
+                    : cartridge.customMetrics[1].color.includes('cyan')
+                    ? 'cyan'
+                    : 'blue'
+                }
+                isPlanetary
+                showWarning={false}
+                isGlitching={state.isGlitchedEntropy}
+                className="col-span-2 sm:col-span-1"
+              />
+            )}
+          </div>
         </div>
-
-        {/* Emergency Sponsor Ration Button (1 use per mission) */}
-        <button
-          onClick={() => {
-            if (!state.hasUsedSponsorRation) {
-              playClick();
-              setIsSponsorModalOpen(true);
-            }
-          }}
-          disabled={state.hasUsedSponsorRation}
-          title={
-            state.hasUsedSponsorRation
-              ? 'Sponsor emergency ration already consumed for this mission'
-              : 'Emergency Sponsor Broadcast: Watch BK Orbital transmission for +20% Power, O2 & Shields'
-          }
-          className={`
-            px-2.5 py-1.5 rounded-xl border font-mono font-bold text-xs shadow-md transition-all
-            flex items-center gap-1.5 min-h-[44px]
-            ${
-              state.hasUsedSponsorRation
-                ? 'bg-slate-900/40 border-white/5 text-white/30 cursor-not-allowed opacity-50'
-                : 'bg-amber-950/40 border-amber-500/50 hover:border-amber-400 text-amber-300 hover:scale-105 active:scale-95 cursor-pointer animate-pulse'
-            }
-          `}
-        >
-          <span className="text-base select-none">🍔</span>
-          <span className="hidden xl:inline">
-            {state.hasUsedSponsorRation ? 'Ration Used' : 'Emergency Ration (+20%)'}
-          </span>
-        </button>
-
-        {/* Telemetry Curves Modal Button */}
-        <button
-          onClick={() => {
-            playClick();
-            setIsTelemetryOpen(true);
-          }}
-          title="View Real-Time Telemetry & Survival Curves"
-          aria-label="View Telemetry Curves"
-          className="
-            px-3 py-2 rounded-xl bg-[#1a1f3d] border border-white/10 hover:border-cyan-400
-            text-cyan-300 font-mono font-bold text-xs shadow-md transition-all
-            hover:scale-105 active:scale-95 cursor-pointer min-h-[44px] flex items-center gap-1.5
-          "
-        >
-          <span>📊</span>
-          <span className="hidden lg:inline">Telemetry</span>
-        </button>
-
-        {/* Audio Mute/Unmute Button */}
-        <button
-          onClick={toggleSound}
-          title={isMuted ? 'Unmute synthesized sound effects' : 'Mute sound effects'}
-          aria-label={isMuted ? 'Unmute sound effects' : 'Mute sound effects'}
-          className="
-            p-2 rounded-xl bg-[#1a1f3d] border border-white/10 hover:border-[#6B3FA0]
-            transition-transform hover:scale-105 active:scale-95 cursor-pointer
-            min-h-[44px] min-w-[44px] flex items-center justify-center text-lg
-          "
-        >
-          {isMuted ? '🔇' : '🔊'}
-        </button>
-
-        {/* Pause/Command Menu Button */}
-        {onOpenMenu && (
-          <button
-            onClick={() => {
-              playClick();
-              onOpenMenu();
-            }}
-            title="Open Outpost Command Menu (ESC)"
-            aria-label="Open Outpost Command Menu"
-            className="
-              px-3.5 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-700
-              text-slate-100 font-bold text-sm border border-slate-300/25 hover:border-slate-300/50 shadow-sm
-              hover:scale-105 active:scale-95 transition-transform cursor-pointer
-              min-h-[44px] flex items-center gap-2
-            "
-          >
-            <span aria-hidden="true">☰</span>
-            <span className="hidden sm:inline">Menu</span>
-          </button>
-        )}
-      </div>
     </header>
 
     {/* Live Squad Standings Bar (Active during Squad Race) */}
