@@ -110,8 +110,6 @@ export default function OperationsDeck() {
   const { playClick, playAction, playAlert, playSuccess } = useSound();
   const { profile } = useProfile();
   const [isSupplyDrawerOpen, setIsSupplyDrawerOpen] = useState(false);
-  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
-
   const isDisabled = state.phase !== 'action';
   const commandOverrides = state.commandOverrides ?? 1;
   const pet = state.equippedPet;
@@ -351,15 +349,15 @@ export default function OperationsDeck() {
       </div>
 
       {/* ── 2. DECK HEADER WITH CRISIS ALERT & RE-ROLL CTA ── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#141b3d]/90 border border-white/10 shadow-lg">
-        <div className="flex items-center gap-2.5">
-          <span className="text-2xl p-1.5 rounded-xl bg-cyan-500/20 border border-cyan-400/30">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 p-3 rounded-xl bg-[#141b3d]/90 border border-white/10 shadow-lg">
+        <div className="flex items-center gap-2">
+          <span className="text-xl p-1.5 rounded-xl bg-cyan-500/20 border border-cyan-400/30">
             🎴
           </span>
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-heading font-black text-sm sm:text-base text-white tracking-wide">
-                Sol {state.sol} Tactical Operations Hand
+                {cartridge.dayUnit?.singular || 'Sol'} {state.sol} Tactical Operations Hand
               </h2>
               {state.hasEmergencyDraw && (
                 <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-rose-500/25 text-rose-300 border border-rose-500/40 uppercase animate-pulse">
@@ -379,7 +377,7 @@ export default function OperationsDeck() {
           onClick={handleCommandOverride}
           disabled={isDisabled || commandOverrides <= 0}
           className={`
-            px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer
+            px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer
             ${
               commandOverrides > 0 && !isDisabled
                 ? 'bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-extrabold hover:scale-105 active:scale-95 border border-cyan-200'
@@ -388,8 +386,8 @@ export default function OperationsDeck() {
           `}
           title={
             commandOverrides > 0
-              ? `Re-roll operations deck (${commandOverrides} available). Next re-roll granted in ${5 - (state.sol % 5 || 5)} sols.`
-              : `No overrides remaining. Next override unlocked at Sol ${state.sol + (5 - (state.sol % 5 || 5))}.`
+              ? `Re-roll operations deck (${commandOverrides} available). Next re-roll granted in ${5 - (state.sol % 5 || 5)} ${cartridge.dayUnit?.plural.toLowerCase() || 'sols'}.`
+              : `No overrides remaining. Next override unlocked at ${cartridge.dayUnit?.singular || 'Sol'} ${state.sol + (5 - (state.sol % 5 || 5))}.`
           }
         >
           <span className={commandOverrides > 0 ? 'animate-spin-slow' : ''}>🔄</span>
@@ -401,10 +399,9 @@ export default function OperationsDeck() {
       </div>
 
       {/* ── 3. 5-CARD TACTICAL HAND GRID ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3.5 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2.5 items-stretch">
         {activeCards.map((card) => {
           const theme = CATEGORY_THEMES[card.category];
-          const isExpanded = Boolean(expandedCards[card.id]);
 
           // Format costs
           const costItems = Object.entries(card.resourceCosts)
@@ -418,7 +415,7 @@ export default function OperationsDeck() {
                   : k === 'shielding'
                   ? '🛡️'
                   : '💪';
-              return `-${v} ${icon}`;
+              return `-${v}${icon}`;
             });
 
           // Format yields
@@ -434,8 +431,8 @@ export default function OperationsDeck() {
                   ? '🛡️'
                   : k === 'morale'
                   ? '💪'
-                  : '⭐';
-              return `+${v} ${icon}`;
+                  : '★';
+              return `+${v}${icon}`;
             });
 
           return (
@@ -444,171 +441,90 @@ export default function OperationsDeck() {
               type="button"
               onClick={() => handleExecuteOperation(card)}
               disabled={isDisabled}
+              title={card.description}
               className={`
-                group relative flex flex-col justify-between p-4 rounded-2xl
+                group relative flex flex-col justify-between p-3 rounded-xl
                 ${theme.bg} border ${theme.border}
                 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200
-                shadow-xl text-left cursor-pointer h-auto min-h-[290px]
+                shadow-lg text-left cursor-pointer h-full min-h-[185px]
                 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100
               `}
             >
               {/* Top Meta: Category & Cooldown */}
-              <div className="w-full space-y-2">
-                <div className="flex items-center justify-between gap-1 text-[10px]">
+              <div className="w-full space-y-1.5">
+                <div className="flex items-center justify-between gap-1 text-[9px]">
                   <span
-                    className={`px-2 py-0.5 rounded-full font-bold border uppercase tracking-wider ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder}`}
+                    className={`px-1.5 py-0.2 rounded-full font-bold border uppercase tracking-wider ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder}`}
                   >
                     {theme.tagLabel}
                   </span>
-                  <span className="text-[10px] text-white/50 font-mono whitespace-nowrap shrink-0">
+                  <span className="text-[9px] text-white/50 font-mono whitespace-nowrap shrink-0">
                     ⏳ {card.cooldownSols}s CD
                   </span>
                 </div>
 
                 {/* Title & Icon */}
-                <div className="flex items-start gap-2 pt-1">
-                  <span className="text-2xl select-none group-hover:scale-110 transition-transform">
+                <div className="flex items-center gap-1.5 pt-0.5">
+                  <span className="text-xl select-none group-hover:scale-110 transition-transform">
                     {card.icon}
                   </span>
-                  <div>
-                    <h3 className={`font-heading font-black text-sm leading-tight transition-colors ${theme.titleColor}`}>
-                      {card.title}
-                    </h3>
-                  </div>
+                  <h3 className={`font-heading font-black text-xs leading-snug line-clamp-1 transition-colors ${theme.titleColor}`}>
+                    {card.title}
+                  </h3>
                 </div>
 
-                {/* Description */}
+                {/* Description (Clamped to 2 lines, full text in title tooltip) */}
                 <p
-                  className={`text-[11px] text-starlight/75 leading-relaxed pt-1 transition-all ${
-                    isExpanded ? '' : 'line-clamp-3'
-                  }`}
+                  className="text-[11px] text-starlight/75 line-clamp-2 leading-snug"
+                  title={card.description}
                 >
                   {card.description}
                 </p>
-
-                {/* Expand / Collapse Toggle Pill */}
-                <div className="pt-0.5">
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      playClick();
-                      setExpandedCards((prev) => ({
-                        ...prev,
-                        [card.id]: !prev[card.id],
-                      }));
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        playClick();
-                        setExpandedCards((prev) => ({
-                          ...prev,
-                          [card.id]: !prev[card.id],
-                        }));
-                      }
-                    }}
-                    className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer select-none"
-                  >
-                    {isExpanded ? 'Show less ▴' : 'Read more ▾'}
-                  </span>
-                </div>
-
-                {/* Expanded Details: Consequence Breakdown & Flavor */}
-                {isExpanded && (
-                  <div className="space-y-1.5 pt-1.5 animate-slide-up">
-                    {card.flavorQuote && (
-                      <p className="italic text-[10px] text-starlight/60 border-l-2 border-cyan-400/40 pl-2 leading-snug">
-                        &ldquo;{card.flavorQuote}&rdquo;
-                      </p>
-                    )}
-
-                    {(card.riskDescription || card.failureMessage) && (
-                      <div className="p-2 rounded-lg bg-rose-950/40 border border-rose-500/30 text-[10px] text-rose-200/90 leading-tight">
-                        <span className="font-bold text-rose-400 block mb-0.5">
-                          ⚠️ Consequence Breakdown:
-                        </span>
-                        <span>{card.riskDescription || card.failureMessage}</span>
-                        {card.failurePenalty && (
-                          <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[9px] text-rose-300 font-mono">
-                            <span className="opacity-75 uppercase">Risk Penalty:</span>
-                            {Object.entries(card.failurePenalty)
-                              .filter(([, v]) => typeof v === 'number' && v !== 0)
-                              .map(([k, v]) => (
-                                <span
-                                  key={k}
-                                  className="px-1 py-0.2 rounded bg-black/40 border border-rose-500/30"
-                                >
-                                  {v} {k}
-                                </span>
-                              ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
 
-              {/* Bottom Meta: Cost, Yield, and Risk Roll */}
-              <div className="w-full pt-3 border-t border-white/10 space-y-2">
-                {/* Cost & Yield Indicators */}
-                <div className="flex flex-wrap items-center justify-between gap-1 text-xs font-mono font-bold">
-                  {costItems.length > 0 ? (
-                    <div className="flex items-center gap-1.5 text-rose-300">
-                      <span className="text-[9px] uppercase tracking-wider text-rose-400/80 font-normal">
-                        Cost:
-                      </span>
-                      <span>{costItems.join(' ')}</span>
-                    </div>
-                  ) : (
-                    <span className="text-[10px] text-emerald-400/80">Cost: 0</span>
-                  )}
-
-                  <div className="flex items-center gap-1.5 text-emerald-300 ml-auto">
-                    <span className="text-[9px] uppercase tracking-wider text-emerald-400/80 font-normal">
-                      Gain:
-                    </span>
-                    <span>{yieldItems.join(' ')}</span>
-                  </div>
+              {/* Bottom Meta: Cost/Yield Strip, Risk & Deploy Footer */}
+              <div className="w-full pt-2 border-t border-white/10 space-y-1.5 mt-2">
+                {/* Compact Cost & Yield Indicator Strip */}
+                <div className="flex items-center justify-between px-2 py-0.5 rounded-lg bg-black/40 text-[10px] font-mono font-bold">
+                  <span className={costItems.length > 0 ? 'text-rose-300' : 'text-emerald-400'}>
+                    {costItems.length > 0 ? costItems.join(' ') : 'Free'}
+                  </span>
+                  <span className="text-white/20 font-light">|</span>
+                  <span className="text-emerald-300 font-bold truncate max-w-[110px]">
+                    {yieldItems.length > 0 ? yieldItems.join(' ') : '—'}
+                  </span>
                 </div>
 
                 {/* Risk Percentage Badge */}
                 <div>
                   {card.riskChance === 0 ? (
-                    <div className="w-full py-1 px-2 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold flex items-center justify-center gap-1">
-                      <span>🛡️</span>
-                      <span>100% SAFE (0% RISK)</span>
+                    <div className="w-full py-0.5 px-1.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[9px] font-bold flex items-center justify-center gap-1">
+                      <span>🛡️ Safe (0%)</span>
                     </div>
                   ) : (
                     <div
-                      className={`w-full py-1 px-2 rounded-lg text-[10px] font-bold flex items-center justify-between gap-1 ${
+                      className={`w-full py-0.5 px-1.5 rounded-md text-[9px] font-bold flex items-center justify-between gap-1 ${
                         card.riskChance >= 40
                           ? 'bg-rose-500/20 border border-rose-500/40 text-rose-300 animate-pulse'
                           : 'bg-amber-500/20 border border-amber-500/40 text-amber-300'
                       }`}
                     >
-                      <span>⚠️ {card.riskLabel || `${card.riskChance}% Hazard Risk`}</span>
-                      <span className="opacity-70 text-[9px]">Roll</span>
+                      <span className="truncate">⚠️ {card.riskLabel || `${card.riskChance}% Risk`}</span>
+                      <span className="opacity-70 text-[8px]">Roll</span>
                     </div>
                   )}
                 </div>
 
                 {/* Deploy Action Button */}
-                <div className="pt-1">
-                  <div
-                    className="
-                      w-full py-1.5 rounded-xl bg-white/10 group-hover:bg-white/20
-                      text-center text-[11px] font-bold text-white transition-all
-                      flex items-center justify-center gap-1.5
-                    "
-                  >
-                    <span>Commit Operation</span>
-                    <span>→</span>
-                  </div>
+                <div
+                  className="
+                    w-full py-1 rounded-lg bg-white/10 group-hover:bg-white/20
+                    text-center text-[10px] font-bold text-white transition-all
+                    flex items-center justify-center gap-1
+                  "
+                >
+                  <span>Deploy</span>
+                  <span>→</span>
                 </div>
               </div>
             </button>
@@ -616,33 +532,33 @@ export default function OperationsDeck() {
         })}
       </div>
 
-      {/* ── 3. EXCLUSIVE PLANETARY CARTRIDGE OPERATIONS DECK ── */}
-      <div className="pt-3 space-y-3">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 rounded-2xl bg-[#0e162e] border border-white/10">
+      {/* ── 4. EXCLUSIVE PLANETARY CARTRIDGE OPERATIONS DECK ── */}
+      <div className="pt-2 space-y-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 p-2.5 rounded-xl bg-[#0e162e] border border-white/10">
           <div className="flex items-center gap-2">
-            <span className="text-xl p-1 rounded-lg bg-black/40 border border-white/10">
+            <span className="text-lg p-1 rounded-lg bg-black/40 border border-white/10">
               {cartridge.order === 'X' ? '👁️' : '🪐'}
             </span>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-heading font-black text-sm text-white tracking-wide">
+                <h3 className="font-heading font-black text-xs text-white tracking-wide">
                   {cartridge.name.toUpperCase()} SIGNATURE PROTOCOLS
                 </h3>
-                <span className="text-[10px] font-mono px-2 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
-                  Level {cartridge.order} Cartridge
+                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
+                  Level {cartridge.order}
                 </span>
               </div>
-              <p className="text-[10px] text-starlight/70 leading-none mt-0.5">
+              <p className="text-[9px] text-starlight/70 leading-none mt-0.5 truncate max-w-xl">
                 {cartridge.signatureMechanic.description}
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-mono text-amber-300 bg-amber-500/15 px-2 py-1 rounded-lg border border-amber-500/30">
+          <span className="text-[9px] font-mono text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-lg border border-amber-500/30 shrink-0">
             ⚠️ Hazard: {cartridge.signatureMechanic.hazardAlert}
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
           {cartridge.actions.map((act) => {
             const isFrozen = Boolean(state.frozenActions?.includes(act.id));
             const cooldownUntil = state.operationCooldowns?.[act.id] || 0;
@@ -674,7 +590,7 @@ export default function OperationsDeck() {
             if (costs.shielding) costBadges.push(`-${costs.shielding}🛡️`);
             if (costs.customMetricCost) {
               for (const [k, v] of Object.entries(costs.customMetricCost)) {
-                costBadges.push(`-${v} ${k.slice(0, 5)}`);
+                costBadges.push(`-${v} ${k.slice(0, 4)}`);
               }
             }
 
@@ -684,10 +600,10 @@ export default function OperationsDeck() {
             if (eff.oxygen) gainBadges.push(`+${eff.oxygen}🫁`);
             if (eff.shielding) gainBadges.push(`+${eff.shielding}🛡️`);
             if (eff.morale) gainBadges.push(`+${eff.morale} Morale`);
-            if (eff.score) gainBadges.push(`+${eff.score} Score`);
+            if (eff.score) gainBadges.push(`+${eff.score}★`);
             if (eff.customMetricDelta) {
               for (const [k, v] of Object.entries(eff.customMetricDelta)) {
-                gainBadges.push(`${v > 0 ? `+${v}` : v} ${k.slice(0, 5)}`);
+                gainBadges.push(`${v > 0 ? `+${v}` : v} ${k.slice(0, 4)}`);
               }
             }
 
@@ -697,11 +613,12 @@ export default function OperationsDeck() {
                 type="button"
                 disabled={!canExecute}
                 onClick={() => handleExecutePlanetAction(act.id)}
+                title={act.description}
                 className={`
-                  p-3 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer min-h-[160px] relative overflow-hidden
+                  p-2.5 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer min-h-[125px] relative overflow-hidden
                   ${
                     isFrozen
-                      ? 'bg-cyan-950/40 border-cyan-400 text-cyan-200 ring-2 ring-cyan-400/40 opacity-80 cursor-not-allowed'
+                      ? 'bg-cyan-950/40 border-cyan-400 text-cyan-200 ring-1 ring-cyan-400/40 opacity-80 cursor-not-allowed'
                       : isOnCooldown
                       ? 'bg-slate-900/60 border-slate-700/60 text-slate-400 opacity-60 cursor-not-allowed'
                       : !hasEnoughResources
@@ -712,42 +629,42 @@ export default function OperationsDeck() {
               >
                 {/* Status Badges */}
                 {isFrozen && (
-                  <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-cyan-500/30 text-cyan-200 border border-cyan-400/50 text-[9px] font-black animate-pulse">
+                  <div className="absolute top-1.5 right-1.5 px-1 py-0.2 rounded bg-cyan-500/30 text-cyan-200 border border-cyan-400/50 text-[8px] font-black animate-pulse">
                     ❄️ FROZEN
                   </div>
                 )}
                 {isOnCooldown && !isFrozen && (
-                  <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-400/40 text-[9px] font-mono">
+                  <div className="absolute top-1.5 right-1.5 px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-400/40 text-[8px] font-mono">
                     ⏳ {cooldownRemaining}s
                   </div>
                 )}
 
                 <div>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-2xl p-1.5 rounded-xl bg-black/40 border border-white/10">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-xl p-1 rounded-lg bg-black/40 border border-white/10 shrink-0">
                       {act.icon}
                     </span>
-                    <div className="leading-tight">
-                      <span className="font-heading font-bold text-xs text-white block">
+                    <div className="leading-tight overflow-hidden">
+                      <span className="font-heading font-bold text-xs text-white truncate block">
                         {act.title}
                       </span>
-                      <span className="text-[9px] text-cyan-300/80 block">
+                      <span className="text-[9px] text-cyan-300/80 truncate block">
                         {act.subtitle}
                       </span>
                     </div>
                   </div>
-                  <p className="text-[10px] text-starlight/75 line-clamp-2 mt-1">
+                  <p className="text-[10px] text-starlight/75 truncate mt-0.5" title={act.description}>
                     {act.description}
                   </p>
                 </div>
 
-                <div className="mt-3 pt-2 border-t border-white/10 space-y-1.5 text-[10px]">
-                  <div className="flex items-center justify-between font-mono">
-                    <span className="text-rose-300">{costBadges.length > 0 ? costBadges.join(' ') : 'Cost: 0'}</span>
-                    <span className="text-emerald-300 font-bold">{gainBadges.join(' ')}</span>
+                <div className="mt-2 pt-1.5 border-t border-white/10 space-y-1 text-[9px]">
+                  <div className="flex items-center justify-between font-mono bg-black/30 px-1.5 py-0.5 rounded">
+                    <span className="text-rose-300 truncate max-w-[50%]">{costBadges.length > 0 ? costBadges.join(' ') : 'Free'}</span>
+                    <span className="text-emerald-300 font-bold truncate max-w-[50%] text-right">{gainBadges.join(' ')}</span>
                   </div>
-                  <div className="w-full py-1 rounded-lg bg-white/10 text-center font-bold text-[10px] text-white">
-                    {isFrozen ? '❄️ Thaw Hydraulics' : isOnCooldown ? `Cooldown (${cooldownRemaining} Sols)` : 'Execute Protocol →'}
+                  <div className="w-full py-0.5 rounded bg-white/10 text-center font-bold text-[9px] text-white">
+                    {isFrozen ? '❄️ Thaw' : isOnCooldown ? `⏳ (${cooldownRemaining})` : 'Execute →'}
                   </div>
                 </div>
               </button>

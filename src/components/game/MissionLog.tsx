@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useGame } from './GameProvider';
 import type { LogEntry } from '@/lib/types';
+import { getPlanetCartridge } from '@/lib/planetCartridges';
 
 const changeColor = (val: number) =>
   val > 0 ? 'text-[#22C55E]' : val < 0 ? 'text-[#EF4444]' : 'text-[#F8FAFC]/40';
@@ -11,6 +12,8 @@ export default function MissionLog() {
   const { state } = useGame();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const entries = [...state.log].reverse();
+  const cartridge = getPlanetCartridge(state.planetId || 'earth');
+  const dayUnit = cartridge.dayUnit || { singular: 'Sol', plural: 'Sols' };
 
   return (
     <aside
@@ -55,7 +58,7 @@ export default function MissionLog() {
         >
           {entries.length === 0 ? (
             <p className="p-4 text-sm text-[#F8FAFC]/40 text-center italic">
-              No entries yet. Start your first sol! 🚀
+              No entries yet. Start your first {dayUnit.singular.toLowerCase()}! 🚀
             </p>
           ) : (
             entries.map((entry: LogEntry, i: number) => (
@@ -65,7 +68,7 @@ export default function MissionLog() {
               >
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-xs font-bold text-[#E87040] tabular-nums">
-                    Sol {entry.sol}
+                    {dayUnit.singular} {entry.sol}
                   </span>
                   <span className="text-sm" aria-hidden="true">
                     {entry.icon || '📝'}

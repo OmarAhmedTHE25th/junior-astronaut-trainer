@@ -112,9 +112,9 @@ export default function GameBoard({
         <HUD onOpenMenu={() => setIsPauseMenuOpen(true)} />
 
         {/* Main content area */}
-        <main className="flex-1 flex flex-col lg:flex-row gap-4 p-4 items-start">
+        <main className="flex-1 flex flex-col lg:flex-row gap-2.5 p-2.5 sm:p-3 items-start">
           {/* Center panel */}
-          <div className="flex-1 flex flex-col items-center justify-center gap-4 min-w-0">
+          <div className="flex-1 flex flex-col items-center justify-center gap-2.5 min-w-0">
             {/* Phase-specific content */}
             {state.phase === 'action' && !showFact && <OperationsDeck />}
 

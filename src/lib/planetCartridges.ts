@@ -27,6 +27,7 @@ export type WeatherEffectType =
 export interface PlanetMetricDef {
   key: string;
   name: string;
+  shortName?: string;
   icon: string;
   min: number;
   max: number;
@@ -203,6 +204,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       {
         key: 'shielding',
         name: 'Rad Shielding',
+        shortName: 'RADIATION',
         icon: '🛡️',
         min: 0,
         max: 100,
@@ -216,6 +218,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       {
         key: 'dustAccumulation',
         name: 'Regolith Dust Load',
+        shortName: 'DUST',
         icon: '🌪️',
         min: 0,
         max: 100,
@@ -366,6 +369,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       {
         key: 'orbitalDebris',
         name: 'Debris Density',
+        shortName: 'DEBRIS',
         icon: '🛰️',
         min: 0,
         max: 100,
@@ -379,6 +383,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       {
         key: 'radarLock',
         name: 'ASAT Radar Tracking',
+        shortName: 'RADAR',
         icon: '📡',
         min: 0,
         max: 100,
@@ -530,6 +535,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       {
         key: 'altitude',
         name: 'Envelope Altitude',
+        shortName: 'ALTITUDE',
         icon: '🎈',
         min: 10,
         max: 90,
@@ -544,6 +550,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       {
         key: 'acidCorrosion',
         name: 'Sulfuric Acid Load',
+        shortName: 'ACID',
         icon: '🧪',
         min: 0,
         max: 100,
@@ -695,6 +702,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       {
         key: 'coreTemp',
         name: 'Core Temperature',
+        shortName: 'CORE TEMP',
         icon: '🌡️',
         min: 0,
         max: 100,
@@ -709,6 +717,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       {
         key: 'crawlerOffset',
         name: 'Terminator Offset',
+        shortName: 'TERMINATOR',
         icon: '🚜',
         min: -50,
         max: 50,
@@ -861,6 +870,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       {
         key: 'fluxCharge',
         name: 'Capacitor Voltage',
+        shortName: 'VOLTAGE',
         icon: '⚡',
         min: 0,
         max: 100,
@@ -874,6 +884,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       {
         key: 'radLoad',
         name: 'Radiation Load',
+        shortName: 'RADIATION',
         icon: '☢️',
         min: 0,
         max: 100,
@@ -1025,6 +1036,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       {
         key: 'iceCargo',
         name: 'Mined Ring Ice',
+        shortName: 'RING ICE',
         icon: '🧊',
         min: 0,
         max: 100,
@@ -1037,6 +1049,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       {
         key: 'ringShear',
         name: 'Ring Particle Shear',
+        shortName: 'RING SHEAR',
         icon: '💍',
         min: 0,
         max: 100,
@@ -1188,6 +1201,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       {
         key: 'hydraulics',
         name: 'Hydraulic Fluid Pressure',
+        shortName: 'HYDRAULICS',
         icon: '🔧',
         min: 0,
         max: 100,
@@ -1201,6 +1215,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       {
         key: 'methaneMix',
         name: 'Methane Density',
+        shortName: 'METHANE',
         icon: '🧪',
         min: 0,
         max: 100,
@@ -1352,6 +1367,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       {
         key: 'windShear',
         name: 'Supersonic Wind Shear',
+        shortName: 'WIND SHEAR',
         icon: '🌪️',
         min: 0,
         max: 100,
@@ -1365,6 +1381,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       {
         key: 'diamondHail',
         name: 'Diamond Hail Stash',
+        shortName: 'DIAMONDS',
         icon: '💎',
         min: 0,
         max: 100,
@@ -1515,6 +1532,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       {
         key: 'entropy',
         name: 'Quantum Decoherence',
+        shortName: 'ENTROPY',
         icon: '🌀',
         min: 0,
         max: 100,
@@ -1528,6 +1546,7 @@ export const PLANET_CARTRIDGES: Record<PlanetId, PlanetCartridge> = {
       {
         key: 'anchorCharge',
         name: 'Graviton Anchor Integrity',
+        shortName: 'GRAVITON',
         icon: '⚓',
         min: 0,
         max: 100,
