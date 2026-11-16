@@ -110,6 +110,7 @@ export default function OperationsDeck() {
   const { playClick, playAction, playAlert, playSuccess } = useSound();
   const { profile } = useProfile();
   const [isSupplyDrawerOpen, setIsSupplyDrawerOpen] = useState(false);
+  const [expandedCardIds, setExpandedCardIds] = useState<Record<string, boolean>>({});
   const isDisabled = state.phase !== 'action';
   const commandOverrides = state.commandOverrides ?? 1;
   const pet = state.equippedPet;
@@ -207,199 +208,179 @@ export default function OperationsDeck() {
   );
 
   return (
-    <section aria-label="Dynamic Tactical Operations Deck" className="w-full space-y-3 font-mono">
-      {/* ── 1. ACTIVE COMPANION PET, TACTICAL STIMS & EMERGENCY SUPPLY BAY STRIP ── */}
-      <div className="p-3 rounded-2xl bg-[#0F172A] border border-slate-700/80 shadow-xl space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          {/* Active Companion Pet Badge */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-black/50 border border-cyan-400/40 flex items-center justify-center text-xl shadow-inner">
-              {pet ? pet.avatar : '🐾'}
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5 leading-none">
-                <span className="font-heading font-extrabold text-xs text-white">
-                  {pet ? pet.name : 'No Pet Equipped'}
+    <section aria-label="Dynamic Tactical Operations Deck" className="w-full space-y-2 font-mono">
+      {/* ── 1. UNIFIED DECK HEADER: DAY COUNTER, TACTICAL STIMS, SUPPLIES & COMMAND OVERRIDE ── */}
+      <div className="flex flex-wrap items-center justify-between gap-2 p-2 sm:p-2.5 rounded-xl bg-[#141b3d]/90 border border-white/10 shadow-md">
+        {/* Left: Day & Hand Title */}
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-lg p-1 rounded-lg bg-cyan-500/20 border border-cyan-400/30">
+            🎴
+          </span>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <h2 className="font-heading font-black text-xs sm:text-sm text-white tracking-wide">
+                {cartridge.dayUnit?.singular || 'Sol'} {state.sol} Tactical Operations Hand
+              </h2>
+              {state.hasEmergencyDraw && (
+                <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded-full bg-rose-500/25 text-rose-300 border border-rose-500/40 uppercase animate-pulse">
+                  🚨 Emergency Draw
                 </span>
-                {pet && (
-                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-cyan-400/20 text-cyan-200 border border-cyan-400/30">
-                    Lv.{pet.level}
-                  </span>
-                )}
-              </div>
-              <span className="text-[10px] text-cyan-300/90 font-mono mt-0.5 block">
-                {pet ? `Passive Perk: ${pet.perkType.replace(/_/g, ' ').toUpperCase()} (+${pet.perkValue}%)` : 'Deploy companion in Hangar for passive buffs'}
-              </span>
+              )}
             </div>
+            <p className="text-[10px] text-starlight/60 leading-none mt-0.5 hidden sm:block">
+              5 situational operations drafted for current telemetry
+            </p>
+          </div>
+        </div>
+
+        {/* Right: Slotted Tactical Stims, Emergency Supplies & Command Override in ONE row */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[9px] text-white/50 uppercase tracking-widest hidden xl:inline">
+            Tactical Stims:
+          </span>
+
+          {slottedBoosts.map((slug) => {
+            const def = BOOST_CATALOG[slug];
+            const timer = state.activeBoostTimers?.[slug] || 0;
+            const isActive = timer > 0;
+
+            return (
+              <button
+                key={slug}
+                type="button"
+                onClick={() => handleActivateBoost(slug)}
+                disabled={isDisabled || isActive}
+                className={`
+                  px-2 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer shadow-sm
+                  ${
+                    isActive
+                      ? 'bg-emerald-600/30 border border-emerald-400 text-emerald-200 ring-1 ring-emerald-400/30 animate-pulse'
+                      : 'bg-[#0B1026] hover:bg-[#1a234f] border border-white/20 text-white/80 hover:text-white'
+                  }
+                  disabled:cursor-not-allowed
+                `}
+                title={
+                  isActive
+                    ? `${def?.name || slug} is active for ${timer} more ${cartridge.dayUnit?.singular || 'Sol'}(s)`
+                    : `Activate ${def?.name || slug}: ${def?.tacticalEffect || ''}`
+                }
+              >
+                <span>{def?.icon || '💉'}</span>
+                <span className="truncate max-w-[85px]">{def?.name || slug}</span>
+                {isActive ? (
+                  <span className="text-[8px] font-bold px-1 rounded bg-emerald-400/30 text-emerald-200 uppercase">
+                    {timer}s
+                  </span>
+                ) : (
+                  <span className="text-[8px] text-cyan-300 font-normal">Inject</span>
+                )}
+              </button>
+            );
+          })}
+
+          {/* Toggle Emergency Supply Bay Drawer Button */}
+          <button
+            type="button"
+            onClick={() => {
+              playClick();
+              setIsSupplyDrawerOpen(!isSupplyDrawerOpen);
+            }}
+            className="
+              px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-800/90 hover:bg-slate-700
+              border border-slate-300/25 hover:border-slate-300/50 text-slate-100 shadow-sm
+              hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center gap-1
+            "
+            title="Access emergency survival supplies bought on the Mars Marketplace"
+          >
+            <span>📦</span>
+            <span className="hidden md:inline">Supplies</span>
+            <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-amber-400/20 text-amber-300 border border-amber-400/30">
+              {totalSuppliesCount}
+            </span>
+            <span className="text-[9px] opacity-70">{isSupplyDrawerOpen ? '▲' : '▼'}</span>
+          </button>
+
+          {/* Command Override (Re-Roll) Button */}
+          <button
+            type="button"
+            onClick={handleCommandOverride}
+            disabled={isDisabled || commandOverrides <= 0}
+            className={`
+              px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all shadow-sm flex items-center gap-1 cursor-pointer
+              ${
+                commandOverrides > 0 && !isDisabled
+                  ? 'bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-extrabold hover:scale-105 active:scale-95 border border-cyan-200'
+                  : 'bg-white/5 text-white/40 border border-white/10 cursor-not-allowed opacity-50'
+              }
+            `}
+            title={
+              commandOverrides > 0
+                ? `Re-roll operations deck (${commandOverrides} available). Next re-roll in ${5 - (state.sol % 5 || 5)} ${cartridge.dayUnit?.plural.toLowerCase() || 'sols'}.`
+                : `No overrides remaining. Next override at ${cartridge.dayUnit?.singular || 'Sol'} ${state.sol + (5 - (state.sol % 5 || 5))}.`
+            }
+          >
+            <span className={commandOverrides > 0 ? 'animate-spin-slow' : ''}>🔄</span>
+            <span className="hidden sm:inline">Override</span>
+            <span className="px-1 py-0.2 rounded bg-black/40 text-[9px] border border-white/20">
+              {commandOverrides}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* ── EXPANDABLE EMERGENCY SUPPLY BAY DRAWER ── */}
+      {isSupplyDrawerOpen && (
+        <div className="p-2.5 rounded-xl bg-[#0F172A] border border-slate-700/80 shadow-lg space-y-2 animate-slide-up">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1">
+              <span>🛒</span>
+              <span>Marketplace Emergency Cache (Consuming supplies does NOT end your {cartridge.dayUnit?.singular || 'Sol'})</span>
+            </span>
+            <button
+              onClick={() => setIsSupplyDrawerOpen(false)}
+              className="text-[10px] text-white/50 hover:text-white cursor-pointer"
+            >
+              ✕ Close
+            </button>
           </div>
 
-          {/* Slotted Tactical Stim Triggers */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] text-white/50 uppercase tracking-widest hidden sm:inline">
-              Tactical Stims:
-            </span>
-            {slottedBoosts.map((slug) => {
-              const def = BOOST_CATALOG[slug];
-              const timer = state.activeBoostTimers?.[slug] || 0;
-              const isActive = timer > 0;
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+            {Object.entries(SUPPLY_DEFS).map(([slug, def]) => {
+              const qty = combatInventory[slug] || 0;
+              const canUse = qty > 0 && !isDisabled;
 
               return (
                 <button
                   key={slug}
                   type="button"
-                  onClick={() => handleActivateBoost(slug)}
-                  disabled={isDisabled || isActive}
+                  onClick={() => handleDeploySupply(slug)}
+                  disabled={!canUse}
                   className={`
-                    px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md
-                    ${
-                      isActive
-                        ? 'bg-emerald-600/30 border border-emerald-400 text-emerald-200 ring-2 ring-emerald-400/30 animate-pulse'
-                        : 'bg-[#0B1026] hover:bg-[#1a234f] border border-white/20 text-white/80 hover:text-white'
-                    }
-                    disabled:cursor-not-allowed
+                    p-2 rounded-lg border text-left transition-all flex flex-col justify-between cursor-pointer min-h-[60px]
+                    ${def.color}
+                    ${canUse ? 'hover:scale-105 active:scale-95 shadow-md' : 'opacity-40 cursor-not-allowed'}
                   `}
-                  title={
-                    isActive
-                      ? `${def?.name || slug} is currently active for ${timer} more Sol(s)`
-                      : `Activate ${def?.name || slug}: ${def?.tacticalEffect || ''}`
-                  }
+                  title={`Deploy ${def.name} (${def.boostLabel})`}
                 >
-                  <span className="text-sm">{def?.icon || '💉'}</span>
-                  <span className="text-[11px] font-semibold">{def?.name || slug}</span>
-                  {isActive ? (
-                    <span className="text-[9px] font-bold px-1 rounded bg-emerald-400/30 text-emerald-200 uppercase">
-                      {timer}s Active
+                  <div className="flex items-center justify-between w-full">
+                    <span className="text-base">{def.icon}</span>
+                    <span className="text-[10px] font-mono font-black px-1 rounded bg-black/40 border border-white/10">
+                      x{qty}
                     </span>
-                  ) : (
-                    <span className="text-[9px] text-cyan-300 font-normal">Inject</span>
-                  )}
+                  </div>
+                  <div className="mt-0.5">
+                    <span className="text-[10px] font-bold block truncate">{def.name}</span>
+                    <span className="text-[8px] opacity-80 block">{def.boostLabel}</span>
+                  </div>
                 </button>
               );
             })}
-
-            {/* Toggle Emergency Supply Bay Drawer Button */}
-            <button
-              type="button"
-              onClick={() => {
-                playClick();
-                setIsSupplyDrawerOpen(!isSupplyDrawerOpen);
-              }}
-              className="
-                px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800/90 hover:bg-slate-700
-                border border-slate-300/25 hover:border-slate-300/50 text-slate-100 shadow-sm
-                hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5
-              "
-              title="Access emergency survival supplies bought on the Mars Marketplace"
-            >
-              <span>📦</span>
-              <span>Emergency Supplies</span>
-              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                {totalSuppliesCount}
-              </span>
-              <span className="text-[10px] opacity-70">{isSupplyDrawerOpen ? '▲' : '▼'}</span>
-            </button>
           </div>
         </div>
+      )}
 
-        {/* ── EXPANDABLE EMERGENCY SUPPLY BAY DRAWER ── */}
-        {isSupplyDrawerOpen && (
-          <div className="pt-3 border-t border-white/10 animate-slide-up">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1">
-                <span>🛒</span>
-                <span>Mars Marketplace Emergency Cache (Mid-Mission Instant Deployment)</span>
-              </span>
-              <span className="text-[10px] text-white/50">Consuming supplies does NOT end your Sol</span>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
-              {Object.entries(SUPPLY_DEFS).map(([slug, def]) => {
-                const qty = combatInventory[slug] || 0;
-                const canUse = qty > 0 && !isDisabled;
-
-                return (
-                  <button
-                    key={slug}
-                    type="button"
-                    onClick={() => handleDeploySupply(slug)}
-                    disabled={!canUse}
-                    className={`
-                      p-2.5 rounded-xl border text-left transition-all flex flex-col justify-between cursor-pointer min-h-[75px]
-                      ${def.color}
-                      ${canUse ? 'hover:scale-105 active:scale-95 shadow-md' : 'opacity-40 cursor-not-allowed'}
-                    `}
-                    title={`Deploy ${def.name} (${def.boostLabel})`}
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <span className="text-xl">{def.icon}</span>
-                      <span className="text-xs font-mono font-black px-1.5 py-0.5 rounded bg-black/40 border border-white/10">
-                        x{qty}
-                      </span>
-                    </div>
-                    <div className="mt-1">
-                      <span className="text-[11px] font-bold block truncate">{def.name}</span>
-                      <span className="text-[9px] opacity-80 block">{def.boostLabel}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── 2. DECK HEADER WITH CRISIS ALERT & RE-ROLL CTA ── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 p-3 rounded-xl bg-[#141b3d]/90 border border-white/10 shadow-lg">
-        <div className="flex items-center gap-2">
-          <span className="text-xl p-1.5 rounded-xl bg-cyan-500/20 border border-cyan-400/30">
-            🎴
-          </span>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="font-heading font-black text-sm sm:text-base text-white tracking-wide">
-                {cartridge.dayUnit?.singular || 'Sol'} {state.sol} Tactical Operations Hand
-              </h2>
-              {state.hasEmergencyDraw && (
-                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-rose-500/25 text-rose-300 border border-rose-500/40 uppercase animate-pulse">
-                  🚨 Emergency Draw Active
-                </span>
-              )}
-            </div>
-            <p className="text-[11px] text-starlight/70 leading-none mt-0.5">
-              5 situational operations drafted for current telemetry &amp; DONKI space weather.
-            </p>
-          </div>
-        </div>
-
-        {/* Command Override (Re-Roll) Button */}
-        <button
-          type="button"
-          onClick={handleCommandOverride}
-          disabled={isDisabled || commandOverrides <= 0}
-          className={`
-            px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer
-            ${
-              commandOverrides > 0 && !isDisabled
-                ? 'bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-extrabold hover:scale-105 active:scale-95 border border-cyan-200'
-                : 'bg-white/5 text-white/40 border border-white/10 cursor-not-allowed opacity-50'
-            }
-          `}
-          title={
-            commandOverrides > 0
-              ? `Re-roll operations deck (${commandOverrides} available). Next re-roll granted in ${5 - (state.sol % 5 || 5)} ${cartridge.dayUnit?.plural.toLowerCase() || 'sols'}.`
-              : `No overrides remaining. Next override unlocked at ${cartridge.dayUnit?.singular || 'Sol'} ${state.sol + (5 - (state.sol % 5 || 5))}.`
-          }
-        >
-          <span className={commandOverrides > 0 ? 'animate-spin-slow' : ''}>🔄</span>
-          <span>Command Override</span>
-          <span className="px-1.5 py-0.2 rounded bg-black/40 text-[10px] border border-white/20">
-            {commandOverrides}
-          </span>
-        </button>
-      </div>
-
-      {/* ── 3. 5-CARD TACTICAL HAND GRID ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2.5 items-stretch">
+      {/* ── 2. 5-CARD TACTICAL HAND GRID (COMPACT & CLICKABLE) ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 items-stretch">
         {activeCards.map((card) => {
           const theme = CATEGORY_THEMES[card.category];
 
@@ -435,6 +416,8 @@ export default function OperationsDeck() {
               return `+${v}${icon}`;
             });
 
+          const isExpanded = Boolean(expandedCardIds[card.id]);
+
           return (
             <button
               key={card.id}
@@ -443,29 +426,29 @@ export default function OperationsDeck() {
               disabled={isDisabled}
               title={card.description}
               className={`
-                group relative flex flex-col justify-between p-3 rounded-xl
-                ${theme.bg} border ${theme.border}
+                group relative flex flex-col justify-between p-2.5 rounded-xl
+                ${theme.bg} border ${theme.border} hover:border-cyan-400/70
                 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200
-                shadow-lg text-left cursor-pointer h-full min-h-[185px]
+                shadow-lg text-left cursor-pointer h-full min-h-[145px]
                 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100
               `}
             >
-              {/* Top Meta: Category & Cooldown */}
-              <div className="w-full space-y-1.5">
-                <div className="flex items-center justify-between gap-1 text-[9px]">
+              {/* Top: Category Tag, Cooldown, Icon & Title */}
+              <div className="w-full space-y-1">
+                <div className="flex items-center justify-between gap-1 text-[8.5px]">
                   <span
                     className={`px-1.5 py-0.2 rounded-full font-bold border uppercase tracking-wider ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder}`}
                   >
                     {theme.tagLabel}
                   </span>
-                  <span className="text-[9px] text-white/50 font-mono whitespace-nowrap shrink-0">
+                  <span className="text-[8.5px] text-white/50 font-mono whitespace-nowrap shrink-0">
                     ⏳ {card.cooldownSols}s CD
                   </span>
                 </div>
 
                 {/* Title & Icon */}
                 <div className="flex items-center gap-1.5 pt-0.5">
-                  <span className="text-xl select-none group-hover:scale-110 transition-transform">
+                  <span className="text-lg select-none group-hover:scale-110 transition-transform shrink-0">
                     {card.icon}
                   </span>
                   <h3 className={`font-heading font-black text-xs leading-snug line-clamp-1 transition-colors ${theme.titleColor}`}>
@@ -473,24 +456,41 @@ export default function OperationsDeck() {
                   </h3>
                 </div>
 
-                {/* Description (Clamped to 2 lines, full text in title tooltip) */}
-                <p
-                  className="text-[11px] text-starlight/75 line-clamp-2 leading-snug"
-                  title={card.description}
-                >
-                  {card.description}
-                </p>
+                {/* Description (Expandable toggle with e.stopPropagation) */}
+                <div className="relative mt-0.5">
+                  <p
+                    className={`text-[10px] text-starlight/85 leading-tight transition-all ${
+                      isExpanded
+                        ? 'line-clamp-none bg-black/70 p-1.5 rounded border border-cyan-400/40'
+                        : 'line-clamp-2'
+                    }`}
+                    title={card.description}
+                  >
+                    {card.description}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      playClick();
+                      setExpandedCardIds((prev) => ({ ...prev, [card.id]: !prev[card.id] }));
+                    }}
+                    className="mt-0.5 text-[8.5px] font-bold text-cyan-300 hover:text-cyan-100 underline decoration-cyan-400/50 hover:decoration-cyan-200 transition-colors inline-block cursor-pointer"
+                  >
+                    {isExpanded ? 'Show less ▴' : 'Read more ▾'}
+                  </button>
+                </div>
               </div>
 
-              {/* Bottom Meta: Cost/Yield Strip, Risk & Deploy Footer */}
-              <div className="w-full pt-2 border-t border-white/10 space-y-1.5 mt-2">
+              {/* Bottom: Inline Cost/Yield Strip & Risk Badge (No separate deploy button) */}
+              <div className="w-full pt-1.5 border-t border-white/10 space-y-1 mt-1.5">
                 {/* Compact Cost & Yield Indicator Strip */}
-                <div className="flex items-center justify-between px-2 py-0.5 rounded-lg bg-black/40 text-[10px] font-mono font-bold">
+                <div className="flex items-center justify-between px-1.5 py-0.5 rounded bg-black/40 text-[9.5px] font-mono font-bold">
                   <span className={costItems.length > 0 ? 'text-rose-300' : 'text-emerald-400'}>
                     {costItems.length > 0 ? costItems.join(' ') : 'Free'}
                   </span>
                   <span className="text-white/20 font-light">|</span>
-                  <span className="text-emerald-300 font-bold truncate max-w-[110px]">
+                  <span className="text-emerald-300 font-bold truncate max-w-[105px]">
                     {yieldItems.length > 0 ? yieldItems.join(' ') : '—'}
                   </span>
                 </div>
@@ -498,33 +498,21 @@ export default function OperationsDeck() {
                 {/* Risk Percentage Badge */}
                 <div>
                   {card.riskChance === 0 ? (
-                    <div className="w-full py-0.5 px-1.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[9px] font-bold flex items-center justify-center gap-1">
-                      <span>🛡️ Safe (0%)</span>
+                    <div className="w-full py-0.5 px-1.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[8.5px] font-bold flex items-center justify-center gap-1">
+                      <span>🛡️ Safe (0% Risk)</span>
                     </div>
                   ) : (
                     <div
-                      className={`w-full py-0.5 px-1.5 rounded-md text-[9px] font-bold flex items-center justify-between gap-1 ${
+                      className={`w-full py-0.5 px-1.5 rounded text-[8.5px] font-bold flex items-center justify-between gap-1 ${
                         card.riskChance >= 40
                           ? 'bg-rose-500/20 border border-rose-500/40 text-rose-300 animate-pulse'
                           : 'bg-amber-500/20 border border-amber-500/40 text-amber-300'
                       }`}
                     >
                       <span className="truncate">⚠️ {card.riskLabel || `${card.riskChance}% Risk`}</span>
-                      <span className="opacity-70 text-[8px]">Roll</span>
+                      <span className="opacity-70 text-[7.5px]">Roll</span>
                     </div>
                   )}
-                </div>
-
-                {/* Deploy Action Button */}
-                <div
-                  className="
-                    w-full py-1 rounded-lg bg-white/10 group-hover:bg-white/20
-                    text-center text-[10px] font-bold text-white transition-all
-                    flex items-center justify-center gap-1
-                  "
-                >
-                  <span>Deploy</span>
-                  <span>→</span>
                 </div>
               </div>
             </button>
@@ -532,19 +520,19 @@ export default function OperationsDeck() {
         })}
       </div>
 
-      {/* ── 4. EXCLUSIVE PLANETARY CARTRIDGE OPERATIONS DECK ── */}
-      <div className="pt-2 space-y-2">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 p-2.5 rounded-xl bg-[#0e162e] border border-white/10">
-          <div className="flex items-center gap-2">
-            <span className="text-lg p-1 rounded-lg bg-black/40 border border-white/10">
+      {/* ── 3. EXCLUSIVE PLANETARY CARTRIDGE OPERATIONS DECK ── */}
+      <div className="pt-1.5 space-y-1.5">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 p-2 rounded-xl bg-[#0e162e] border border-white/10">
+          <div className="flex items-center gap-1.5">
+            <span className="text-base p-1 rounded-lg bg-black/40 border border-white/10">
               {cartridge.order === 'X' ? '👁️' : '🪐'}
             </span>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 leading-none">
                 <h3 className="font-heading font-black text-xs text-white tracking-wide">
                   {cartridge.name.toUpperCase()} SIGNATURE PROTOCOLS
                 </h3>
-                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
+                <span className="text-[8.5px] font-mono px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
                   Level {cartridge.order}
                 </span>
               </div>
@@ -553,12 +541,12 @@ export default function OperationsDeck() {
               </p>
             </div>
           </div>
-          <span className="text-[9px] font-mono text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-lg border border-amber-500/30 shrink-0">
+          <span className="text-[8.5px] font-mono text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-lg border border-amber-500/30 shrink-0">
             ⚠️ Hazard: {cartridge.signatureMechanic.hazardAlert}
           </span>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
           {cartridge.actions.map((act) => {
             const isFrozen = Boolean(state.frozenActions?.includes(act.id));
             const cooldownUntil = state.operationCooldowns?.[act.id] || 0;
@@ -607,6 +595,8 @@ export default function OperationsDeck() {
               }
             }
 
+            const isExpanded = Boolean(expandedCardIds[act.id]);
+
             return (
               <button
                 key={act.id}
@@ -615,7 +605,7 @@ export default function OperationsDeck() {
                 onClick={() => handleExecutePlanetAction(act.id)}
                 title={act.description}
                 className={`
-                  p-2.5 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer min-h-[125px] relative overflow-hidden
+                  p-2 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer min-h-[95px] relative overflow-hidden
                   ${
                     isFrozen
                       ? 'bg-cyan-950/40 border-cyan-400 text-cyan-200 ring-1 ring-cyan-400/40 opacity-80 cursor-not-allowed'
@@ -629,42 +619,61 @@ export default function OperationsDeck() {
               >
                 {/* Status Badges */}
                 {isFrozen && (
-                  <div className="absolute top-1.5 right-1.5 px-1 py-0.2 rounded bg-cyan-500/30 text-cyan-200 border border-cyan-400/50 text-[8px] font-black animate-pulse">
+                  <div className="absolute top-1 right-1 px-1 py-0.2 rounded bg-cyan-500/30 text-cyan-200 border border-cyan-400/50 text-[7.5px] font-black animate-pulse">
                     ❄️ FROZEN
                   </div>
                 )}
                 {isOnCooldown && !isFrozen && (
-                  <div className="absolute top-1.5 right-1.5 px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-400/40 text-[8px] font-mono">
+                  <div className="absolute top-1 right-1 px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-400/40 text-[7.5px] font-mono">
                     ⏳ {cooldownRemaining}s
                   </div>
                 )}
 
                 <div>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span className="text-xl p-1 rounded-lg bg-black/40 border border-white/10 shrink-0">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="text-lg p-1 rounded-lg bg-black/40 border border-white/10 shrink-0">
                       {act.icon}
                     </span>
                     <div className="leading-tight overflow-hidden">
                       <span className="font-heading font-bold text-xs text-white truncate block">
                         {act.title}
                       </span>
-                      <span className="text-[9px] text-cyan-300/80 truncate block">
+                      <span className="text-[8.5px] text-cyan-300/80 truncate block">
                         {act.subtitle}
                       </span>
                     </div>
                   </div>
-                  <p className="text-[10px] text-starlight/75 truncate mt-0.5" title={act.description}>
-                    {act.description}
-                  </p>
+                  
+                  {/* Expandable Protocol Description */}
+                  <div className="relative mt-0.5">
+                    <p
+                      className={`text-[9.5px] text-starlight/85 leading-tight transition-all ${
+                        isExpanded
+                          ? 'line-clamp-none bg-black/70 p-1 rounded border border-cyan-400/40'
+                          : 'line-clamp-1'
+                      }`}
+                      title={act.description}
+                    >
+                      {act.description}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        playClick();
+                        setExpandedCardIds((prev) => ({ ...prev, [act.id]: !prev[act.id] }));
+                      }}
+                      className="text-[8px] font-bold text-cyan-300 hover:text-cyan-100 underline decoration-cyan-400/50 hover:decoration-cyan-200 transition-colors inline-block cursor-pointer"
+                    >
+                      {isExpanded ? 'Show less ▴' : 'Read more ▾'}
+                    </button>
+                  </div>
                 </div>
 
-                <div className="mt-2 pt-1.5 border-t border-white/10 space-y-1 text-[9px]">
+                <div className="mt-1.5 pt-1 border-t border-white/10 text-[8.5px]">
                   <div className="flex items-center justify-between font-mono bg-black/30 px-1.5 py-0.5 rounded">
                     <span className="text-rose-300 truncate max-w-[50%]">{costBadges.length > 0 ? costBadges.join(' ') : 'Free'}</span>
                     <span className="text-emerald-300 font-bold truncate max-w-[50%] text-right">{gainBadges.join(' ')}</span>
-                  </div>
-                  <div className="w-full py-0.5 rounded bg-white/10 text-center font-bold text-[9px] text-white">
-                    {isFrozen ? '❄️ Thaw' : isOnCooldown ? `⏳ (${cooldownRemaining})` : 'Execute →'}
                   </div>
                 </div>
               </button>

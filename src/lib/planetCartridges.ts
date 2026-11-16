@@ -1699,6 +1699,30 @@ export function unlockPlanetX(): void {
 }
 
 /**
+ * DEVTEST26 QA God-Mode Override: Unlocks all 9 planets, sets 5000+ scores, and enables Planet X
+ */
+export function unlockAllPlanetsGodMode(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const godScores: Record<PlanetId, number> = {
+      earth: 5000,
+      mars: 5000,
+      venus: 5000,
+      mercury: 5000,
+      jupiter: 5000,
+      saturn: 5000,
+      uranus: 5000,
+      neptune: 5000,
+      planet_x: 5000,
+    };
+    localStorage.setItem('jat_planet_best_scores_v1', JSON.stringify(godScores));
+    localStorage.setItem('jat_planet_x_easter_egg_v1', 'true');
+    window.dispatchEvent(new Event('jat-planet-score-updated'));
+    window.dispatchEvent(new Event('jat-planet-unlocked'));
+  } catch {}
+}
+
+/**
  * Check if a planet is unlocked based on VIP Five-Star General status,
  * score requirements on the previous planet, or Easter egg.
  */

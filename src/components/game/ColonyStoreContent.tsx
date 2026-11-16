@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSound } from '@/lib/sound';
-import { useProfile, DEFAULT_PROFILE } from '@/lib/profile';
+import { useProfile, DEFAULT_PROFILE, unlockAllBadgesGodMode } from '@/lib/profile';
+import { unlockAllPlanetsGodMode } from '@/lib/planetCartridges';
 import {
   CATALOG_ITEMS,
   CRATE_TIERS,
@@ -99,6 +100,11 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
   const [crateModalReward, setCrateModalReward] = useState<CrateReward | null>(null);
   const [activeOpeningSlug, setActiveOpeningSlug] = useState<CrateTierSlug | null>(null);
   const [isSponsorAdOpen, setIsSponsorAdOpen] = useState(false);
+
+  // Promo Code Redemption state
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [isSubmittingPromo, setIsSubmittingPromo] = useState(false);
+  const [godModeBanner, setGodModeBanner] = useState<string | null>(null);
 
   // Initialize pity count from localStorage
   useEffect(() => {
@@ -234,6 +240,88 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
   const totalInventoryCount = useMemo(() => {
     return inventory.reduce((sum, item) => sum + (item.quantity > 0 ? item.quantity : 0), 0);
   }, [inventory]);
+
+  // Handle Promo Code Redemption & DEVTEST26 God-Mode Override
+  const handleRedeemPromo = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      const cleanCode = promoCodeInput.trim().toUpperCase();
+      if (!cleanCode) return;
+
+      playClick();
+      setIsSubmittingPromo(true);
+
+      try {
+        const res = await fetch('/api/market/promo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            playerId: activeCadet.cadetId,
+            code: cleanCode,
+          }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          if (cleanCode === 'DEVTEST26') {
+            activateGeneral();
+            unlockFiveStarGeneral();
+            syncWallet(999999, true);
+            unlockAllPlanetsGodMode();
+            unlockAllBadgesGodMode();
+
+            try {
+              const maxCombatInventory: Record<string, number> = {
+                'oxygen-canister': 999,
+                'fuel-cell': 999,
+                'rad-shielding': 999,
+                'hull-plating': 999,
+                'hydroponic-rations': 999,
+                'emergency-scrubber': 999,
+              };
+              localStorage.setItem('jat_combat_inventory_v1', JSON.stringify(maxCombatInventory));
+              window.dispatchEvent(new Event('jat-inventory-updated'));
+            } catch {}
+
+            playVictory();
+            setGodModeBanner(
+              '⚡ DEVTEST26 GOD-MODE ACTIVATED: VIP Unlocked • 999,999 MC • All 9 Worlds & Max Inventory Granted'
+            );
+            setStatusMsg({
+              type: 'success',
+              text: '⚡ DEVTEST26 GOD-MODE ACTIVATED: 999,999 MC, VIP status, all 9 planets, all badges, and 999 supplies granted!',
+            });
+          } else {
+            playSuccess();
+            if (data.creditsBalance) {
+              syncWallet(data.creditsBalance);
+            }
+            setStatusMsg({
+              type: 'success',
+              text: data.message || `Promo code ${cleanCode} applied!`,
+            });
+          }
+          setPromoCodeInput('');
+          fetchWalletAndInventory();
+        } else {
+          playAlert();
+          setStatusMsg({
+            type: 'error',
+            text: data.error || 'Invalid or expired promo code.',
+          });
+        }
+      } catch {
+        playAlert();
+        setStatusMsg({
+          type: 'error',
+          text: 'Network failure while redeeming promo code.',
+        });
+      } finally {
+        setIsSubmittingPromo(false);
+      }
+    },
+    [promoCodeInput, activeCadet.cadetId, playClick, playVictory, playSuccess, playAlert, activateGeneral, syncWallet, fetchWalletAndInventory]
+  );
 
   // Handle Direct Store Buy
   const handleStoreBuy = useCallback(async (item: MarketplaceItemDef) => {
@@ -624,6 +712,58 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
             );
           })}
         </div>
+      </div>
+
+      {/* ── PROMO CODE REDEMPTION & DEVTEST26 QA OVERRIDE ── */}
+      <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0B1026] border border-cyan-500/30 shadow-lg space-y-2.5">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🎟️</span>
+            <div>
+              <span className="text-xs font-mono font-black text-cyan-300 uppercase tracking-wider block">
+                OUTPOST PROMO CODES &amp; QA OVERRIDE
+              </span>
+              <span className="text-[10px] text-starlight/70">
+                Enter an authorized telemetry key or QA bypass (e.g., <code className="text-amber-300 font-bold">DEVTEST26</code>).
+              </span>
+            </div>
+          </div>
+
+          <form onSubmit={handleRedeemPromo} className="flex items-center gap-2 w-full sm:w-auto">
+            <input
+              type="text"
+              value={promoCodeInput}
+              onChange={(e) => setPromoCodeInput(e.target.value)}
+              placeholder="ENTER PROMO CODE..."
+              className="px-3 py-1.5 rounded-xl bg-black/60 border border-slate-700 focus:border-cyan-400 text-xs text-white placeholder-slate-500 uppercase tracking-widest font-mono outline-none w-full sm:w-48 transition-all"
+              disabled={isSubmittingPromo}
+            />
+            <button
+              type="submit"
+              disabled={isSubmittingPromo || !promoCodeInput.trim()}
+              className="px-3.5 py-1.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 disabled:bg-slate-800 disabled:text-slate-500 text-slate-950 font-bold text-xs whitespace-nowrap transition-all shadow-sm cursor-pointer disabled:cursor-not-allowed hover:scale-105 active:scale-95"
+            >
+              {isSubmittingPromo ? 'VERIFYING...' : 'REDEEM'}
+            </button>
+          </form>
+        </div>
+
+        {/* Dramatic God-Mode Confirmation Banner */}
+        {godModeBanner && (
+          <div className="p-3 rounded-xl bg-gradient-to-r from-amber-500/20 via-purple-500/20 to-cyan-500/20 border-2 border-amber-400 text-amber-200 text-xs font-bold flex items-center justify-between gap-2 shadow-[0_0_20px_rgba(245,158,11,0.3)] animate-pulse">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">👑</span>
+              <span>{godModeBanner}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setGodModeBanner(null)}
+              className="text-white/60 hover:text-white px-2 py-0.5 rounded bg-black/40 text-xs cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── 4 NAVIGATION TABS & SEARCH ── */}

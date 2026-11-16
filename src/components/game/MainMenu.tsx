@@ -398,41 +398,45 @@ export default function MainMenu() {
       {/* Main Interactive Menu Hub */}
       <main className="w-full max-w-5xl mx-auto px-4 pt-3 pb-8 space-y-6">
         {/* Active Mission Resume Banner (Prominent if active save exists) */}
-        {activeSave && (
-          <div className="rounded-3xl border border-cyan-400/50 bg-[#111827] p-6 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-slide-up">
-            <div className="space-y-1 text-center sm:text-left">
-              <div className="flex items-center justify-center sm:justify-start gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
-                <span className="text-xs font-mono font-extrabold uppercase tracking-widest text-cyan-400">
-                  Active Telemetry Feed Available
-                </span>
+        {activeSave && (() => {
+          const saveCartridge = getPlanetCartridge(activeSave.planetId || 'mars');
+          const daySingular = saveCartridge.dayUnit?.singular || 'Sol';
+          return (
+            <div className="rounded-3xl border border-cyan-400/50 bg-[#111827] p-6 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-slide-up">
+              <div className="space-y-1 text-center sm:text-left">
+                <div className="flex items-center justify-center sm:justify-start gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
+                  <span className="text-xs font-mono font-extrabold uppercase tracking-widest text-cyan-400">
+                    Active Telemetry Feed Available
+                  </span>
+                </div>
+                <h3 className="font-heading font-extrabold text-xl sm:text-2xl text-white">
+                  {saveCartridge.name} Outpost • {daySingular} {activeSave.sol} of 30 ({activeSave.difficulty.toUpperCase()})
+                </h3>
+                <p className="text-xs text-[#F8FAFC]/80">
+                  ⚡ Power: <strong className="text-white">{activeSave.power}%</strong> • 🫁 O₂:{' '}
+                  <strong className="text-white">{activeSave.oxygen}%</strong> • 🛡️ Shield:{' '}
+                  <strong className="text-white">{activeSave.shielding}%</strong> • Score:{' '}
+                  <strong className="text-[#22C55E]">{activeSave.score} pts</strong>
+                </p>
               </div>
-              <h3 className="font-heading font-extrabold text-xl sm:text-2xl text-white">
-                Mars Outpost Sol {activeSave.sol} of 30 ({activeSave.difficulty.toUpperCase()})
-              </h3>
-              <p className="text-xs text-[#F8FAFC]/80">
-                ⚡ Power: <strong className="text-white">{activeSave.power}%</strong> • 🫁 O₂:{' '}
-                <strong className="text-white">{activeSave.oxygen}%</strong> • 🛡️ Shield:{' '}
-                <strong className="text-white">{activeSave.shielding}%</strong> • Score:{' '}
-                <strong className="text-[#22C55E]">{activeSave.score} pts</strong>
-              </p>
-            </div>
 
-            <Link
-              href="/game?resume=true"
-              onClick={playClick}
-              className="
-                px-8 py-4 rounded-2xl bg-cyan-400 hover:bg-cyan-300 border border-cyan-200
-                text-slate-950 font-heading font-extrabold text-lg
-                hover:scale-105 active:scale-95 transition-all shadow-sm
-                cursor-pointer flex-shrink-0 flex items-center gap-2 min-h-[48px]
-              "
-            >
-              <span>⏯️ Resume Mission</span>
-              <span className="text-xl">→</span>
-            </Link>
-          </div>
-        )}
+              <Link
+                href="/game?resume=true"
+                onClick={playClick}
+                className="
+                  px-8 py-4 rounded-2xl bg-cyan-400 hover:bg-cyan-300 border border-cyan-200
+                  text-slate-950 font-heading font-extrabold text-lg
+                  hover:scale-105 active:scale-95 transition-all shadow-sm
+                  cursor-pointer flex-shrink-0 flex items-center gap-2 min-h-[48px]
+                "
+              >
+                <span>⏯️ Resume Mission</span>
+                <span className="text-xl">→</span>
+              </Link>
+            </div>
+          );
+        })()}
 
         {/* ── 1. PRIMARY HERO LAUNCH PANEL (SOLAR SYSTEM EXPEDITIONS) ── */}
         <section className="bg-[#111827] rounded-3xl border border-slate-700/80 p-6 sm:p-8 md:p-10 shadow-xl relative overflow-hidden">

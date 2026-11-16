@@ -358,6 +358,17 @@ export function evaluateBadges(
   return { updatedProfile, newBadges };
 }
 
+/** DEVTEST26 God-Mode: Unlocks all cadet achievements and badges */
+export function unlockAllBadgesGodMode(): void {
+  const profile = getOrCreateCadetProfile();
+  const allBadgeIds = CADET_BADGES.map((b) => b.id);
+  const updated = {
+    ...profile,
+    badges: Array.from(new Set([...profile.badges, ...allBadgeIds])),
+  };
+  saveCadetProfile(updated, true);
+}
+
 /** React hook for managing single cadet player profile */
 export function useProfile() {
   const [profile, setProfileState] = useState<CadetProfile>(DEFAULT_PROFILE);

@@ -381,6 +381,8 @@ function applySolDepletion(state: GameState): GameState {
   const newState = applyEffects(state, depletionEffects, -1); // morale ticks down slightly
   const cartridge = getPlanetCartridge(state.planetId);
   const dayUnit = cartridge.dayUnit?.singular || 'Sol';
+  const planetLocation = cartridge.locations.find((l) => l.id === state.landingSite);
+  const activeSiteName = planetLocation ? planetLocation.name : (LANDING_SITES[siteId]?.name || 'Outpost Perimeter');
 
   const logEntry: LogEntry = {
     sol: state.sol,
@@ -388,7 +390,7 @@ function applySolDepletion(state: GameState): GameState {
     title: state.isEndlessTournament && state.sol > 30 ? '⚠️ Escalating Endless Decay' : `${dayUnit} Depletion`,
     description: state.isEndlessTournament && state.sol > 30
       ? `Compounding environmental degradation (${endlessMultiplier.toFixed(2)}x rate) stresses outpost life support.`
-      : `${cartridge.name} atmospheric conditions at ${site.name} take their toll.`,
+      : `${cartridge.name} atmospheric conditions at ${activeSiteName} take their toll.`,
     resourceChanges: depletionEffects,
     moraleChange: -1,
   };

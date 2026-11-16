@@ -1087,3 +1087,81 @@ export async function executeRecycleItem(options: {
     itemSlug,
   };
 }
+
+/**
+ * Redeem promo codes, including DEVTEST26 God-Mode QA override
+ */
+export async function redeemPromoCode(playerId: string, rawCode: string) {
+  const code = (rawCode || '').trim().toUpperCase();
+  if (!code) {
+    throw new Error('Promo code is required');
+  }
+
+  const sql = await getSqlClient();
+
+  if (code === 'DEVTEST26') {
+    if (sql) {
+      // 1. Set 999,999 credits in Postgres
+      await sql`
+        INSERT INTO player_wallets (player_id, credits_balance, updated_at)
+        VALUES (${playerId}, 999999, NOW())
+        ON CONFLICT (player_id)
+        DO UPDATE SET credits_balance = 999999, updated_at = NOW();
+      `;
+
+      // 2. Grant 999 of all catalog items
+      for (const item of Object.values(CATALOG_ITEMS)) {
+        await sql`
+          INSERT INTO player_inventory (id, player_id, item_slug, item_name, category, quantity, metadata_json)
+          VALUES (${'inv_' + playerId + '_' + item.slug}, ${playerId}, ${item.slug}, ${item.name}, ${item.category}, 999, '{}'::jsonb)
+          ON CONFLICT (player_id, item_slug)
+          DO UPDATE SET quantity = 999;
+        `;
+      }
+    } else {
+      const mem = getMemoryStore();
+      const wallet = await getPlayerWallet(playerId);
+      wallet.creditsBalance = 999999;
+      wallet.updatedAt = new Date().toISOString();
+
+      let pInv = mem.inventory.get(playerId);
+      if (!pInv) {
+        pInv = new Map();
+        mem.inventory.set(playerId, pInv);
+      }
+
+      for (const item of Object.values(CATALOG_ITEMS)) {
+        pInv.set(item.slug, {
+          id: `inv_${playerId}_${item.slug}`,
+          playerId,
+          itemSlug: item.slug,
+          itemName: item.name,
+          category: item.category,
+          quantity: 999,
+          metadataJson: {},
+        });
+      }
+    }
+
+    return {
+      success: true,
+      code: 'DEVTEST26',
+      creditsBalance: 999999,
+      isFiveStarGeneral: true,
+      message: '⚡ DEVTEST26 GOD-MODE ACTIVATED: VIP Unlocked • 999,999 MC • All 9 Worlds & Max Inventory Granted',
+    };
+  }
+
+  if (code === 'MARS2026') {
+    const reward = 500;
+    const res = await rewardPlayerCredits(playerId, reward);
+    return {
+      success: true,
+      code: 'MARS2026',
+      creditsBalance: res.newBalance,
+      message: `Promo code redeemed! +${reward} Mars Credits added.`,
+    };
+  }
+
+  throw new Error(`Invalid or expired promo code: ${code}`);
+}

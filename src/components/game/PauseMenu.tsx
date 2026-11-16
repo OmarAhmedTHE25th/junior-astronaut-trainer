@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button';
 import { useGame } from './GameProvider';
 import { useSound } from '@/lib/sound';
 import { getOrCreateCadetProfile } from '@/lib/profile';
+import { getPlanetCartridge } from '@/lib/planetCartridges';
 
 interface PauseMenuProps {
   isOpen: boolean;
@@ -19,6 +20,8 @@ export default function PauseMenu({ isOpen, onClose, onChangeDifficulty }: Pause
   const { state, dispatch, quitMission } = useGame();
   const { isMuted, toggleSound, playClick } = useSound();
   const [activeTab, setActiveTab] = useState<'menu' | 'rules' | 'science'>('menu');
+  const cartridge = getPlanetCartridge(state.planetId || 'earth');
+  const dayUnit = cartridge.dayUnit || { singular: 'Sol', plural: 'Sols' };
 
   const handleRestart = () => {
     playClick();
@@ -97,7 +100,7 @@ export default function PauseMenu({ isOpen, onClose, onChangeDifficulty }: Pause
             {/* Mission Status Header */}
             <div className="bg-[#0B1026]/80 rounded-xl p-3 border border-white/10 flex items-center justify-between text-xs">
               <span className="text-[#F8FAFC]/70">
-                Current Outpost: <strong className="text-white">Sol {state.sol} / {state.maxSol}</strong>
+                Current Outpost: <strong className="text-white">{cartridge.name} • {state.sol} / {state.maxSol} {dayUnit.plural.toLowerCase()}</strong>
               </span>
               <span className="px-2.5 py-1 rounded bg-[#6B3FA0]/30 text-[#E87040] font-mono font-bold uppercase">
                 {state.difficulty} Mode
@@ -170,11 +173,11 @@ export default function PauseMenu({ isOpen, onClose, onChangeDifficulty }: Pause
           <div className="space-y-3 text-xs text-[#F8FAFC]/80 max-h-[55vh] overflow-y-auto pr-1">
             <div className="p-3 bg-[#0B1026]/70 rounded-xl border border-white/10 space-y-1">
               <strong className="text-white text-sm block">Survival Conditions</strong>
-              <p>Survive 30 sols. If Power ⚡, Oxygen 🫁, or Shielding 🛡️ reaches 0%, mission ends.</p>
+              <p>Survive {state.maxSol || 30} {dayUnit.plural.toLowerCase()}. If Power ⚡, Oxygen 🫁, or Shielding 🛡️ reaches 0%, mission ends.</p>
             </div>
             <div className="p-3 bg-[#0B1026]/70 rounded-xl border border-white/10 space-y-1">
-              <strong className="text-white text-sm block">Natural Sol Consumption</strong>
-              <p>Each day uses Power (-8%), Oxygen (-6%), and Shielding (-3%).</p>
+              <strong className="text-white text-sm block">Natural {dayUnit.singular} Consumption</strong>
+              <p>Each {dayUnit.singular.toLowerCase()} uses Power (-8%), Oxygen (-6%), and Shielding (-3%).</p>
             </div>
             <div className="p-3 bg-[#0B1026]/70 rounded-xl border border-white/10 space-y-1">
               <strong className="text-white text-sm block">Crew Morale</strong>
