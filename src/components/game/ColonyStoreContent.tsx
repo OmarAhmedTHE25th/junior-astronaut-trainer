@@ -23,6 +23,7 @@ import {
   markDailyVaultClaimed,
   BATTLEPASS_TIERS,
 } from '@/lib/battlePass';
+import { useWallet } from '@/context/WalletContext';
 import SponsorAdModal from './SponsorAdModal';
 
 interface ColonyStoreContentProps {
@@ -45,9 +46,20 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
     currentTier,
     progress,
     activateGeneral,
-    isFiveStarGeneral,
+    isFiveStarGeneral: bpFiveStar,
     isDailyVaultReady,
   } = useBattlePass();
+
+  const {
+    creditsBalance,
+    isFiveStarGeneral: walletVip,
+    syncWallet,
+    adjustBalanceOptimistic,
+    refreshWallet,
+    inventory: walletInventory,
+  } = useWallet();
+
+  const isFiveStarGeneral = walletVip || bpFiveStar;
 
   const [mounted, setMounted] = useState(false);
 
@@ -63,8 +75,13 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
   const [searchQuery, setSearchQuery] = useState('');
 
   // Data state
-  const [wallet, setWallet] = useState<PlayerWallet | null>(null);
-  const [inventory, setInventory] = useState<PlayerInventoryItem[]>([]);
+  const wallet = useMemo<PlayerWallet>(() => ({
+    playerId: activeCadet.cadetId,
+    creditsBalance,
+    updatedAt: '',
+  }), [activeCadet.cadetId, creditsBalance]);
+
+  const [inventory, setInventory] = useState<PlayerInventoryItem[]>(walletInventory || []);
   const [isLoading, setIsLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(
@@ -91,6 +108,13 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
     } catch {}
   }, []);
 
+  // Sync inventory when walletInventory updates
+  useEffect(() => {
+    if (walletInventory && walletInventory.length > 0) {
+      setInventory(walletInventory);
+    }
+  }, [walletInventory]);
+
   // Fetch player wallet and inventory
   const fetchWalletAndInventory = useCallback(async () => {
     if (!isLoaded || !profile?.cadetId) return;
@@ -98,15 +122,14 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
       const res = await fetch(`/api/market/wallet?playerId=${encodeURIComponent(profile.cadetId)}`);
       if (!res.ok) return;
       const data = await res.json();
-      if (data.success && data.wallet) {
-        setWallet(data.wallet);
-        setInventory(data.inventory || []);
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new Event('jat-wallet-updated'));
+      if (data.success) {
+        if (data.wallet && typeof data.wallet.creditsBalance === 'number') {
+          syncWallet(data.wallet.creditsBalance);
         }
+        setInventory(data.inventory || []);
       }
     } catch {}
-  }, [isLoaded, profile?.cadetId]);
+  }, [isLoaded, profile?.cadetId, syncWallet]);
 
   useEffect(() => {
     if (isLoaded && profile?.cadetId) {
@@ -139,12 +162,13 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
         const bundle = STRIPE_BUNDLES.find((b) => b.id === bundleId);
         if (bundle) {
           const fulfillPurchase = async () => {
-            if (bundle.id === 'bundle-fivestar-pass' || bundle.isBattlePass) {
+            const isPass = bundle.id === 'bundle-fivestar-pass' || bundle.isBattlePass;
+            if (isPass) {
               activateGeneral();
             }
             if (bundle.mcAmount > 0) {
               try {
-                await fetch('/api/market/reward', {
+                const rRes = await fetch('/api/market/reward', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -152,11 +176,20 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
                     credits: bundle.mcAmount,
                   }),
                 });
+                const rData = await rRes.json();
+                if (rData.success && typeof rData.newBalance === 'number') {
+                  syncWallet(rData.newBalance, isPass ? true : undefined);
+                } else {
+                  adjustBalanceOptimistic(bundle.mcAmount);
+                }
               } catch (err) {
                 console.error('Failed to credit Mars Credits upon return:', err);
+                adjustBalanceOptimistic(bundle.mcAmount);
               }
+            } else if (isPass) {
+              syncWallet(creditsBalance, true);
             }
-            await fetchWalletAndInventory();
+            fetchWalletAndInventory();
             playVictory();
             setStatusMsg({
               type: 'success',
@@ -237,7 +270,12 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
           type: 'success',
           text: `Purchased ${qty}x ${item.name} for ${totalCost} MC. Added to your outpost inventory!`,
         });
-        await fetchWalletAndInventory();
+        if (typeof data.remainingCredits === 'number') {
+          syncWallet(data.remainingCredits);
+        } else {
+          adjustBalanceOptimistic(-totalCost);
+        }
+        fetchWalletAndInventory();
       } else {
         setStatusMsg({ type: 'error', text: data.error || 'Purchase failed' });
         playAlert();
@@ -278,7 +316,12 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
           text: `Recycled ${qty}x ${itemDef?.name || itemSlug} for +${data.refundCredits || totalRefund} MC refund!`,
         });
         setRecycleQuantities((prev) => ({ ...prev, [itemSlug]: 1 }));
-        await fetchWalletAndInventory();
+        if (typeof data.remainingCredits === 'number') {
+          syncWallet(data.remainingCredits);
+        } else {
+          adjustBalanceOptimistic(data.refundCredits || totalRefund);
+        }
+        fetchWalletAndInventory();
       } else {
         setStatusMsg({ type: 'error', text: data.error || 'Failed to recycle item' });
         playAlert();
@@ -349,7 +392,10 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
           type: 'success',
           text: `Claimed Tier ${tierNumber} ${isPremium ? 'VIP' : 'Free'} Reward: ${res.reward.label}!`,
         });
-        await fetchWalletAndInventory();
+        if (res.reward.mcAmount) {
+          adjustBalanceOptimistic(res.reward.mcAmount);
+        }
+        fetchWalletAndInventory();
       } else {
         setStatusMsg({ type: 'error', text: res.error || 'Failed to claim reward' });
         playAlert();
@@ -401,6 +447,9 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
           markDailyVaultClaimed();
         }
         setPityCount(data.pityCount ?? 0);
+        if (typeof data.newBalance === 'number') {
+          syncWallet(data.newBalance);
+        }
 
         // Dramatic capsule decompression pause (700ms)
         setTimeout(() => {
@@ -1492,6 +1541,11 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
         rewardMode="credits"
         cadetId={profile?.cadetId || activeCadet?.cadetId}
         onRewardClaimed={(credits) => {
+          if (credits) {
+            adjustBalanceOptimistic(credits);
+          } else {
+            adjustBalanceOptimistic(150);
+          }
           setStatusMsg({
             type: 'success',
             text: `🍔 Sponsor Broadcast Completed! +${credits || 150} Mars Credits credited to your wallet.`,

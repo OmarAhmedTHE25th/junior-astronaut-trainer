@@ -59,7 +59,7 @@ export interface UseGuildReturn {
     callsign: string;
     avatar: string;
     isFiveStarGeneral?: boolean;
-  }) => Promise<{ success: boolean; guild?: Guild; error?: string }>;
+  }) => Promise<{ success: boolean; guild?: Guild; remainingCredits?: number; error?: string }>;
   joinGuild: (guildId: string, cadet: { cadetId: string; callsign: string; avatar: string }) => Promise<{ success: boolean; guild?: Guild; error?: string }>;
   leaveGuild: (guildId: string, cadetId: string) => Promise<{ success: boolean; error?: string }>;
   donate: (guildId: string, cadetId: string, amount: number) => Promise<{ success: boolean; guild?: Guild; member?: GuildMember; remainingCredits?: number; error?: string }>;
@@ -155,7 +155,7 @@ export function useGuild(cadetId?: string): UseGuildReturn {
           setCurrentGuildState(data.guild);
           setStoredGuild(data.guild);
           await refreshGuilds();
-          return { success: true, guild: data.guild };
+          return { success: true, guild: data.guild, remainingCredits: data.remainingCredits };
         } else {
           const err = data.error || 'Failed to create guild';
           setError(err);
@@ -187,7 +187,7 @@ export function useGuild(cadetId?: string): UseGuildReturn {
           setCurrentGuildState(data.guild);
           setStoredGuild(data.guild);
           await refreshGuilds();
-          return { success: true, guild: data.guild };
+          return { success: true, guild: data.guild, remainingCredits: data.remainingCredits };
         } else {
           const err = data.error || 'Failed to join guild';
           setError(err);

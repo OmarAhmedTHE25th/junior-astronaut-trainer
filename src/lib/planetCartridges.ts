@@ -1665,7 +1665,7 @@ export function unlockPlanetX(): void {
 export function isPlanetUnlocked(
   planetId: PlanetId,
   isFiveStarGeneral = false,
-  bestScores?: Record<PlanetId, number>
+  bestScores?: Partial<Record<PlanetId, number>>
 ): boolean {
   // 1. VIP Five-Star Generals have all 9 sectors unconditionally unlocked
   if (isFiveStarGeneral) return true;

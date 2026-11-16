@@ -7,6 +7,7 @@ import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import { useProfile } from '@/lib/profile';
 import { useBattlePass } from '@/lib/battlePass';
+import { useWallet } from '@/context/WalletContext';
 import { useGuild } from '@/lib/guildClient';
 import {
   GUILD_EMBLEM_OPTIONS,
@@ -31,7 +32,8 @@ type ModalTab = 'my_guild' | 'directory' | 'leaderboard';
 export default function GuildModal({ isOpen, onClose }: GuildModalProps) {
   const { profile } = useProfile();
   const { state: bpState } = useBattlePass();
-  const isFiveStar = Boolean(bpState.isFiveStarGeneral);
+  const { creditsBalance: walletMC, syncWallet, isFiveStarGeneral: walletVip } = useWallet();
+  const isFiveStar = walletVip || Boolean(bpState.isFiveStarGeneral);
 
   const {
     currentGuild,
@@ -45,7 +47,6 @@ export default function GuildModal({ isOpen, onClose }: GuildModalProps) {
   } = useGuild(profile.cadetId);
 
   const [activeTab, setActiveTab] = useState<ModalTab>('my_guild');
-  const [walletMC, setWalletMC] = useState<number>(0);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   // Directory search
@@ -63,25 +64,8 @@ export default function GuildModal({ isOpen, onClose }: GuildModalProps) {
   const [customDonateAmount, setCustomDonateAmount] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch player's wallet balance
-  const fetchWallet = async () => {
-    if (!profile.cadetId) return;
-    try {
-      const res = await fetch(`/api/market/wallet?playerId=${encodeURIComponent(profile.cadetId)}`);
-      const data = await res.json();
-      const credits = data.wallet?.creditsBalance ?? data.creditsBalance;
-      if (data.success && typeof credits === 'number') {
-        setWalletMC(credits);
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new Event('jat-wallet-updated'));
-        }
-      }
-    } catch {}
-  };
-
   useEffect(() => {
     if (isOpen) {
-      fetchWallet();
       refreshGuilds();
       if (!currentGuild) {
         setActiveTab('directory');
@@ -141,7 +125,9 @@ export default function GuildModal({ isOpen, onClose }: GuildModalProps) {
       setFormTag('');
       setFormMotto('');
       setActiveTab('my_guild');
-      fetchWallet();
+      if (typeof res.remainingCredits === 'number') {
+        syncWallet(res.remainingCredits);
+      }
     } else {
       setFormError(res.error || 'Failed to commission alliance');
       playWarning();
@@ -218,7 +204,9 @@ export default function GuildModal({ isOpen, onClose }: GuildModalProps) {
     if (res.success && res.guild) {
       playSuccess();
       showToast(`Contributed ${amount.toLocaleString()} MC to ${res.guild.name} Treasury!`, 'success');
-      fetchWallet();
+      if (typeof res.remainingCredits === 'number') {
+        syncWallet(res.remainingCredits);
+      }
       setCustomDonateAmount('');
     } else {
       showToast(res.error || 'Donation failed', 'error');

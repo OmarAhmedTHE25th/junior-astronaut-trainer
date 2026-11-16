@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useSound } from '@/lib/sound';
 import { useBattlePass } from '@/lib/battlePass';
+import { useWallet } from '@/context/WalletContext';
 import { useProfile } from '@/lib/profile';
 import {
   type PlanetId,
@@ -23,15 +24,18 @@ function PlanetBriefingContent() {
   const { playClick, playAction, playAlert } = useSound();
   const { profile } = useProfile();
   const { state: bpState } = useBattlePass();
-  const isFiveStar = Boolean(bpState.isFiveStarGeneral);
+  const { creditsBalance, isFiveStarGeneral: walletVip } = useWallet();
+  const isFiveStar = walletVip || Boolean(bpState.isFiveStarGeneral);
 
   const cartridge = useMemo(() => getPlanetCartridge(planetParam), [planetParam]);
+  const [mounted, setMounted] = useState<boolean>(false);
   const [selectedSite, setSelectedSite] = useState<string>(() => cartridge.locations[0]?.id || 'site_1');
   const [gameMode, setGameMode] = useState<'standard' | 'timed' | 'endless'>('standard');
   const [imageError, setImageError] = useState<boolean>(false);
   const [bestScores, setBestScores] = useState<Record<PlanetId, number>>({} as Record<PlanetId, number>);
 
   useEffect(() => {
+    setMounted(true);
     if (typeof window !== 'undefined') {
       setBestScores(getPlanetBestScores());
     }
@@ -41,8 +45,8 @@ function PlanetBriefingContent() {
   }, [cartridge]);
 
   const isUnlocked = useMemo(() => {
-    return isPlanetUnlocked(cartridge.id, isFiveStar, bestScores);
-  }, [cartridge.id, isFiveStar, bestScores]);
+    return isPlanetUnlocked(cartridge.id, isFiveStar, mounted ? bestScores : {});
+  }, [cartridge.id, isFiveStar, bestScores, mounted]);
 
   const prevCartridge = cartridge.prevPlanetId ? PLANET_CARTRIDGES[cartridge.prevPlanetId] : null;
   const prevScore = cartridge.prevPlanetId ? bestScores[cartridge.prevPlanetId] || 0 : 0;
@@ -158,8 +162,17 @@ function PlanetBriefingContent() {
             </div>
           </div>
 
-          {/* VIP Status or Best Score */}
+          {/* VIP Status, Balance or Best Score */}
           <div className="flex items-center gap-2">
+            <Link
+              href="/store"
+              onClick={playClick}
+              className="px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/40 text-amber-300 font-mono text-xs font-bold hover:bg-amber-500/20 transition-all flex items-center gap-1.5 shadow-sm"
+              title="Colony Store & Gear"
+            >
+              <span>💰</span>
+              <span>{creditsBalance} MC</span>
+            </Link>
             {isFiveStar && (
               <span className="px-3 py-1 rounded-xl bg-amber-500/20 border border-amber-400 text-amber-300 font-mono text-xs font-bold flex items-center gap-1.5">
                 <span>👑</span>

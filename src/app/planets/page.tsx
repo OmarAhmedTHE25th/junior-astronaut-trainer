@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useSound } from '@/lib/sound';
 import { useBattlePass } from '@/lib/battlePass';
+import { useWallet } from '@/context/WalletContext';
 import {
   type PlanetId,
   ORDERED_PLANET_IDS,
@@ -17,8 +18,10 @@ import {
 export default function PlanetsMapPage() {
   const { playClick, playAlert, playSuccess } = useSound();
   const { state: bpState } = useBattlePass();
-  const isFiveStar = Boolean(bpState.isFiveStarGeneral);
+  const { creditsBalance, isFiveStarGeneral: walletVip } = useWallet();
+  const isFiveStar = walletVip || Boolean(bpState.isFiveStarGeneral);
 
+  const [mounted, setMounted] = useState<boolean>(false);
   const [bestScores, setBestScores] = useState<Record<PlanetId, number>>({} as Record<PlanetId, number>);
   const [isEasterEgg, setIsEasterEgg] = useState<boolean>(false);
   const [kuiperClicks, setKuiperClicks] = useState<number>(0);
@@ -32,6 +35,7 @@ export default function PlanetsMapPage() {
   }, []);
 
   useEffect(() => {
+    setMounted(true);
     refreshState();
     window.addEventListener('jat-planet-score-updated', refreshState);
     window.addEventListener('jat-planet-unlocked', refreshState);
@@ -98,13 +102,26 @@ export default function PlanetsMapPage() {
             </div>
           </div>
 
-          {/* VIP Five-Star General Status Banner */}
-          {isFiveStar && (
-            <div className="px-4 py-2 rounded-2xl bg-amber-500/20 border border-amber-400/80 text-amber-300 font-mono text-xs font-bold shadow-[0_0_15px_rgba(251,191,36,0.3)] animate-pulse flex items-center gap-2">
-              <span>👑</span>
-              <span>FIVE-STAR GENERAL: ALL 9 SECTORS UNLOCKED</span>
-            </div>
-          )}
+          {/* Header Action & Status Bar */}
+          <div className="flex items-center gap-3">
+            <Link
+              href="/store"
+              onClick={playClick}
+              className="px-3.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/40 text-amber-300 font-mono text-xs font-bold hover:bg-amber-500/20 transition-all flex items-center gap-1.5 shadow-sm"
+              title="Colony Store & Gear"
+            >
+              <span>💰</span>
+              <span>{creditsBalance} MC</span>
+            </Link>
+
+            {/* VIP Five-Star General Status Banner */}
+            {isFiveStar && (
+              <div className="px-4 py-2 rounded-2xl bg-amber-500/20 border border-amber-400/80 text-amber-300 font-mono text-xs font-bold shadow-[0_0_15px_rgba(251,191,36,0.3)] animate-pulse flex items-center gap-2">
+                <span>👑</span>
+                <span>FIVE-STAR GENERAL: ALL 9 SECTORS UNLOCKED</span>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -146,7 +163,7 @@ export default function PlanetsMapPage() {
           {ORDERED_PLANET_IDS.map((pid) => {
             const pCart = PLANET_CARTRIDGES[pid];
             const isSecret = Boolean(pCart.secret);
-            const isUnlocked = isPlanetUnlocked(pid, isFiveStar, bestScores);
+            const isUnlocked = isPlanetUnlocked(pid, isFiveStar, mounted ? bestScores : {});
 
             // Stealth Planet X: Completely hide while locked!
             if (isSecret && !isUnlocked) {

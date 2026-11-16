@@ -7,6 +7,7 @@ import LiveTelemetryTicker from './LiveTelemetryTicker';
 import { useSound } from '@/lib/sound';
 import { useProfile, getOrCreateCadetProfile, DEFAULT_PROFILE } from '@/lib/profile';
 import { useBattlePass } from '@/lib/battlePass';
+import { useWallet } from '@/context/WalletContext';
 import { useGuild } from '@/lib/guildClient';
 import { SPECIALTY_METAS } from '@/lib/types';
 import type { GameState } from '@/lib/types';
@@ -51,7 +52,8 @@ export default function MainMenu() {
   const { isMuted, toggleSound, playClick } = useSound();
   const { profile, isLoaded } = useProfile();
   const { state: bpState } = useBattlePass();
-  const isFiveStar = bpState.isFiveStarGeneral;
+  const { creditsBalance: walletCredits, isFiveStarGeneral: walletIsFiveStar } = useWallet();
+  const isFiveStar = walletIsFiveStar || bpState.isFiveStarGeneral;
 
   // Modals state
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
@@ -77,8 +79,7 @@ export default function MainMenu() {
   // Solar System Planetary Cartridge State
   const [highestSector, setHighestSector] = useState<{ sector: string; name: string } | null>(null);
 
-  // Commander dynamic stats: Mars Credits, Rank, Pet
-  const [walletCredits, setWalletCredits] = useState<number>(500);
+  // Commander dynamic stats: Rank, Pet
   const [rankMeta, setRankMeta] = useState<RankMetaState>({
     badge: '🎖️',
     title: 'Cadet',
@@ -139,16 +140,7 @@ export default function MainMenu() {
     if (!isLoaded || !profile?.cadetId) return;
 
     try {
-      // 1. Fetch wallet directly for the loaded cadet ID
-      const wRes = await fetch(`/api/market/wallet?playerId=${encodeURIComponent(profile.cadetId)}`);
-      if (wRes.ok) {
-        const wData = await wRes.json();
-        if (wData.success && wData.wallet) {
-          setWalletCredits(wData.wallet.creditsBalance ?? 500);
-        }
-      }
-
-      // 2. Fetch commander profile (Rank tier & equipped pet)
+      // 1. Fetch commander profile (Rank tier & equipped pet)
       const callsign = profile.callsign || 'CDR-NOVA';
       const pRes = await fetch(`/api/profile/${encodeURIComponent(callsign)}`);
       if (pRes.ok) {

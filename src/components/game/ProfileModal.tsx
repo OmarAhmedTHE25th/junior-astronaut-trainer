@@ -81,6 +81,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       localStorage.removeItem('jat_local_leaderboard_v1');
       localStorage.removeItem('jat_crate_pity_v1');
       localStorage.removeItem('jat_battlepass_v1');
+      localStorage.removeItem(`jat_wallet_cache_${profile.cadetId}`);
     } catch {}
     const res = await purgeCadetData(profile.cadetId);
     if (res.success) {

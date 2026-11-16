@@ -221,6 +221,7 @@ export async function purgeCadetCompletely(cadetId: string): Promise<{ success: 
       localStorage.removeItem('jat_battlepass_v1');
       localStorage.removeItem('jat_crate_pity_v1');
       localStorage.removeItem('jat_guild_v1');
+      localStorage.removeItem(`jat_wallet_cache_${cadetId}`);
     } catch {}
   }
 
@@ -230,6 +231,11 @@ export async function purgeCadetCompletely(cadetId: string): Promise<{ success: 
     localStorage.setItem(PROFILE_KEY, JSON.stringify(nextActive));
   } catch {}
   profileListeners.forEach((fn) => fn(nextActive));
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('jat-profile-updated', { detail: { cadetId: nextActive.cadetId } }));
+    window.dispatchEvent(new Event('jat-wallet-updated'));
+  }
 
   return { success: true, newActiveProfile: nextActive };
 }
