@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 import LiveTelemetryTicker from './LiveTelemetryTicker';
 import { useSound } from '@/lib/sound';
 import { useProfile, getOrCreateCadetProfile, DEFAULT_PROFILE } from '@/lib/profile';
-import { useBattlePass } from '@/lib/battlePass';
+import { useBattlePass, getClaimableTiersCount, getTierFromXP, getTierProgressXP } from '@/lib/battlePass';
 import { useWallet } from '@/context/WalletContext';
 import { useGuild } from '@/lib/guildClient';
 import { SPECIALTY_METAS, type Difficulty } from '@/lib/types';
@@ -34,6 +34,7 @@ const BattleRoyaleModal = dynamic(() => import('./BattleRoyaleModal'), { ssr: fa
 const GameModesModal = dynamic(() => import('./GameModesModal'), { ssr: false });
 const PetHangarModal = dynamic(() => import('./PetHangarModal'), { ssr: false });
 const GuildModal = dynamic(() => import('./GuildModal'), { ssr: false });
+const BattlePassModal = dynamic(() => import('./BattlePassModal'), { ssr: false });
 
 interface RankMetaState {
   badge: string;
@@ -87,6 +88,7 @@ export default function MainMenu() {
   const [isGameModesOpen, setIsGameModesOpen] = useState(false);
   const [isHangarOpen, setIsHangarOpen] = useState(false);
   const [isGuildOpen, setIsGuildOpen] = useState(false);
+  const [isBattlePassOpen, setIsBattlePassOpen] = useState(false);
 
   // Private squad code passed from GameModesModal
   const [privateRoomCode, setPrivateRoomCode] = useState<string>('');
@@ -345,6 +347,38 @@ export default function MainMenu() {
               Store &amp; Gear →
             </span>
           </Link>
+
+          {/* Galactic Battle Pass Modal Button */}
+          <button
+            type="button"
+            onClick={() => {
+              playClick();
+              setIsBattlePassOpen(true);
+            }}
+            className="
+              flex items-center gap-2 px-3 py-1.5 rounded-xl
+              bg-[#121936] border border-cyan-400/50 hover:border-cyan-300
+              transition-all hover:scale-105 active:scale-95 cursor-pointer
+              shadow-sm min-h-[40px] text-xs font-mono text-cyan-200
+            "
+            title="Galactic Command Pass & VIP Season Telemetry"
+          >
+            <span className="text-base select-none">⭐</span>
+            <div className="text-left leading-none">
+              <span className="text-white font-bold block text-[11px]">
+                Pass T{getTierFromXP(bpState.xp)}
+              </span>
+              <span className="text-[9px] text-cyan-300 font-mono">
+                {getClaimableTiersCount(bpState, isFiveStar) > 0 ? (
+                  <span className="text-amber-400 font-bold animate-pulse">
+                    ✨ {getClaimableTiersCount(bpState, isFiveStar)} Claimable
+                  </span>
+                ) : (
+                  `${getTierProgressXP(bpState.xp).percent}% to T${Math.min(10, getTierFromXP(bpState.xp) + 1)}`
+                )}
+              </span>
+            </div>
+          </button>
 
           {/* Orbital Guilds & Alliances Button */}
           <button
@@ -742,6 +776,17 @@ export default function MainMenu() {
         onClose={() => {
           setIsGuildOpen(false);
           fetchCommanderData();
+        }}
+      />
+
+      <BattlePassModal
+        isOpen={isBattlePassOpen}
+        onClose={() => {
+          setIsBattlePassOpen(false);
+          fetchCommanderData();
+        }}
+        onOpenStore={() => {
+          window.location.assign('/store');
         }}
       />
     </>

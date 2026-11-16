@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { GameProvider } from "@/components/game/GameProvider";
 import GameBoard from "@/components/game/GameBoard";
 import type { Difficulty, GameState, LandingSiteId } from "@/lib/types";
@@ -30,7 +31,8 @@ const difficulties: { value: Difficulty; label: string; emoji: string; desc: str
   },
 ];
 
-export default function GamePage() {
+function GamePageContent() {
+  const searchParams = useSearchParams();
   const { profile, isLoaded } = useProfile();
   const [launched, setLaunched] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty>("commander");
@@ -60,19 +62,18 @@ export default function GamePage() {
   useEffect(() => {
     setMounted(true);
     try {
-      const search = window.location.search;
-      const params = new URLSearchParams(search);
-      const squadParam = params.get("squad");
-      const matchParam = params.get("matchId");
-      const timedParam = params.get("timed");
-      const tacticalParam = params.get("tactical");
+      const squadParam = searchParams.get("squad");
+      const matchParam = searchParams.get("matchId");
+      const timedParam = searchParams.get("timed");
+      const tacticalParam = searchParams.get("tactical");
       if (tacticalParam) {
         setEquippedTactical(tacticalParam);
       }
-      const tournamentIdParam = params.get("tournamentId");
-      const autoLaunchParam = params.get("launch") === "true";
-      const planetParam = params.get("planet") as PlanetId | null;
-      const isExplicitLaunch = autoLaunchParam || Boolean(planetParam);
+      const tournamentIdParam = searchParams.get("tournamentId");
+      const autoLaunchParam = searchParams.get("launch") === "true";
+      const planetParam = searchParams.get("planet") as PlanetId | null;
+      const runParam = searchParams.get("run");
+      const isExplicitLaunch = autoLaunchParam || Boolean(planetParam) || Boolean(runParam);
 
       // Force fresh state on explicit launch
       if (isExplicitLaunch) {
@@ -84,7 +85,7 @@ export default function GamePage() {
         setLaunchNonce(Date.now());
       }
 
-      const diffParam = params.get("difficulty") as Difficulty | null;
+      const diffParam = searchParams.get("difficulty") as Difficulty | null;
       if (diffParam && ["cadet", "commander", "pioneer"].includes(diffParam)) {
         setDifficulty(diffParam);
       } else {
@@ -100,7 +101,7 @@ export default function GamePage() {
         setIsTimedMode(true);
       }
 
-      const siteParam = params.get("site");
+      const siteParam = searchParams.get("site");
       if (planetParam && ORDERED_PLANET_IDS.includes(planetParam)) {
         setPlanetId(planetParam);
         if (siteParam) {
@@ -124,10 +125,10 @@ export default function GamePage() {
       }
 
       if (tournamentIdParam) {
-        const tMatchId = params.get("matchId") || "match-1";
-        const tSeed = Number(params.get("seed")) || 777777;
-        const rivalName = params.get("rival") || "Rival Cadet";
-        const rivalAvatar = params.get("rivalAvatar") || "🤖";
+        const tMatchId = searchParams.get("matchId") || "match-1";
+        const tSeed = Number(searchParams.get("seed")) || 777777;
+        const rivalName = searchParams.get("rival") || "Rival Cadet";
+        const rivalAvatar = searchParams.get("rivalAvatar") || "🤖";
 
         setTournamentMeta({
           tournamentId: tournamentIdParam,
@@ -240,7 +241,7 @@ export default function GamePage() {
             if (parsed.isTimedMode !== undefined) {
               setIsTimedMode(parsed.isTimedMode);
             }
-            if (search.includes("resume=true")) {
+            if (searchParams.get("resume") === "true") {
               setIsResuming(true);
               setLaunched(true);
             } else {
@@ -253,7 +254,7 @@ export default function GamePage() {
         }
       }
     } catch {}
-  }, []);
+  }, [searchParams]);
 
   if (!launched) {
     return (
@@ -483,7 +484,7 @@ export default function GamePage() {
 
   return (
     <GameProvider
-      key={`${planetId}-${landingSite}-${launchNonce}`}
+      key={`${planetId}-${landingSite}-${searchParams.get('run') || 'init'}`}
       difficulty={difficulty}
       specialty={activeCadet.specialty}
       landingSite={landingSite}
@@ -525,5 +526,19 @@ export default function GamePage() {
         }}
       />
     </GameProvider>
+  );
+}
+
+export default function GamePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#0B1026] flex items-center justify-center text-cyan-400 font-mono text-sm">
+          INITIALIZING TELEMETRY...
+        </div>
+      }
+    >
+      <GamePageContent />
+    </Suspense>
   );
 }

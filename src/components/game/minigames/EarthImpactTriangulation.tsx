@@ -506,16 +506,16 @@ export default function EarthImpactTriangulation() {
       </div>
 
       {/* ── 8x8 RADAR GRID VIEWPORT ── */}
-      <div className="relative p-3 rounded-2xl bg-[#030712] border border-cyan-500/40 shadow-inner flex flex-col items-center">
+      <div className="relative w-full max-w-[520px] sm:max-w-[580px] mx-auto p-3 sm:p-4 rounded-3xl bg-[#030712] border border-cyan-500/40 shadow-inner flex flex-col items-center">
         {/* Column Coordinates Header (A - H) */}
-        <div className="grid grid-cols-8 gap-1.5 mb-1.5 w-full max-w-[480px] text-center text-[10px] font-bold text-cyan-400/80">
+        <div className="grid grid-cols-8 gap-2 mb-2 w-full text-center text-[10px] sm:text-xs font-bold text-cyan-400/80">
           {COLS.map((col) => (
             <span key={col}>{col}</span>
           ))}
         </div>
 
         {/* Main Grid */}
-        <div className="grid grid-cols-8 gap-1.5 w-full max-w-[480px]">
+        <div className="grid grid-cols-8 gap-2 w-full">
           {grid.map((row, r) =>
             row.map((cell, c) => {
               const coordStr = `${COLS[c]}${r + 1}`;
@@ -575,7 +575,7 @@ export default function EarthImpactTriangulation() {
                   onClick={() => handleCellClick(r, c)}
                   disabled={cell.isImpact || cell.scanned}
                   className={`
-                    aspect-square rounded-xl border transition-all duration-150 flex items-center justify-center p-0.5 relative cursor-pointer
+                    aspect-square w-full min-w-[44px] sm:min-w-[56px] flex flex-col items-center justify-center rounded-xl border transition-all duration-150 p-1 relative cursor-pointer
                     ${cellBg}
                     ${cell.isImpact || cell.scanned ? 'cursor-default' : 'active:scale-95'}
                   `}

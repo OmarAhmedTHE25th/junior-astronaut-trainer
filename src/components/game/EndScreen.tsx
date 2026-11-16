@@ -270,6 +270,11 @@ export default function EndScreen() {
       localStorage.removeItem('jat_active_save_v1');
     } catch {}
     dispatch({ type: 'RESTART' });
+    const targetPlanet = state.planetId || 'earth';
+    const targetSite = state.landingSite || (targetPlanet === 'earth' ? 'iss_zenith' : 'site_1');
+    const runNonce = Date.now();
+    router.push(`/game?planet=${targetPlanet}&site=${targetSite}&launch=true&run=${runNonce}`);
+    router.refresh();
   };
 
   const handleReturnToCommandCenter = () => {
@@ -836,7 +841,7 @@ export default function EndScreen() {
           {/* Action Buttons */}
           <div className="space-y-2.5 no-print">
             <Button variant="primary" size="lg" onClick={handlePlayAgain} className="w-full justify-center">
-              🚀 Play Another Mission
+              🚀 Launch New Game / Play Again
             </Button>
             <button
               type="button"

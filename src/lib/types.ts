@@ -100,6 +100,8 @@ export interface GameState {
   specialty?: CadetSpecialty;
   /** Chosen landing site on Mars */
   landingSite?: LandingSiteId;
+  /** Unique identifier for the active mission run instance (refreshed on restart) */
+  runId?: string;
   /** Sol-by-sol telemetry history for analytics curves */
   telemetryHistory?: TelemetryPoint[];
   /** Cadet who owns this mission run */

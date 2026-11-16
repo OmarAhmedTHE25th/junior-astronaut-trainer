@@ -238,6 +238,197 @@ export function markDailyVaultClaimed(): void {
   });
 }
 
+/** Check how many unclaimed tier rewards are available right now (Free + VIP if general) */
+export function getClaimableTiersCount(state: BattlePassState, isVipOverride?: boolean): number {
+  const isVip = Boolean(isVipOverride ?? state.isFiveStarGeneral);
+  const activeTier = getTierFromXP(state.xp);
+  let count = 0;
+  for (const tierDef of BATTLEPASS_TIERS) {
+    if (tierDef.tier <= activeTier) {
+      if (!state.claimedFreeTiers.includes(tierDef.tier)) {
+        count++;
+      }
+      if (isVip && !state.claimedPremiumTiers.includes(tierDef.tier)) {
+        count++;
+      }
+    }
+  }
+  return count;
+}
+
+export interface BatchClaimItemResult {
+  slug: string;
+  quantity: number;
+  label: string;
+  icon: string;
+}
+
+export interface BatchClaimResult {
+  success: boolean;
+  claimedCount: number;
+  totalCoinsEarned: number;
+  unlockedItems: BatchClaimItemResult[];
+  unlockedTitles: string[];
+  error?: string;
+}
+
+/**
+ * Claim all unlocked, unclaimed Battle Pass tier rewards in a single batched operation.
+ * - Finds every eligible tier up to current XP (Free track + VIP track if isVip).
+ * - Updates localStorage in a single write.
+ * - Sums Galaxy Coin rewards into a single /api/market/reward credit transaction.
+ * - Grants items via /api/market/store-buy.
+ * - Updates synchronous wallet and notifies listeners.
+ */
+export async function claimAllBattlePassRewards(
+  playerId: string,
+  isVip?: boolean
+): Promise<BatchClaimResult> {
+  const current = getBattlePassState();
+  const isUserVip = Boolean(isVip ?? current.isFiveStarGeneral);
+  const activeTier = getTierFromXP(current.xp);
+
+  const eligibleTiers = BATTLEPASS_TIERS.filter((t) => t.tier <= activeTier);
+  const freeTiersToClaim: number[] = [];
+  const premiumTiersToClaim: number[] = [];
+
+  for (const tierDef of eligibleTiers) {
+    if (!current.claimedFreeTiers.includes(tierDef.tier)) {
+      freeTiersToClaim.push(tierDef.tier);
+    }
+    if (isUserVip && !current.claimedPremiumTiers.includes(tierDef.tier)) {
+      premiumTiersToClaim.push(tierDef.tier);
+    }
+  }
+
+  const totalRewardsToClaim = freeTiersToClaim.length + premiumTiersToClaim.length;
+  if (totalRewardsToClaim === 0) {
+    return {
+      success: true,
+      claimedCount: 0,
+      totalCoinsEarned: 0,
+      unlockedItems: [],
+      unlockedTitles: [],
+    };
+  }
+
+  let totalCoins = 0;
+  const itemMap = new Map<string, { quantity: number; label: string; icon: string }>();
+  const titles: string[] = [];
+
+  const processReward = (reward: BattlePassReward) => {
+    if (reward.mcAmount && reward.mcAmount > 0) {
+      totalCoins += reward.mcAmount;
+    }
+    if (reward.itemSlug && reward.quantity) {
+      const existing = itemMap.get(reward.itemSlug);
+      if (existing) {
+        existing.quantity += reward.quantity;
+      } else {
+        itemMap.set(reward.itemSlug, {
+          quantity: reward.quantity,
+          label: reward.label,
+          icon: reward.icon,
+        });
+      }
+    }
+    if (reward.titleName && !titles.includes(reward.titleName)) {
+      titles.push(reward.titleName);
+    }
+  };
+
+  // Collect Free track rewards
+  for (const tNum of freeTiersToClaim) {
+    const def = BATTLEPASS_TIERS.find((t) => t.tier === tNum);
+    if (def) processReward(def.freeReward);
+  }
+
+  // Collect Premium track rewards
+  for (const tNum of premiumTiersToClaim) {
+    const def = BATTLEPASS_TIERS.find((t) => t.tier === tNum);
+    if (def) processReward(def.premiumReward);
+  }
+
+  // 1. Single write to localStorage
+  const nextClaimedFree = [...new Set([...current.claimedFreeTiers, ...freeTiersToClaim])].sort((a, b) => a - b);
+  const nextClaimedPremium = isUserVip
+    ? [...new Set([...current.claimedPremiumTiers, ...premiumTiersToClaim])].sort((a, b) => a - b)
+    : current.claimedPremiumTiers;
+
+  const nextState: BattlePassState = {
+    ...current,
+    claimedFreeTiers: nextClaimedFree,
+    claimedPremiumTiers: nextClaimedPremium,
+  };
+  saveBattlePassState(nextState);
+
+  // 2. Batched Coins Grant in a single transaction
+  if (totalCoins > 0 && playerId) {
+    try {
+      await fetch('/api/market/reward', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerId, credits: totalCoins }),
+      });
+    } catch (err) {
+      console.error('Batch credit grant error:', err);
+    }
+  }
+
+  // 3. Batched Items Grants
+  for (const [slug, itemData] of itemMap.entries()) {
+    if (playerId) {
+      try {
+        await fetch('/api/market/store-buy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            playerId,
+            itemSlug: slug,
+            quantity: itemData.quantity,
+            isGrant: true,
+          }),
+        });
+      } catch (err) {
+        console.error(`Batch item grant error for ${slug}:`, err);
+      }
+    }
+  }
+
+  // 4. Update synchronous wallet cache and notify UI
+  try {
+    const { readSynchronousWallet, writeSynchronousWallet } = await import('@/context/WalletContext');
+    const cached = readSynchronousWallet(playerId);
+    writeSynchronousWallet(playerId, {
+      ...cached,
+      creditsBalance: (cached?.creditsBalance ?? 0) + totalCoins,
+      isFiveStarGeneral: isUserVip,
+    });
+  } catch {}
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('jat-wallet-updated'));
+    window.dispatchEvent(
+      new CustomEvent('jat_battlepass_claimed', {
+        detail: { claimedCount: totalRewardsToClaim, totalCoins, titles },
+      })
+    );
+  }
+
+  return {
+    success: true,
+    claimedCount: totalRewardsToClaim,
+    totalCoinsEarned: totalCoins,
+    unlockedItems: Array.from(itemMap.entries()).map(([slug, data]) => ({
+      slug,
+      quantity: data.quantity,
+      label: data.label,
+      icon: data.icon,
+    })),
+    unlockedTitles: titles,
+  };
+}
+
 /** Claim a tier reward (Free or Five-Star General) and add items/credits to player */
 export async function claimBattlePassTier(
   tierNumber: number,
@@ -351,6 +542,17 @@ export function useBattlePass() {
     []
   );
 
+  const claimAll = useCallback(
+    async (playerId: string, isVip?: boolean) => {
+      const res = await claimAllBattlePassRewards(playerId, isVip);
+      if (res.success) {
+        setBpState(getBattlePassState());
+      }
+      return res;
+    },
+    []
+  );
+
   const activateGeneral = useCallback(() => {
     const updated = unlockFiveStarGeneral();
     setBpState(updated);
@@ -364,6 +566,8 @@ export function useBattlePass() {
     progress,
     tiers: BATTLEPASS_TIERS,
     claimTier,
+    claimAll,
+    claimableCount: getClaimableTiersCount(bpState),
     activateGeneral,
     resetBattlePass: resetBattlePassState,
     isFiveStarGeneral: bpState.isFiveStarGeneral,

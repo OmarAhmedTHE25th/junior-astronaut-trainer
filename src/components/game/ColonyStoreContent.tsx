@@ -19,6 +19,8 @@ import {
 import {
   useBattlePass,
   claimBattlePassTier,
+  claimAllBattlePassRewards,
+  getClaimableTiersCount,
   unlockFiveStarGeneral,
   isDailyVaultAvailable,
   markDailyVaultClaimed,
@@ -62,6 +64,7 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
   } = useWallet();
 
   const isFiveStarGeneral = walletVip || bpFiveStar;
+  const claimableCount = getClaimableTiersCount(bpState, isFiveStarGeneral);
 
   const [mounted, setMounted] = useState(false);
 
@@ -513,6 +516,36 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
       setIsProcessing(false);
     }
   }, [isProcessing, playClick, activeCadet.cadetId, playSuccess, fetchWalletAndInventory, playAlert]);
+
+  // Handle Battle Pass Claim All
+  const handleClaimAllBattlePass = useCallback(async () => {
+    if (isProcessing) return;
+    playClick();
+    setIsProcessing(true);
+
+    try {
+      const res = await claimAllBattlePassRewards(activeCadet.cadetId, isFiveStarGeneral);
+      if (res.success && res.claimedCount > 0) {
+        playSuccess();
+        setStatusMsg({
+          type: 'success',
+          text: `🎉 Claimed ${res.claimedCount} rewards! +${res.totalCoinsEarned.toLocaleString()} GC and items credited to inventory!`,
+        });
+        if (res.totalCoinsEarned > 0) {
+          adjustBalanceOptimistic(res.totalCoinsEarned);
+        }
+        fetchWalletAndInventory();
+      } else {
+        setStatusMsg({ type: 'error', text: res.error || 'No claimable rewards available.' });
+        playAlert();
+      }
+    } catch {
+      setStatusMsg({ type: 'error', text: 'Error claiming Battle Pass rewards' });
+      playAlert();
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [isProcessing, playClick, activeCadet.cadetId, isFiveStarGeneral, playSuccess, adjustBalanceOptimistic, fetchWalletAndInventory, playAlert]);
 
   // Handle Opening an Orbital Supply Drop Crate
   const handleOpenCrate = useCallback(async (crateSlug: CrateTierSlug) => {
@@ -1327,13 +1360,26 @@ export default function ColonyStoreContent({ layoutMode = 'page' }: ColonyStoreC
                 </div>
               </div>
 
-              <div className="text-right">
-                <span className="text-xs font-mono font-bold text-cyan-300 uppercase block">
-                  Current Rank
-                </span>
-                <span className="font-heading font-black text-xl text-white">
-                  Tier {currentTier} <span className="text-xs text-white/50">/ 10</span>
-                </span>
+              <div className="flex items-center gap-3">
+                {claimableCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClaimAllBattlePass}
+                    disabled={isProcessing}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-heading font-black text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(251,191,36,0.6)] animate-pulse flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                  >
+                    <span>✨</span>
+                    <span>Claim All Rewards ({claimableCount})</span>
+                  </button>
+                )}
+                <div className="text-right">
+                  <span className="text-xs font-mono font-bold text-cyan-300 uppercase block">
+                    Current Rank
+                  </span>
+                  <span className="font-heading font-black text-xl text-white">
+                    Tier {currentTier} <span className="text-xs text-white/50">/ 10</span>
+                  </span>
+                </div>
               </div>
             </div>
 

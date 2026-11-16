@@ -22,6 +22,34 @@ import NeptuneJetstreamRunner from './minigames/NeptuneJetstreamRunner';
 import PlanetXAnomalyBoss from './minigames/PlanetXAnomalyBoss';
 import { startAmbientHum, stopAmbientHum } from '@/lib/sound';
 
+interface MinigameRouterProps {
+  planetId: string;
+  instanceKey: string;
+}
+
+function MinigameRouter({ planetId, instanceKey }: MinigameRouterProps) {
+  switch (planetId) {
+    case 'earth':
+      return <EarthImpactTriangulation key={instanceKey} />;
+    case 'venus':
+      return <VenusAerostatSurf key={instanceKey} />;
+    case 'mercury':
+      return <MercuryMeteorDefense key={instanceKey} />;
+    case 'jupiter':
+      return <JupiterGravitySlingshot key={instanceKey} />;
+    case 'saturn':
+      return <SaturnRingThreader key={instanceKey} />;
+    case 'uranus':
+      return <UranusDiamondHarvester key={instanceKey} />;
+    case 'neptune':
+      return <NeptuneJetstreamRunner key={instanceKey} />;
+    case 'planet_x':
+      return <PlanetXAnomalyBoss key={instanceKey} />;
+    default:
+      return null;
+  }
+}
+
 interface GameBoardProps {
   onChangeDifficulty?: () => void;
   matchId?: string | null;
@@ -92,6 +120,7 @@ export default function GameBoard({
   }, [state.phase, dispatch]);
 
   const isGameEnd = state.phase === 'gameover' || state.phase === 'victory';
+  const minigameInstanceKey = `${state.planetId}-${state.sol}-${state.runId || 'active'}`;
 
   return (
     <div className="relative w-full min-h-screen bg-[#0B1026] overflow-hidden">
@@ -152,37 +181,9 @@ export default function GameBoard({
         )}
 
         {/* Main content area: Route dedicated mini-games per planet, preserving classic 30-sol survival for Mars */}
-        {state.planetId === 'earth' ? (
+        {state.planetId && state.planetId !== 'mars' ? (
           <main className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 w-full">
-            <EarthImpactTriangulation />
-          </main>
-        ) : state.planetId === 'venus' ? (
-          <main className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 w-full">
-            <VenusAerostatSurf />
-          </main>
-        ) : state.planetId === 'mercury' ? (
-          <main className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 w-full">
-            <MercuryMeteorDefense />
-          </main>
-        ) : state.planetId === 'jupiter' ? (
-          <main className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 w-full">
-            <JupiterGravitySlingshot />
-          </main>
-        ) : state.planetId === 'saturn' ? (
-          <main className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 w-full">
-            <SaturnRingThreader />
-          </main>
-        ) : state.planetId === 'uranus' ? (
-          <main className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 w-full">
-            <UranusDiamondHarvester />
-          </main>
-        ) : state.planetId === 'neptune' ? (
-          <main className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 w-full">
-            <NeptuneJetstreamRunner />
-          </main>
-        ) : state.planetId === 'planet_x' ? (
-          <main className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 w-full">
-            <PlanetXAnomalyBoss />
+            <MinigameRouter planetId={state.planetId} instanceKey={minigameInstanceKey} />
           </main>
         ) : (
           <main className="flex-1 flex flex-col lg:flex-row gap-2 p-2 sm:p-2.5 items-start">
