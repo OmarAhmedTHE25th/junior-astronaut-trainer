@@ -23,6 +23,7 @@ interface MemoryMarketplaceState {
   inventory: Map<string, Map<string, PlayerInventoryItem>>; // playerId -> itemSlug -> Item
   listings: Map<string, MarketListing>;
   transactions: MarketTransaction[];
+  redeemedPromoCodes: Set<string>; // playerId:normalizedCode
 }
 
 declare global {
@@ -39,7 +40,11 @@ function getMemoryStore(): MemoryMarketplaceState {
       inventory: new Map(),
       listings: new Map(),
       transactions: [],
+      redeemedPromoCodes: new Set(),
     };
+  }
+  if (!globalThis.__jat_market_store__.redeemedPromoCodes) {
+    globalThis.__jat_market_store__.redeemedPromoCodes = new Set();
   }
   return globalThis.__jat_market_store__;
 }
@@ -147,6 +152,15 @@ export async function ensureMarketplaceSchema(sql: NeonQueryFunction<false, fals
 
         await sql`
           CREATE INDEX IF NOT EXISTS idx_player_inventory_player ON player_inventory(player_id);
+        `;
+
+        await sql`
+          CREATE TABLE IF NOT EXISTS redeemed_promo_codes (
+            player_id TEXT NOT NULL,
+            code TEXT NOT NULL,
+            redeemed_at TIMESTAMPTZ DEFAULT NOW(),
+            PRIMARY KEY (player_id, code)
+          );
         `;
 
         globalThis.__jat_market_schema_ready__ = true;
@@ -1288,7 +1302,8 @@ export async function executeRecycleItem(options: {
 }
 
 /**
- * Redeem promo codes, including DEVTEST26 God-Mode QA override
+ * Redeem promo codes, including DEVTEST26 God-Mode QA override.
+ * Enforces one-time-per-player redemption.
  */
 export async function redeemPromoCode(playerId: string, rawCode: string) {
   const code = (rawCode || '').trim().toUpperCase();
@@ -1296,7 +1311,55 @@ export async function redeemPromoCode(playerId: string, rawCode: string) {
     throw new Error('Promo code is required');
   }
 
+  // Validate recognized promo code before checking or recording redemption
+  // so typos don't burn a player's redemption attempt.
+  const VALID_PROMO_CODES = ['DEVTEST26', 'MARS2026'];
+  if (!VALID_PROMO_CODES.includes(code)) {
+    throw new Error(`Invalid or expired promo code: ${code}`);
+  }
+
   const sql = await getSqlClient();
+
+  // Check if player has already redeemed this code
+  if (sql) {
+    try {
+      const existing = await sql`
+        SELECT 1 FROM redeemed_promo_codes
+        WHERE player_id = ${playerId} AND code = ${code}
+        LIMIT 1;
+      `;
+      if (existing && existing.length > 0) {
+        return {
+          success: false,
+          error: 'Promo code already redeemed by this commander.',
+        };
+      }
+    } catch (err) {
+      console.error('[Neon Wallet Error] Failed checking redeemed_promo_codes:', err);
+      if (isNeonConfigured()) {
+        throw err;
+      }
+    }
+  } else {
+    if (isNeonConfigured()) {
+      throw new Error('[Neon Wallet Error] Cannot fall back to in-memory store when Neon is configured');
+    }
+    const mem = getMemoryStore();
+    if (mem.redeemedPromoCodes.has(`${playerId}:${code}`)) {
+      return {
+        success: false,
+        error: 'Promo code already redeemed by this commander.',
+      };
+    }
+  }
+
+  let result: {
+    success: boolean;
+    code: string;
+    creditsBalance: number;
+    isFiveStarGeneral?: boolean;
+    message: string;
+  };
 
   if (code === 'DEVTEST26') {
     if (sql) {
@@ -1354,25 +1417,44 @@ export async function redeemPromoCode(playerId: string, rawCode: string) {
       }
     }
 
-    return {
+    result = {
       success: true,
       code: 'DEVTEST26',
       creditsBalance: 999999,
       isFiveStarGeneral: true,
       message: '⚡ DEVTEST26 GOD-MODE ACTIVATED: VIP Unlocked • 999,999 GC • All 9 Worlds & Max Inventory Granted',
     };
-  }
-
-  if (code === 'MARS2026') {
+  } else if (code === 'MARS2026') {
     const reward = 500;
     const res = await rewardPlayerCredits(playerId, reward);
-    return {
+    result = {
       success: true,
       code: 'MARS2026',
       creditsBalance: res.newBalance,
       message: `Promo code redeemed! +${reward} Galaxy Coins added.`,
     };
+  } else {
+    throw new Error(`Invalid or expired promo code: ${code}`);
   }
 
-  throw new Error(`Invalid or expired promo code: ${code}`);
+  // Record one-time redemption
+  if (sql) {
+    try {
+      await sql`
+        INSERT INTO redeemed_promo_codes (player_id, code, redeemed_at)
+        VALUES (${playerId}, ${code}, NOW())
+        ON CONFLICT (player_id, code) DO NOTHING;
+      `;
+    } catch (err) {
+      console.error('[Neon Wallet Error] Failed recording promo code redemption:', err);
+      if (isNeonConfigured()) {
+        throw err;
+      }
+    }
+  } else {
+    const mem = getMemoryStore();
+    mem.redeemedPromoCodes.add(`${playerId}:${code}`);
+  }
+
+  return result;
 }
